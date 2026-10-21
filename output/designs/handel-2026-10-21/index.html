@@ -263,6 +263,19 @@
   .answer .state.ok { color: var(--ok); font-weight: 800; }
   .answer .state.bad { color: var(--bad); font-weight: 700; }
   .answer .stack img { width: 26px; height: 39px; }
+  /* Angebot an mich: dieselbe Größe wie der Tauschtisch */
+  .slot.static { cursor: default; }
+  .slot.static:hover { transform: none; }
+  .slot.short { border-color: var(--bad); box-shadow: 0 0 0 2px var(--bad); }
+  .slotwrap small.lack { color: var(--bad); }
+  .offer-head { margin: 0; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+  .offer-head .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--c); }
+  .offer-head span { color: var(--muted); font-weight: 600; font-size: 18px; }
+  .others { display: flex; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
+  .others span { display: flex; align-items: center; gap: 6px; }
+  .others i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+  .others .ok { color: var(--ok); }
+  .others .bad { color: var(--bad); }
   .wait::after { content: ' …'; animation: blink 1s steps(2) infinite; }
 
   .legend {
@@ -392,8 +405,10 @@
 
   function render() {
     const stage = document.getElementById('stage');
-    stage.classList.toggle('trading', state.trading);
+    stage.classList.toggle('trading', state.trading || !!state.incoming);
         const current = state.scenario === 'mine' ? 'Lukas' : 'Mira';
+    document.title = state.incoming && !state.incoming.accepted && !state.incoming.sent
+      ? '● Tauschangebot von Mira – Neuland' : 'Neuland · Prototyp Tauschtisch';
 
     document.getElementById('players').innerHTML = PLAYERS.map((p) => `
       <div class="player ${p.name === current ? 'active' : ''}" style="--c:${p.color}">
@@ -415,27 +430,9 @@
   }
 
   function renderIncoming() {
-    const host = document.getElementById('incoming');
-    const o = state.incoming;
-    if (!o) { host.innerHTML = ''; shownIncoming = null; return; }
-    const p = player(o.from);
-    host.innerHTML = `
-      <div class="incoming ${shownIncoming === o ? '' : 'enter'}" style="--c:${p.color}">
-        <p><span class="dot"></span>${p.name} <span>${o.sent ? 'prüft dein Gegenangebot' : 'sucht einen Tausch'}</span></p>
-        <div class="terms">
-          <small>gibt</small>${stack(o.give)}
-          <small>will</small>${stack(o.want)}
-        </div>
-        ${o.sent
-          ? `<p class="note wait">Gegenangebot geschickt, ${p.name} entscheidet</p>`
-          : `<div class="row">
-              <button class="btn primary small" data-act="accept-in" ${canPay(o.want) ? '' : 'disabled'}>Annehmen</button>
-              <button class="btn small" data-act="counter">Gegenangebot</button>
-              <button class="btn small" data-act="decline-in">Ablehnen</button>
-            </div>
-            ${canPay(o.want) ? '' : `<p class="note">Dir fehlt etwas dafür. Mach ein Gegenangebot.</p>`}`}
-      </div>`;
-    shownIncoming = o;
+    // Angebote an mich stehen groß im Dock, die Seitenleiste bleibt frei.
+    document.getElementById('incoming').innerHTML = '';
+    if (!state.incoming) shownIncoming = null;
   }
 
   const canPay = (c) => RES.every((r) => state.hand[r] >= c[r]);
@@ -472,8 +469,62 @@
     }).join('');
   }
 
+  function offerCards(c, side) {
+    return RES.filter((r) => c[r]).map((r) => {
+      const lack = side === 'pay' ? Math.max(0, c[r] - state.hand[r]) : 0;
+      const caption = side === 'pay'
+        ? (lack ? `<small class="lack">dir fehlt ${lack}</small>` : `<small>du hast ${state.hand[r]}</small>`)
+        : `<small>&nbsp;</small>`;
+      return `<span class="slotwrap"><span class="slot on static ${lack ? 'short' : ''}">
+        <img src="${CARD(r)}" alt=""><span class="name">${NAME[r]}</span><span class="cnt">${c[r]}</span>
+      </span>${caption}</span>`;
+    }).join('');
+  }
+
+  function offerDock(dock) {
+    const o = state.incoming;
+    const p = player(o.from);
+    const missing = RES.filter((r) => o.want[r] > state.hand[r]).map((r) => `${o.want[r] - state.hand[r]} ${NAME[r]}`);
+    const others = Object.entries(o.others).map(([name, a]) => {
+      const q = player(name);
+      const txt = a === 'accept' ? '<b class="ok">nimmt an</b>' : a === 'decline' ? '<b class="bad">lehnt ab</b>' : '<span class="wait">überlegt</span>';
+      return `<span style="--c:${q.color}"><i></i>${name} ${txt}</span>`;
+    }).join('');
+    let body;
+    if (o.accepted || o.sent) {
+      body = `<p class="hint"><b>${o.sent ? 'Gegenangebot geschickt.' : 'Du hast angenommen.'}</b> <span class="wait">${p.name} entscheidet, mit wem getauscht wird</span></p>
+        <div class="others">${others}</div>
+        <div class="buttons"><button class="btn" data-act="withdraw-in">Zurückziehen</button></div>`;
+    } else {
+      body = `<p class="hint">${missing.length
+          ? `Dir fehlt <b>${missing.join(', ')}</b>. Mach ein Gegenangebot, das für dich passt.`
+          : `Du hast alles, was ${p.name} will. Mit Annehmen bist du im Rennen, ${p.name} wählt dann aus.`}</p>
+        <div class="others">${others}</div>
+        <div class="buttons">
+          <button class="btn ${missing.length ? '' : 'primary'}" data-act="accept-in" ${missing.length ? 'disabled' : ''}>Annehmen</button>
+          <button class="btn ${missing.length ? 'primary' : ''}" data-act="counter">Gegenangebot</button>
+          <button class="btn" data-act="decline-in">Ablehnen</button>
+        </div>`;
+    }
+    const enter = shownIncoming === o ? '' : 'enter';
+    shownIncoming = o;
+    dock.classList.add('trading');
+    dock.innerHTML = `
+      <div class="table">
+        <div class="rows ${enter}">
+          <div class="trow"><b>${p.name} gibt dir</b><div class="slots">${offerCards(o.give, 'get')}</div></div>
+          <div class="trow"><b>${p.name} will<small>von dir</small></b><div class="slots">${offerCards(o.want, 'pay')}</div></div>
+        </div>
+        <div class="act ${enter}" style="--c:${p.color}">
+          <p class="offer-head"><span class="dot"></span>${p.name} <span>bietet einen Tausch an</span></p>
+          ${body}
+        </div>
+      </div>`;
+  }
+
   function renderDock() {
     const dock = document.getElementById('dock');
+    if (!state.trading && state.incoming) { offerDock(dock); return; }
     if (!state.trading) {
       shownTable = false;
       dock.classList.remove('trading');
@@ -619,8 +670,13 @@
     state.bank = { ...START_BANK };
     state.log = [...START_LOG];
     state.incoming = s === 'incoming'
-      ? { from: 'Mira', give: { ...zero(), ore: 1 }, want: { ...zero(), wood: 2, brick: 1 } }
+      ? { from: 'Mira', give: { ...zero(), ore: 1 }, want: { ...zero(), wood: 2, brick: 1 }, others: { Paul: 'pending', Jana: 'pending' } }
       : null;
+    if (state.incoming) {
+      const o = state.incoming;
+      later(1500, () => { o.others.Paul = 'decline'; });
+      later(3200, () => { o.others.Jana = 'accept'; });
+    }
     document.querySelectorAll('#scenario button').forEach((b) => b.classList.toggle('on', b.dataset.s === s));
   }
 
@@ -651,11 +707,15 @@
       if (act === 'bank') { apply(state.give, state.want, 'Bank'); toast('Mit der Bank getauscht'); resetTable(); }
       if (act === 'accept-in') {
         const o = state.incoming;
-        apply(o.want, o.give, 'Mira');
-        state.incoming = null;
-        toast('Getauscht mit Mira');
+        o.accepted = true;
+        later(2200, () => {
+          apply(o.want, o.give, 'Mira');
+          state.incoming = null;
+          toast('Mira tauscht mit dir');
+        });
       }
-      if (act === 'decline-in') { state.incoming = null; toast('Abgelehnt'); }
+      if (act === 'withdraw-in') { clearTimers(); state.incoming = null; toast('Zurückgezogen'); }
+      if (act === 'decline-in') { clearTimers(); state.incoming = null; toast('Abgelehnt'); }
       if (act === 'counter') {
         // Gegenangebot startet gespiegelt: was Mira will, gibst du; was sie gibt, bekommst du.
         const o = state.incoming;
