@@ -1,7 +1,7 @@
 import { Component, computed, input, output } from '@angular/core';
 import { GameState, getTopology, RESOURCE_NAMES, Terrain } from '../../engine';
 import { harborLabel } from '../shared/labels';
-import { CARD_ART } from '../shared/card-art';
+import { RESOURCE_ART } from '../shared/resource-art';
 import { TerrainDefs } from './terrain-defs';
 import { TILE_IMAGES } from './tile-art';
 import { pieceImage } from '../shared/piece-art';
@@ -118,7 +118,7 @@ export class Board {
         bx: b.x * S,
         by: b.y * S,
         label: harborLabel(harbor.type),
-        image: CARD_ART[harbor.type === 'any' ? 'back' : harbor.type],
+        image: harbor.type === 'any' ? null : RESOURCE_ART[harbor.type],
         title: harbor.type === 'any' ? 'Hafen 3:1 – alle Rohstoffe' : `Hafen 2:1 ${RESOURCE_NAMES[harbor.type]}`,
       };
     }),

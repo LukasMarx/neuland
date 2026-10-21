@@ -1,0 +1,96 @@
+{
+  "reports": [
+    {
+      "view": "base-desktop",
+      "count": 9,
+      "images": [
+        "icons/resources/wheat.png",
+        "?",
+        "icons/resources/brick.png",
+        "?",
+        "?",
+        "?",
+        "icons/resources/wood.png",
+        "icons/resources/sheep.png",
+        "icons/resources/ore.png"
+      ],
+      "labels": [
+        "2:1",
+        "3:1",
+        "2:1",
+        "3:1",
+        "3:1",
+        "3:1",
+        "2:1",
+        "2:1",
+        "2:1"
+      ],
+      "font": "\"Nunito Sans\", sans-serif",
+      "outsideViewBox": 0,
+      "pageOverflow": false
+    },
+    {
+      "view": "base-mobile",
+      "count": 9,
+      "images": [
+        "icons/resources/wheat.png",
+        "?",
+        "icons/resources/brick.png",
+        "?",
+        "?",
+        "?",
+        "icons/resources/wood.png",
+        "icons/resources/sheep.png",
+        "icons/resources/ore.png"
+      ],
+      "labels": [
+        "2:1",
+        "3:1",
+        "2:1",
+        "3:1",
+        "3:1",
+        "3:1",
+        "2:1",
+        "2:1",
+        "2:1"
+      ],
+      "font": "\"Nunito Sans\", sans-serif",
+      "outsideViewBox": 0,
+      "pageOverflow": false
+    },
+    {
+      "view": "extended-desktop",
+      "count": 11,
+      "images": [
+        "icons/resources/wood.png",
+        "?",
+        "icons/resources/brick.png",
+        "?",
+        "icons/resources/sheep.png",
+        "?",
+        "?",
+        "?",
+        "icons/resources/wheat.png",
+        "icons/resources/ore.png",
+        "icons/resources/sheep.png"
+      ],
+      "labels": [
+        "2:1",
+        "3:1",
+        "2:1",
+        "3:1",
+        "2:1",
+        "3:1",
+        "3:1",
+        "3:1",
+        "2:1",
+        "2:1",
+        "2:1"
+      ],
+      "font": "\"Nunito Sans\", sans-serif",
+      "outsideViewBox": 0,
+      "pageOverflow": false
+    }
+  ],
+  "errors": []
+}

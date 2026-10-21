@@ -24,13 +24,15 @@ Häfen und Spielfelder werden über dem Wasser gezeichnet.
 
 ### Häfen
 
-Die Hafenmedaillons verwenden dieselben Rohstoffmotive wie die Karten aus
-`public/cards/symbolstark/`. Allgemeine 3:1-Häfen zeigen das neutrale
-Neuland-Motiv der Kartenrückseite. Die Bilder werden im SVG rund beschnitten
-und mit einem cremefarbenen Rand sowie angedeuteten Holzstegen dargestellt.
-Das Tauschverhältnis bleibt separater Text in Nunito Sans auf einem hellen
-Schild; der Tooltip nennt Rohstoff und Verhältnis. Positionen und Zuordnung
-zu den beiden Küstenkreuzungen folgen weiterhin der Brettgeometrie.
+Die Häfen verwenden einzelne freigestellte Rohstoffsymbole aus
+`public/icons/resources/`, abgeleitet aus den Papiercollage-Karten. Die
+Zuordnung steht in `src/app/ui/shared/resource-art.ts`. Die Symbole haben
+einen transparenten Hintergrund und stehen einzeln auf einem hellen Kreis
+mit dünnem braunem Rand, ohne Landschaft. Allgemeine 3:1-Häfen zeigen ein Fragezeichen.
+Die hellen Schilder mit **2:1** bzw. **3:1** bleiben erhalten; ihre Beschriftung
+ist echter Text in Nunito Sans. Der Tooltip nennt Rohstoff und Verhältnis.
+Positionen und Zuordnung zu den beiden Küstenkreuzungen folgen weiterhin
+der Brettgeometrie. Prompts und Vorschauen: `output/designs/harbors-2026-10-21/`.
 
 ## Benötigte Dateien
 

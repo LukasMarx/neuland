@@ -27,14 +27,15 @@ text {
   pointer-events: none;
 }
 
-.hex {
-  // Mix white over terrain, below tokens, roads and buildings.
-  .terrain-wash {
-    fill: #fff;
-    opacity: var(--terrain-whiteness, 0.22);
-    pointer-events: none;
-  }
+// The same white mix covers water and terrain, below harbors and game pieces.
+.ocean-wash,
+.terrain-wash {
+  fill: #fff;
+  opacity: var(--terrain-whiteness, 0.22);
+  pointer-events: none;
+}
 
+.hex {
   .shine {
     pointer-events: none;
   }
@@ -104,21 +105,11 @@ text {
 .harbor {
   line {
     stroke: #735536;
-    stroke-width: 5;
+    stroke-width: 3;
     stroke-linecap: round;
   }
 
-  .pier {
-    stroke: #dbc18e;
-    stroke-width: 2;
-    stroke-dasharray: 3 3;
-  }
-
-  .harbor-shadow {
-    fill: rgb(16 46 54 / 0.3);
-  }
-
-  .harbor-rim {
+  .harbor-disc {
     fill: #fff0ce;
     stroke: #87683f;
     stroke-width: 1.2;
@@ -126,6 +117,12 @@ text {
 
   .harbor-art {
     pointer-events: none;
+  }
+
+  .harbor-any {
+    font-size: 25px;
+    font-weight: 900;
+    fill: #735536;
   }
 
   .harbor-plaque {
