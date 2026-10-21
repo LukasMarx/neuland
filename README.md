@@ -47,7 +47,7 @@ npx ng build
 
 Das Ergebnis in `dist/neuland/browser` ist eine rein statische Seite.
 
-Veröffentlicht wird automatisch über GitHub Pages: Jeder Push auf `main` testet, baut und deployt (`.github/workflows/deploy.yml`). Einmalig muss im Repository unter **Settings → Pages → Source** „GitHub Actions“ ausgewählt sein. Die Seite liegt dann unter https://lukasmarx.github.io/neuland/.
+Veröffentlicht wird automatisch über GitHub Pages: Jeder Push auf `main` testet, baut und deployt (`.github/workflows/deploy.yml`). Einmalig muss im Repository unter **Settings → Pages → Source** „GitHub Actions“ ausgewählt sein. Die Seite liegt dann unter https://lukas-marx.com/neuland/ (GitHub leitet `lukasmarx.github.io` auf diese Domain um).
 
 Grundsätzlich läuft sie auf jedem Static Hosting (GitHub/GitLab Pages, Netlify, Cloudflare Pages …), auch in einem Unterverzeichnis, weil die App Hash-Routing und relative Pfade nutzt.
 
