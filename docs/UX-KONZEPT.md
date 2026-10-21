@@ -67,6 +67,9 @@ Umgesetzt nach Entwurf **02b · Nachtbühne, ruhig** (`output/designs/ui-2026-10
 - **Bau-Vorschau:** Im Baumodus zeigt Hover über einem erlaubten Platz die Figur halbtransparent in der eigenen Farbe.
 - **Treffer:** Felder mit der gewürfelten Zahl leuchten nach dem Wurf kurz auf.
 - **Räuber versetzen:** Erlaubte Felder pulsieren, Hover zeigt den Räuber als Vorschau.
+- **Zoomen und Verschieben:** Mausrad, Trackpad-Pinch oder zwei Finger zoomen bis 3×, um den Zeiger herum. Gezoomt lässt sich das Brett ziehen. Ein Ziehen löst keinen Bau aus, erst ein Klick ohne Bewegung. Knöpfe unten rechts: +, − und „ganzes Brett“. Gezoomt nutzt der Ausschnitt die volle Breite der Brettfläche.
+- **Großes Brett (5–6 Spieler):** Sieben statt fünf Feldreihen machen jedes Feld kleiner. Figuren, Zahlenmarken, Häfen und Räuber werden dort 1,2× größer gezeichnet (`PIECE_SCALE`).
+- **Rand:** Der sichtbare Ausschnitt endet knapp hinter Wasser und Hafenschildern.
 
 ## Spielerkarten
 

@@ -34,7 +34,8 @@ import { RoomService } from '../../net/room.service';
     .messages {
       flex: 1;
       min-height: 80px;
-      max-height: 220px;
+      /* Im Spiel füllt der Chat die Seitenleiste, in der Lobby bleibt er kompakt. */
+      max-height: var(--chat-max-height, 220px);
       overflow-y: auto;
       font-size: 0.92em;
       display: flex;

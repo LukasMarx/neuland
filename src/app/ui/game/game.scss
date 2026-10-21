@@ -353,6 +353,7 @@ kbd {
 }
 
 .chat {
+  --chat-max-height: none;
   flex: 1;
   min-height: 0;
 }

@@ -8,7 +8,7 @@
       <title>{{ h.title }}</title>
       <line [attr.x1]="h.x" [attr.y1]="h.y" [attr.x2]="h.ax" [attr.y2]="h.ay" />
       <line [attr.x1]="h.x" [attr.y1]="h.y" [attr.x2]="h.bx" [attr.y2]="h.by" />
-      <g [attr.transform]="'translate(' + h.x + ',' + h.y + ')'">
+      <g [attr.transform]="h.transform">
         <!-- Symbol und Scheibe teilen sich den Mittelpunkt (0, -4); das Schild sitzt darunter. -->
         <circle class="harbor-disc" cx="0" cy="-4" r="21" />
         @if (h.image) {
@@ -34,7 +34,7 @@
       <polygon class="shine" [attr.points]="h.points" fill="url(#g-shine)" />
       <polygon class="outline" [attr.points]="h.points" />
       @if (h.number) {
-        <g class="token" [class.red]="h.red" [class.blocked]="h.robber">
+        <g class="token" [class.red]="h.red" [class.blocked]="h.robber" [attr.transform]="h.tokenTransform || null">
           <circle class="shadow" [attr.cx]="h.x + 1.5" [attr.cy]="h.y + S * 0.05 + 2.5" [attr.r]="S * 0.3" />
           <circle class="disc" [attr.cx]="h.x" [attr.cy]="h.y + S * 0.05" [attr.r]="S * 0.3" fill="url(#g-token)" />
           <circle class="ring" [attr.cx]="h.x" [attr.cy]="h.y + S * 0.05" [attr.r]="S * 0.25" />
@@ -45,7 +45,7 @@
         </g>
       }
       @if (h.robber) {
-        <g class="robber" [attr.transform]="'translate(' + (h.x + S * 0.42) + ',' + (h.y + S * 0.1) + ')'">
+        <g class="robber" [attr.transform]="h.robberTransform">
           <ellipse cx="0" [attr.cy]="S * 0.2" [attr.rx]="S * 0.16" [attr.ry]="S * 0.06" />
           <path [attr.d]="'M' + -S * 0.13 + ',' + S * 0.2 + ' Q0,' + -S * 0.25 + ' ' + S * 0.13 + ',' + S * 0.2 + ' Z'" />
           <circle cx="0" [attr.cy]="-S * 0.12" [attr.r]="S * 0.1" />
@@ -126,3 +126,11 @@
     </g>
   }
 </svg>
+
+<div class="zoom" (pointerdown)="$event.stopPropagation()">
+  <button type="button" class="small" title="Hineinzoomen" aria-label="Hineinzoomen" [disabled]="zoom() >= maxZoom" (click)="zoomBy(1.4)">+</button>
+  <button type="button" class="small" title="Herauszoomen" aria-label="Herauszoomen" [disabled]="zoom() <= 1" (click)="zoomBy(1 / 1.4)">−</button>
+  @if (zoom() > 1) {
+    <button type="button" class="small" title="Ganzes Brett zeigen" aria-label="Ganzes Brett zeigen" (click)="resetZoom()">⤢</button>
+  }
+</div>
