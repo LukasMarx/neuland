@@ -125,7 +125,7 @@ Spielerfarbe der passenden Datei zu. Die acht Farbvarianten entstehen aus je
 einem Grundbild und einer gespeicherten Maske; Export und Anleitung liegen in
 `scripts/build-piece-assets.py` und `output/designs/pieces-2026-10-21/README.md`.
 
-Gebäude sitzen mittig auf ihren Kreuzungen (Siedlung 32, Stadt 40 Brett-Einheiten).
+Gebäude sitzen mittig auf ihren Kreuzungen (Siedlung 32, Stadt 46 Brett-Einheiten, `BUILDING_SIZE` in `board.ts`).
 Straßen werden um den Kantenmittelpunkt gedreht und vor den Gebäuden gezeichnet.
 Über den Feldern liegt keine Aufhellung. Damit die Figuren auf jedem Gelände
 lesbar bleiben, bekommen sie einen dünnen, leicht transparenten dunklen Rand

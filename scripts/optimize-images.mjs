@@ -11,18 +11,23 @@ import { basename, extname, join, resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '..');
 const pub = join(root, 'public');
 
-/** Quellordner, längste Kante in Pixeln und Zielformat. Deckende Bilder als JPEG, transparente als PNG. */
+/**
+ * Quellordner, längste Kante in Pixeln und Zielformat. Deckende Bilder als JPEG, transparente als PNG.
+ * `out` legt eine zweite Fassung desselben Ordners an, z. B. große Karten für die Kartenansicht.
+ */
 const GROUPS = [
   { dir: 'cards/symbolstark', size: 384, format: 'jpeg' },
+  { dir: 'cards/symbolstark', out: 'cards-large/symbolstark', size: 900, format: 'jpeg' },
   { dir: 'tiles/papiercollage', size: 384, format: 'png', except: { 'ocean.png': { size: 1024, format: 'jpeg' } } },
   { dir: 'icons/resources', size: 96, format: 'png' },
   { dir: 'pieces/papiercollage', size: 160, format: 'png' },
 ];
 
+const sources = new Set();
 let before = 0;
 let after = 0;
 for (const group of GROUPS) {
-  const outDir = join(pub, 'web', group.dir);
+  const outDir = join(pub, 'web', group.out ?? group.dir);
   mkdirSync(outDir, { recursive: true });
   for (const file of readdirSync(join(pub, group.dir)).filter((f) => f.endsWith('.png'))) {
     const { size, format } = group.except?.[file] ?? group;
@@ -31,7 +36,8 @@ for (const group of GROUPS) {
     const args = ['-Z', String(size), '-s', 'format', format];
     if (format === 'jpeg') args.push('-s', 'formatOptions', '82');
     execFileSync('sips', [...args, src, '--out', out], { stdio: 'ignore' });
-    before += statSync(src).size;
+    if (!sources.has(src)) before += statSync(src).size;
+    sources.add(src);
     after += statSync(out).size;
   }
 }

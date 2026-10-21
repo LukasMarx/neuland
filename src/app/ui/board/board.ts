@@ -7,6 +7,8 @@ import { TILE_IMAGES } from './tile-art';
 import { pieceImage } from '../shared/piece-art';
 
 const S = 60;
+/** Größe der Gebäudegrafiken in Brett-Einheiten, gilt auch für die Bauvorschau. */
+const BUILDING_SIZE = { settlement: 32, city: 46 } as const;
 
 @Component({
   selector: 'app-board',
@@ -33,7 +35,7 @@ export class Board {
     const kind = this.ghost();
     return kind ? pieceImage(kind, this.ghostColor()) : null;
   });
-  protected readonly ghostSize = computed(() => this.ghost() === 'city' ? 40 : 32);
+  protected readonly ghostSize = computed(() => BUILDING_SIZE[this.ghost() ?? 'settlement']);
   protected readonly ghostRoadImage = computed(() => pieceImage('road', this.ghostColor()));
 
   protected readonly topo = computed(() => getTopology(this.game().board.layout));
@@ -144,7 +146,7 @@ export class Board {
       const player = g.players[b.owner];
       return [{
         id, x: v.x * S, y: v.y * S, city: b.type === 'city', color: player.color,
-        size: b.type === 'city' ? 40 : 32, image: pieceImage(b.type, player.color),
+        size: BUILDING_SIZE[b.type], image: pieceImage(b.type, player.color),
         title: `${player.name}: ${b.type === 'city' ? 'Stadt' : 'Siedlung'}`,
       }];
     });

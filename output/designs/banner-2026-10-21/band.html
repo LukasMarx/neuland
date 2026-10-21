@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neuland · Banner-Prototyp B · Band</title>
+<link rel="stylesheet" href="../ui-2026-10-21/shared/board.css">
+<style>
+  :root { --bg: #121c24; --panel: #18242e; --line: #2a3a46; --text: #e8e2d6; --muted: #8d9aa4; --accent: #d4b06a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Nunito Sans', sans-serif; }
+  header { padding: 28px 36px 0; }
+  header h1 { margin: 0 0 6px; font-size: 26px; font-weight: 900; }
+  header p { margin: 0; color: var(--muted); max-width: 860px; line-height: 1.45; }
+  header a { color: var(--accent); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; padding: 18px 36px; }
+  .controls button {
+    height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--line);
+    background: #1e2c37; color: var(--text); font: 700 13px 'Nunito Sans', sans-serif; cursor: pointer;
+  }
+  .controls button:hover { border-color: var(--accent); }
+
+  .stage {
+    position: relative;
+    margin: 0 36px 36px;
+    height: 600px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .stage .nl-board-host { position: absolute; inset: 20px; }
+
+  /* --- Das Band: breit, halbtransparent, weich auslaufend --- */
+  .band {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    z-index: 5;
+    height: 172px;
+    translate: 0 -50%;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 28px;
+    padding: 0 6%;
+    background: linear-gradient(90deg, transparent, rgb(11 19 26 / 0.84) 16%, rgb(11 19 26 / 0.84) 84%, transparent);
+    backdrop-filter: blur(2px);
+    animation: band-open 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) both, band-close 0.5s ease-in 3.6s forwards;
+  }
+  .band::before,
+  .band::after {
+    content: '';
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    height: 1.5px;
+    background: linear-gradient(90deg, transparent, var(--accent) 20%, var(--accent) 80%, transparent);
+    opacity: 0.8;
+  }
+  .band::before { top: 10px; }
+  .band::after { bottom: 10px; }
+
+  .title { text-align: center; animation: rise 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) 0.25s both; }
+  .title b {
+    display: block;
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+    color: #f6ecd6;
+    text-shadow: 0 2px 0 rgb(0 0 0 / 0.35), 0 0 24px rgb(212 176 106 / 0.25);
+    white-space: nowrap;
+  }
+  .title span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 3px 12px;
+    border-radius: 999px;
+    border: 1px solid rgb(212 176 106 / 0.5);
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .title i { width: 11px; height: 11px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 1.5px rgb(0 0 0 / 0.5); }
+  .title em { font-style: normal; color: var(--accent); }
+
+  .props { position: relative; height: 140px; display: flex; align-items: center; gap: 10px; }
+  .props.left { justify-content: flex-end; }
+  .props.right { justify-content: flex-start; }
+  .props img { filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.5)); }
+
+  /* Gemeinsame Auftritte der Einzelteile, Verzögerung über --d */
+  .pop { animation: pop 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) var(--d, 0s) both; }
+  .march { animation: march 0.6s cubic-bezier(0.25, 1.2, 0.4, 1) var(--d, 0s) both; }
+  .lay { transform-origin: left center; animation: lay 0.35s ease-out var(--d, 0s) both; }
+  .fly-l { animation: fly-l 0.7s cubic-bezier(0.3, 1.2, 0.4, 1) var(--d, 0s) both; }
+  .fly-r { animation: fly-r 0.7s cubic-bezier(0.3, 1.2, 0.4, 1) var(--d, 0s) both; }
+
+  .road { width: 74px; height: auto; rotate: var(--r, 0deg); }
+  .house { width: 88px; }
+  .city { width: 112px; }
+  .knight { width: 96px; }
+  .res { width: 64px; }
+
+  .band.win { height: 210px; }
+  .band.win .title b { font-size: 52px; color: #f3d48a; }
+
+  @keyframes band-open { from { clip-path: inset(0 50% 0 50%); opacity: 0.4; } to { clip-path: inset(0 0 0 0); opacity: 1; } }
+  @keyframes band-close { to { clip-path: inset(48% 0 48% 0); opacity: 0; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px) scale(0.94); } }
+  @keyframes pop { from { opacity: 0; transform: scale(0.2) translateY(20px); } }
+  @keyframes march { from { opacity: 0; transform: translateX(-60px); } }
+  @keyframes lay { from { opacity: 0; transform: scaleX(0); } }
+  @keyframes fly-l { from { opacity: 0; transform: translateX(-260px) rotate(-30deg); } }
+  @keyframes fly-r { from { opacity: 0; transform: translateX(260px) rotate(30deg); } }
+
+  .confetti { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+  .confetti i { position: absolute; top: -16px; width: 9px; height: 13px; border-radius: 2px; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(640px) rotate(720deg); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Banner B: breites Band aus Einzelteilen</h1>
+  <p>Ein halbtransparentes Band über die ganze Breite, das Brett bleibt sichtbar. Statt eines Kartenbilds treten die freigestellten Spielteile auf: Straßen legen sich aus, Ritter marschieren ein, Rohstoffe fliegen herein. Zum Vergleich: <a href="index.html">Variante A im Kartenformat</a>.</p>
+</header>
+<div class="controls">
+  <button data-event="win">Sieg</button>
+  <button data-event="road">Längste Handelsstraße</button>
+  <button data-event="army">Größte Rittermacht</button>
+  <button data-event="monopoly">Monopol</button>
+  <button data-event="plenty">Erfindung</button>
+  <button data-event="turn">Du bist dran</button>
+</div>
+<div class="stage" id="stage"><div class="nl-board-host" id="board"></div></div>
+
+<script type="module">
+  import { renderBoard } from '../ui-2026-10-21/shared/board.js';
+  renderBoard(document.getElementById('board'));
+
+  const P = (kind, color) => `../../../public/web/pieces/papiercollage/${kind}-${color}.png`;
+  const R = (res) => `../../../public/web/icons/resources/${res}.png`;
+  const img = (src, cls, d, extra = '') => `<img src="${src}" class="${cls}" style="--d:${d}s;${extra}" alt="">`;
+
+  const EVENTS = {
+    road: {
+      title: 'Längste Handelsstraße', who: ['Mira', '#2f64d6'], tag: '+2 Punkte · 6 Straßen',
+      left: [0, 1, 2, 3].map((i) => img(P('road', 'blue'), 'road lay', 0.3 + i * 0.12, `--r:${i % 2 ? 8 : -8}deg`)).join(''),
+      right: img(P('settlement', 'blue'), 'house pop', 0.85) + img(P('city', 'blue'), 'city pop', 1.0),
+    },
+    army: {
+      title: 'Größte Rittermacht', who: ['Paul', '#ee8a1c'], tag: '+2 Punkte · 3 Ritter',
+      left: [0, 1, 2].map((i) => img(P('knight', 'orange'), 'knight march', 0.25 + i * 0.15)).join(''),
+      right: [0, 1, 2].map((i) => img(P('knight', 'orange'), 'knight march', 0.3 + i * 0.15, 'scale:-1 1')).join(''),
+    },
+    win: {
+      cls: 'win', title: 'Lukas gewinnt!', who: ['Lukas', '#d23c3c'], tag: '10 Siegpunkte', confetti: true,
+      left: img(P('settlement', 'red'), 'house pop', 0.35) + img(P('city', 'red'), 'city pop', 0.5),
+      right: img(P('knight', 'red'), 'knight pop', 0.6) + img(P('city', 'red'), 'city pop', 0.75),
+    },
+    monopoly: {
+      title: 'Monopol auf Getreide', who: ['Jana', '#f4f1e8'], tag: 'bekommt 6 Karten',
+      left: [0, 1, 2].map((i) => img(R('wheat'), 'res fly-l', 0.2 + i * 0.12)).join(''),
+      right: [0, 1, 2].map((i) => img(R('wheat'), 'res fly-r', 0.26 + i * 0.12)).join(''),
+    },
+    plenty: {
+      title: 'Erfindung', who: ['Mira', '#2f64d6'], tag: 'nimmt 2 Rohstoffe',
+      left: img(R('ore'), 'res pop', 0.35),
+      right: img(R('brick'), 'res pop', 0.5),
+    },
+    turn: {
+      title: 'Du bist dran', who: ['Lukas', '#d23c3c'], tag: 'Zug 14',
+      left: img(P('knight', 'red'), 'knight march', 0.2),
+      right: '',
+    },
+  };
+  const stage = document.getElementById('stage');
+
+  function show(key) {
+    const e = EVENTS[key];
+    stage.querySelectorAll('.band, .confetti').forEach((el) => el.remove());
+    const band = document.createElement('div');
+    band.className = 'band ' + (e.cls ?? '');
+    band.innerHTML = `<div class="props left">${e.left}</div>
+      <div class="title"><b>${e.title}</b><span><i style="--c:${e.who[1]}"></i>${e.who[0]} <em>${e.tag}</em></span></div>
+      <div class="props right">${e.right}</div>`;
+    stage.append(band);
+    if (e.confetti) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      const colors = ['#d23c3c', '#2f64d6', '#e6c24a', '#2f9a48', '#ee8a1c', '#f4f1e8'];
+      for (let i = 0; i < 90; i++) {
+        const p = document.createElement('i');
+        p.style.left = Math.random() * 100 + '%';
+        p.style.background = colors[i % colors.length];
+        p.style.animationDuration = 2.4 + Math.random() * 1.8 + 's';
+        p.style.animationDelay = Math.random() * 0.8 + 's';
+        c.append(p);
+      }
+      stage.append(c);
+    }
+  }
+  window.show = show;
+  document.querySelectorAll('.controls button').forEach((b) => b.addEventListener('click', () => show(b.dataset.event)));
+  show('road');
+</script>
+</body>
+</html>

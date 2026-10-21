@@ -29,6 +29,7 @@ import { pieceImage } from '../shared/piece-art';
 import { RESOURCE_ART } from '../shared/resource-art';
 import { DEV_CARD_HELP } from '../shared/labels';
 import { ResourcePicker } from '../shared/resource-picker';
+import { CardInspector } from './card-inspector';
 import { DiceTray, ROLL_DURATION_MS } from './dice-tray';
 import { FlyLayer } from './fly-layer';
 import { OfferList } from './offer-list';
@@ -43,7 +44,7 @@ const HIGHLIGHT_MS = 2600;
 
 @Component({
   selector: 'app-game',
-  imports: [Board, CardFace, ChatBox, DiceTray, FlyLayer, OfferList, ResourcePicker, TradeDialog],
+  imports: [Board, CardFace, CardInspector, ChatBox, DiceTray, FlyLayer, OfferList, ResourcePicker, TradeDialog],
   templateUrl: './game.html',
   styleUrl: './game.scss',
   host: { '(document:keydown)': 'onKey($event)' },
@@ -71,6 +72,10 @@ export class GameView {
   protected readonly buildMode = signal<BuildMode | null>(null);
   protected readonly dialog = signal<Dialog | null>(null);
   protected readonly tradeOpen = signal(false);
+  /** Vergrößert angesehene Entwicklungskarte samt Ausgangsposition in der Hand. */
+  protected readonly inspect = signal<{ card: DevCard; origin: DOMRect } | null>(null);
+  /** Geöffnete Punkte-Übersicht eines Spielers, verankert unter seinem Eintrag. */
+  protected readonly info = signal<{ seat: number; left: number; top: number } | null>(null);
   protected readonly sideTab = signal<'log' | 'chat'>('log');
   // Beim Entwickeln standardmäßig stumm, sonst an, solange man ihn nicht ausschaltet.
   protected readonly sound = signal(
@@ -264,6 +269,51 @@ export class GameView {
       .filter((c) => c.ready + c.fresh > 0);
   });
 
+  /** Status und Spielbarkeit der gerade vergrößerten Karte. */
+  protected readonly inspected = computed(() => {
+    const i = this.inspect();
+    const me = this.me();
+    if (!i || !me) return null;
+    const ready = me.devCards.includes(i.card);
+    const canPlay = this.isPlayable(i.card) && ready && this.canPlayDev();
+    let status: string;
+    if (i.card === 'victoryPoint') status = 'Zählt bereits als Siegpunkt.';
+    else if (!ready) status = 'Neu gekauft: ab deinem nächsten Zug spielbar.';
+    else if (canPlay) status = 'Jetzt spielbar.';
+    else if (this.g().devPlayed && this.isCurrent()) status = 'In diesem Zug hast du schon eine Karte gespielt.';
+    else if (!this.isCurrent()) status = 'Spielbar, wenn du am Zug bist.';
+    else status = 'Gerade nicht spielbar.';
+    return { ...i, status, canPlay };
+  });
+
+  /** Woraus sich die Siegpunkte eines Spielers zusammensetzen. Verdeckte Punkte sieht nur der Spieler selbst. */
+  protected readonly infoData = computed(() => {
+    const i = this.info();
+    if (!i) return null;
+    const g = this.g();
+    const p = g.players[i.seat];
+    if (!p) return null;
+    const own = (type: 'settlement' | 'city') => g.buildings.filter((b) => b?.owner === i.seat && b.type === type).length;
+    const showHidden = i.seat === this.seat() || g.phase.kind === 'ended';
+    const devCards = [...p.devCards, ...p.newDevCards];
+    return {
+      ...i,
+      name: p.name,
+      color: p.color,
+      me: i.seat === this.seat(),
+      settlements: own('settlement'),
+      cities: own('city'),
+      longestRoad: g.longestRoad === i.seat,
+      road: g.roadLengths[i.seat],
+      largestArmy: g.largestArmy === i.seat,
+      knights: p.knights,
+      vpCards: showHidden ? devCards.filter((c) => c === 'victoryPoint').length : null,
+      hiddenDev: devCards.length,
+      total: victoryPoints(g, i.seat, showHidden),
+      cards: totalResources(p.resources),
+    };
+  });
+
   protected readonly canPlayDev = computed(() => {
     const g = this.g();
     return this.isCurrent() && (g.phase.kind === 'roll' || g.phase.kind === 'main') && !g.devPlayed;
@@ -368,6 +418,26 @@ export class GameView {
     if (sum === 7) return;
     this.highlightNumber.set(sum);
     setTimeout(() => this.highlightNumber.update((n) => (n === sum ? null : n)), HIGHLIGHT_MS);
+  }
+
+  protected inspectCard(card: DevCard, event: MouseEvent): void {
+    const el = (event.currentTarget as HTMLElement).querySelector('app-card-face') ?? (event.currentTarget as HTMLElement);
+    this.inspect.set({ card, origin: el.getBoundingClientRect() });
+  }
+
+  protected playInspected(): void {
+    const card = this.inspect()?.card;
+    this.inspect.set(null);
+    if (card) this.play(card);
+  }
+
+  protected toggleInfo(seat: number, event: MouseEvent): void {
+    if (this.info()?.seat === seat) {
+      this.info.set(null);
+      return;
+    }
+    const r = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.info.set({ seat, left: Math.min(r.left, innerWidth - 300), top: r.bottom + 8 });
   }
 
   protected toggleBuild(mode: BuildMode): void {
@@ -476,6 +546,12 @@ export class GameView {
   protected onKey(event: KeyboardEvent): void {
     const target = event.target as HTMLElement | null;
     if (target?.closest('input, textarea, select') || event.metaKey || event.ctrlKey || event.altKey) return;
+    // Die Kartenansicht schließt sich selbst mit Esc; dahinter soll nichts ausgelöst werden.
+    if (this.inspect()) return;
+    if (event.key === 'Escape' && this.info()) {
+      this.info.set(null);
+      return;
+    }
     const options = this.buildOptions();
     switch (event.key.toLowerCase()) {
       case ' ':

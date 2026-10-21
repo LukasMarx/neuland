@@ -134,6 +134,18 @@ kbd {
   &.offline {
     opacity: 0.5;
   }
+
+  cursor: pointer;
+
+  &:hover,
+  &.open {
+    background: var(--panel-2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
 }
 
 .tools {
@@ -599,6 +611,97 @@ kbd {
     border-color: var(--line);
     color: var(--muted);
     font-weight: 600;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Punkte-Übersicht eines Spielers
+
+.info-catcher {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+}
+
+.info {
+  position: fixed;
+  z-index: 31;
+  width: 290px;
+  padding: 14px 16px 12px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--c);
+  box-shadow: var(--shadow);
+  animation: info-in 0.16s ease-out;
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .total {
+    margin-left: auto;
+    font-size: 22px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+
+    small {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px 12px;
+    margin: 0;
+    font-size: 13px;
+  }
+
+  dt {
+    color: var(--text);
+  }
+
+  dd {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+
+    b {
+      min-width: 14px;
+      text-align: right;
+    }
+
+    .none {
+      color: var(--muted);
+      font-weight: 600;
+    }
+  }
+
+  footer {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+}
+
+.dcard {
+  cursor: pointer;
+}
+
+@keyframes info-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
   }
 }
 

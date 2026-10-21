@@ -10,6 +10,11 @@
       @for (p of playerRows(); track p.seat) {
         <div
           class="player"
+          role="button"
+          tabindex="0"
+          [class.open]="info()?.seat === p.seat"
+          (click)="toggleInfo(p.seat, $event)"
+          (keydown.enter)="toggleInfo(p.seat, $any($event))"
           [attr.data-seat]="p.seat"
           [class.active]="p.active"
           [class.offline]="!p.online"
@@ -159,10 +164,10 @@
         @if (myDevCards().length) {
           <span class="divider"></span>
           @for (d of myDevCards(); track d.card) {
-            <div class="dcard" [class.fresh]="!d.ready" [title]="devHelp[d.card]">
+            <div class="dcard" [class.fresh]="!d.ready" [title]="devHelp[d.card] + ' Klicken für Details.'" (click)="inspectCard(d.card, $event)">
               <app-card-face [kind]="d.card" [badge]="d.ready + d.fresh > 1 ? '×' + (d.ready + d.fresh) : null">
                 @if (isPlayable(d.card)) {
-                  <button class="small" [disabled]="!canPlayDev() || !d.ready" (click)="play(d.card)" [attr.aria-label]="devNames[d.card] + (d.ready ? ' spielen' : ' – ab nächstem Zug spielbar')">
+                  <button class="small" [disabled]="!canPlayDev() || !d.ready" (click)="$event.stopPropagation(); play(d.card)" [attr.aria-label]="devNames[d.card] + (d.ready ? ' spielen' : ' – ab nächstem Zug spielbar')">
                     {{ d.ready ? 'Spielen' : 'Neu' }}
                   </button>
                 }
@@ -242,6 +247,67 @@
 </div>
 
 <app-fly-layer />
+
+@if (inspected(); as i) {
+  <app-card-inspector
+    [card]="i.card"
+    [origin]="i.origin"
+    [status]="i.status"
+    [canPlay]="i.canPlay"
+    (play)="playInspected()"
+    (close)="inspect.set(null)"
+  />
+}
+
+@if (infoData(); as d) {
+  <div class="info-catcher" (click)="info.set(null)"></div>
+  <section class="info" [style.left.px]="d.left" [style.top.px]="d.top" [style.--c]="d.color" role="dialog" [attr.aria-label]="'Siegpunkte von ' + d.name">
+    <header>
+      <span class="color-dot" [style.background]="d.color"></span>
+      <b>{{ d.name }}</b>
+      @if (d.me) {
+        <span class="muted">(du)</span>
+      }
+      <span class="total">{{ d.total }} <small>Punkte</small></span>
+    </header>
+    <dl>
+      <dt>Siedlungen</dt>
+      <dd><span class="muted">{{ d.settlements }} × 1</span><b>{{ d.settlements }}</b></dd>
+      <dt>Städte</dt>
+      <dd><span class="muted">{{ d.cities }} × 2</span><b>{{ d.cities * 2 }}</b></dd>
+      <dt>Längste Handelsstraße</dt>
+      <dd>
+        @if (d.longestRoad) {
+          <span class="muted">{{ d.road }} {{ d.road === 1 ? 'Straße' : 'Straßen' }}</span><b>2</b>
+        } @else {
+          <span class="muted">{{ d.road }} {{ d.road === 1 ? 'Straße' : 'Straßen' }}, ab 5</span><b class="none">–</b>
+        }
+      </dd>
+      <dt>Größte Rittermacht</dt>
+      <dd>
+        @if (d.largestArmy) {
+          <span class="muted">{{ d.knights }} Ritter</span><b>2</b>
+        } @else {
+          <span class="muted">{{ d.knights }} Ritter, ab 3</span><b class="none">–</b>
+        }
+      </dd>
+      <dt>Siegpunktkarten</dt>
+      <dd>
+        @if (d.vpCards !== null) {
+          <span class="muted">{{ d.vpCards }} × 1</span><b>{{ d.vpCards }}</b>
+        } @else {
+          <span class="muted">verdeckt</span><b class="none">?</b>
+        }
+      </dd>
+    </dl>
+    <footer class="muted">
+      {{ d.cards }} Rohstoffkarten · {{ d.hiddenDev }} Entwicklungskarten auf der Hand
+      @if (d.vpCards === null && d.hiddenDev > 0) {
+        <br />Siegpunktkarten unter den Entwicklungskarten zählen erst am Ende sichtbar.
+      }
+    </footer>
+  </section>
+}
 
 @if (tradeOpen() && canTrade()) {
   <app-trade-dialog [game]="game" [seat]="seat()" (close)="tradeOpen.set(false)" />

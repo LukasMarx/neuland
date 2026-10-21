@@ -16,3 +16,8 @@ export const CARD_ART: Record<CardKind, string> = {
   victoryPoint: 'web/cards/symbolstark/victoryPoint.jpg',
   back: 'web/cards/symbolstark/back.jpg',
 };
+
+/** Große Fassungen (900 px) für die vergrößerte Kartenansicht, werden erst bei Bedarf geladen. */
+export const CARD_ART_LARGE = Object.fromEntries(
+  Object.entries(CARD_ART).map(([kind, path]) => [kind, path.replace('web/cards/', 'web/cards-large/')]),
+) as Record<CardKind, string>;

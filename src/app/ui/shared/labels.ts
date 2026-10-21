@@ -42,6 +42,20 @@ export const DEV_CARD_HELP: Record<DevCard, string> = {
   victoryPoint: 'Zählt automatisch 1 Siegpunkt.',
 };
 
+/** Ausführliche Regeltexte für die Rückseite der vergrößerten Karte. */
+export const DEV_CARD_RULES: Record<DevCard, string> = {
+  knight:
+    'Spiele den Ritter vor oder nach dem Würfeln. Versetze den Räuber auf ein anderes Feld und ziehe bei einem Spieler, der dort ein Gebäude hat, eine zufällige Rohstoffkarte. Wer als Erster 3 Ritter gespielt hat, bekommt die größte Rittermacht und damit 2 Siegpunkte.',
+  roadBuilding: 'Baue sofort 2 Straßen, ohne Rohstoffe zu bezahlen. Es gelten die normalen Bauregeln.',
+  yearOfPlenty:
+    'Nimm dir 2 beliebige Rohstoffkarten aus der Bank, auch zweimal dieselbe. Du kannst sie im selben Zug noch verbauen.',
+  monopoly: 'Nenne einen Rohstoff. Alle anderen Spieler müssen dir sämtliche Karten dieses Rohstoffs geben.',
+  victoryPoint:
+    'Diese Karte zählt 1 Siegpunkt. Sie bleibt verdeckt in deiner Hand und wird erst am Spielende für alle sichtbar.',
+};
+
+export const DEV_CARD_GENERAL = 'Pro Zug darfst du eine Entwicklungskarte spielen, aber nicht in dem Zug, in dem du sie gekauft hast.';
+
 export function harborLabel(type: HarborType): string {
   return type === 'any' ? '3:1' : `2:1`;
 }
