@@ -35,6 +35,30 @@
       drop-shadow(0 -1.2px 0 #fff4d9) drop-shadow(0 2px 2px rgb(0 0 0 / 0.55));
   }
 
+  /* Dezentere Stufen: dünner, halbtransparenter Rand bzw. weicher Schein */
+  .v-paper-thin .nl-building,
+  .v-paper-thin .nl-road {
+    filter: drop-shadow(0.6px 0 0 rgb(255 244 217 / 0.8)) drop-shadow(-0.6px 0 0 rgb(255 244 217 / 0.8))
+      drop-shadow(0 0.6px 0 rgb(255 244 217 / 0.8)) drop-shadow(0 -0.6px 0 rgb(255 244 217 / 0.8))
+      drop-shadow(0 2px 2px rgb(0 0 0 / 0.45));
+  }
+  .v-paper-glow .nl-building,
+  .v-paper-glow .nl-road {
+    filter: drop-shadow(0 0 1.6px rgb(255 244 217 / 0.75)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.4));
+  }
+  .v-ink-thin .nl-building,
+  .v-ink-thin .nl-road {
+    filter: drop-shadow(0.6px 0 0 rgb(16 26 34 / 0.75)) drop-shadow(-0.6px 0 0 rgb(16 26 34 / 0.75))
+      drop-shadow(0 0.6px 0 rgb(16 26 34 / 0.75)) drop-shadow(0 -0.6px 0 rgb(16 26 34 / 0.75))
+      drop-shadow(0 2px 2px rgb(0 0 0 / 0.45));
+  }
+  .v-ink-glow .nl-building,
+  .v-ink-glow .nl-road {
+    filter: drop-shadow(0 0 2px rgb(10 18 26 / 0.7)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.4));
+  }
+
+  h3.section { grid-column: 1 / -1; margin: 10px 0 -6px; font-size: 13px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+
   /* E: dunkler Rand um die Figuren */
   .v-ink .nl-building,
   .v-ink .nl-road {
@@ -46,9 +70,32 @@
 <body>
 <header>
   <h1>Wie bleiben die Figuren sichtbar, ohne weißen Schleier?</h1>
-  <p>Gleiches Brett, gleiche Figuren, fünf Varianten. A ist der bisherige Stand mit 22 % Weiß über Wasser und Feldern. Alle anderen Varianten lassen die Grafiken unverändert und lösen den Kontrast an den Figuren selbst oder über einen dunklen Schleier.</p>
+  <p>Gleiches Brett, gleiche Figuren. Oben die dezenteren Stufen D1/D2 und E1/E2, darunter zum Vergleich die ersten Varianten. A ist der bisherige Stand mit 22 % Weiß über Wasser und Feldern. Alle anderen Varianten lassen die Grafiken unverändert und lösen den Kontrast an den Figuren selbst oder über einen dunklen Schleier.</p>
 </header>
 <main>
+  <h3 class="section">Dezenter</h3>
+  <article class="v-paper-thin">
+    <h2><small>D1</small>Heller Rand, dünn</h2>
+    <p>Halb so breit wie D und leicht transparent. Die Figur ist sauber umrissen, der Sticker-Effekt fällt kaum noch auf.</p>
+    <div class="stage"><div class="nl-board-host"></div></div>
+  </article>
+  <article class="v-ink-thin">
+    <h2><small>E1</small>Dunkler Rand, dünn</h2>
+    <p>Halb so breit wie E und leicht transparent. Wirkt fast wie eine natürliche Konturlinie der Grafik.</p>
+    <div class="stage"><div class="nl-board-host"></div></div>
+  </article>
+  <article class="v-paper-glow">
+    <h2><small>D2</small>Heller Schein</h2>
+    <p>Kein harter Rand, nur ein weicher heller Hof um die Figur. Am unauffälligsten auf hellem Gelände.</p>
+    <div class="stage"><div class="nl-board-host"></div></div>
+  </article>
+  <article class="v-ink-glow">
+    <h2><small>E2</small>Dunkler Schein</h2>
+    <p>Ein weicher dunkler Hof, wie ein leichter Schatten rundum. Hebt die Figuren vor allem auf hellem Acker und Wüste ab.</p>
+    <div class="stage"><div class="nl-board-host"></div></div>
+  </article>
+
+  <h3 class="section">Zum Vergleich</h3>
   <article class="v-white">
     <h2><small>A</small>Bisher: weißer Schleier</h2>
     <p>Hebt die Figuren über das ganze Brett ab, wirkt im Dunkel aber milchig und nimmt den Grafiken die Farbe.</p>
