@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neuland · Kontrast der Spielfiguren</title>
+<link rel="stylesheet" href="../ui-2026-10-21/shared/board.css">
+<style>
+  :root { --bg: #121c24; --panel: #18242e; --line: #2a3a46; --text: #e8e2d6; --muted: #8d9aa4; --accent: #d4b06a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Nunito Sans', sans-serif; }
+  header { padding: 28px 36px 6px; }
+  header h1 { margin: 0 0 6px; font-size: 26px; font-weight: 900; }
+  header p { margin: 0; color: var(--muted); max-width: 900px; line-height: 1.45; }
+  main { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; padding: 22px 36px 40px; }
+  article { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  article h2 { margin: 0; padding: 14px 18px 2px; font-size: 17px; font-weight: 800; }
+  article h2 small { color: var(--accent); font-weight: 900; margin-right: 8px; }
+  article p { margin: 0; padding: 0 18px 12px; color: var(--muted); font-size: 14px; line-height: 1.4; }
+  .stage { position: relative; height: 560px; }
+  .stage .nl-board-host { position: absolute; inset: 0 10px 10px; }
+
+  /* A: bisheriger weißer Schleier über Wasser und Feldern */
+  .v-white .nl-tile::after,
+  .v-white .nl-ocean::after { content: ''; position: absolute; inset: 0; background: rgb(255 255 255 / 0.22); }
+
+  /* C: dunkler statt heller Schleier */
+  .v-dark .nl-tile::after,
+  .v-dark .nl-ocean::after { content: ''; position: absolute; inset: 0; background: rgb(11 22 32 / 0.2); }
+
+  /* D: heller Papierrand um die Figuren */
+  .v-paper .nl-building,
+  .v-paper .nl-road {
+    filter: drop-shadow(1.2px 0 0 #fff4d9) drop-shadow(-1.2px 0 0 #fff4d9) drop-shadow(0 1.2px 0 #fff4d9)
+      drop-shadow(0 -1.2px 0 #fff4d9) drop-shadow(0 2px 2px rgb(0 0 0 / 0.55));
+  }
+
+  /* E: dunkler Rand um die Figuren */
+  .v-ink .nl-building,
+  .v-ink .nl-road {
+    filter: drop-shadow(1.2px 0 0 #101a22) drop-shadow(-1.2px 0 0 #101a22) drop-shadow(0 1.2px 0 #101a22)
+      drop-shadow(0 -1.2px 0 #101a22) drop-shadow(0 2px 3px rgb(0 0 0 / 0.5));
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Wie bleiben die Figuren sichtbar, ohne weißen Schleier?</h1>
+  <p>Gleiches Brett, gleiche Figuren, fünf Varianten. A ist der bisherige Stand mit 22 % Weiß über Wasser und Feldern. Alle anderen Varianten lassen die Grafiken unverändert und lösen den Kontrast an den Figuren selbst oder über einen dunklen Schleier.</p>
+</header>
+<main>
+  <article class="v-white">
+    <h2><small>A</small>Bisher: weißer Schleier</h2>
+    <p>Hebt die Figuren über das ganze Brett ab, wirkt im Dunkel aber milchig und nimmt den Grafiken die Farbe.</p>
+    <div class="stage"><div class="nl-board-host"></div></div>
+  </article>
+  <article>
+    <h2><small>B</small>Kein Schleier</h2>
+    <p>Volle Farben der Papiercollage. Die Figuren stehen nur mit ihrem eigenen Schatten auf dem Brett.</p>
+    <div class="stage"><div class="nl-board-host"></div></div>
+  </article>
+  <article class="v-paper">
+    <h2><small>D</small>Kein Schleier, heller Papierrand</h2>
+    <p>Jede Figur bekommt einen schmalen cremefarbenen Rand wie ein ausgeschnittener Sticker. Passt zum Collage-Stil und hebt sich auf jedem Gelände ab.</p>
+    <div class="stage"><div class="nl-board-host"></div></div>
+  </article>
+  <article class="v-ink">
+    <h2><small>E</small>Kein Schleier, dunkler Rand</h2>
+    <p>Ein schmaler dunkler Rand in der Farbe der Oberfläche. Ruhiger als D, die Figuren wirken stärker „eingesetzt“.</p>
+    <div class="stage"><div class="nl-board-host"></div></div>
+  </article>
+  <article class="v-dark">
+    <h2><small>C</small>Dunkler statt heller Schleier</h2>
+    <p>Dämpft das Brett um 20 %, damit die Figuren heller wirken. Passt farblich zum Dunkel, macht aber auch die Grafiken trüber.</p>
+    <div class="stage"><div class="nl-board-host"></div></div>
+  </article>
+</main>
+<script type="module">
+  import { renderBoard } from '../ui-2026-10-21/shared/board.js';
+  document.querySelectorAll('.nl-board-host').forEach((host) => renderBoard(host));
+</script>
+</body>
+</html>
