@@ -171,7 +171,6 @@ export class Board {
         tokenTransform: scaleAround(h.x * S, h.y * S + S * 0.05, this.k()),
         robberTransform: `translate(${h.x * S + S * 0.42 * this.k()},${h.y * S + S * 0.1}) scale(${this.k()})`,
         red: number === 6 || number === 8,
-        pips: number ? 6 - Math.abs(7 - number) : 0,
         robber: g.robber === h.id,
         hit: number !== null && number === this.highlightNumber(),
       };
@@ -351,10 +350,6 @@ export class Board {
       view >= size ? min + size / 2 : Math.min(min + size - view / 2, Math.max(min + view / 2, value));
     const p = c ?? { x: b.x + b.w / 2, y: b.y + b.h / 2 };
     return { x: clamp(p.x, b.x, b.w, vw), y: clamp(p.y, b.y, b.h, vh) };
-  }
-
-  protected pipsArray(n: number): number[] {
-    return Array.from({ length: n }, (_, i) => i);
   }
 
   private point(vertex: number): string {

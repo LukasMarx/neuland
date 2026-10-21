@@ -39,9 +39,6 @@
           <circle class="disc" [attr.cx]="h.x" [attr.cy]="h.y + S * 0.05" [attr.r]="S * 0.3" fill="url(#g-token)" />
           <circle class="ring" [attr.cx]="h.x" [attr.cy]="h.y + S * 0.05" [attr.r]="S * 0.25" />
           <text class="number" [attr.x]="h.x" [attr.y]="h.y + S * 0.05">{{ h.number }}</text>
-          @for (p of pipsArray(h.pips); track p) {
-            <circle class="pip" [attr.cx]="h.x + (p - (h.pips - 1) / 2) * S * 0.075" [attr.cy]="h.y + S * 0.23" [attr.r]="S * 0.022" />
-          }
         </g>
       }
       @if (h.robber) {
