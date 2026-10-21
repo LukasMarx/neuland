@@ -13,6 +13,15 @@ Das Brett zeichnet den exakten Hex-Ausschnitt, den Rand und die Zahlenchips.
 Designvorlage, vollständige Generierungs-Prompts und eine Vorschau liegen in
 `output/designs/hex-2026-10-21/`.
 
+### Wasser
+
+`public/tiles/papiercollage/ocean.png` ergänzt die Gelände um eine deckende,
+quadratische Wassertextur aus türkisblauen Papierschichten. Das SVG-Muster
+`p-ocean-paper` legt sie einmal über die gesamte Ozeanfläche und beschneidet
+sie auf die jeweilige Brettform. So entstehen auch auf größeren Inseln keine
+Kachelnähte. Der blaue Verlauf darunter bleibt als Ladehintergrund erhalten;
+Häfen und Spielfelder werden über dem Wasser gezeichnet.
+
 ## Benötigte Dateien
 
 | Gelände | Rohstoff | Schlüssel |

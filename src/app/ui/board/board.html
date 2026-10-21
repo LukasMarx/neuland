@@ -1,7 +1,7 @@
 <svg [attr.viewBox]="viewBox()" role="img" aria-label="Spielbrett">
   <defs><g appTerrainDefs></g></defs>
   <path class="ocean" [attr.d]="oceanPath()" fill="url(#g-ocean)" />
-  <path class="waves" [attr.d]="oceanPath()" fill="url(#p-waves)" />
+  <path class="ocean-texture" [attr.d]="oceanPath()" fill="url(#p-ocean-paper)" />
 
   @for (h of harbors(); track $index) {
     <g class="harbor">
