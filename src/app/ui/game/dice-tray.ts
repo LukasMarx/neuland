@@ -1,0 +1,159 @@
+import { Component, computed, effect, input, output, signal, untracked } from '@angular/core';
+
+/** Rotation des Würfels, damit die jeweilige Seite nach vorne zeigt. Gegenüberliegende Seiten ergeben 7. */
+const FACE_ROTATION: Record<number, [number, number]> = {
+  1: [0, 0],
+  6: [0, 180],
+  3: [0, -90],
+  4: [0, 90],
+  2: [-90, 0],
+  5: [90, 0],
+};
+
+/** Augen-Positionen im 3×3-Raster (1 = oben links, 9 = unten rechts). */
+const PIPS: Record<number, number[]> = {
+  1: [5],
+  2: [3, 7],
+  3: [3, 5, 7],
+  4: [1, 3, 7, 9],
+  5: [1, 3, 5, 7, 9],
+  6: [1, 3, 4, 6, 7, 9],
+};
+
+export const ROLL_DURATION_MS = 1100;
+
+@Component({
+  selector: 'app-dice-tray',
+  template: `
+    <button
+      class="tray"
+      type="button"
+      [class.can-roll]="canRoll()"
+      [class.rolling]="rolling()"
+      [disabled]="!canRoll()"
+      [attr.aria-label]="canRoll() ? 'Würfeln' : 'Würfel: ' + (sum() ?? 'noch nicht gewürfelt')"
+      (click)="roll.emit()"
+    >
+      @for (die of rotations(); track $index) {
+        <div class="scene" [style.animation-delay]="$index * 60 + 'ms'">
+          <div class="die" [style.transform]="'rotateX(' + die[0] + 'deg) rotateY(' + die[1] + 'deg)'" [class.instant]="instant()">
+            @for (face of faces; track face) {
+              <div class="face" [class]="'face-' + face">
+                @for (cell of cells; track cell) {
+                  <span class="cell">
+                    @if (pips[face].includes(cell)) {
+                      <i class="pip" [class.red]="face === 1"></i>
+                    }
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </button>
+    @if (showSum() && sum(); as total) {
+      <div class="sum" [class.seven]="total === 7">{{ total }}</div>
+    }
+  `,
+  styleUrl: './dice-tray.scss',
+})
+export class DiceTray {
+  readonly dice = input<[number, number] | null>(null);
+  /** Ändert sich bei jedem neuen Wurf, auch wenn dieselben Augen fallen. */
+  readonly rollKey = input<string | null>(null);
+  readonly canRoll = input(false);
+  readonly sound = input(false);
+  readonly roll = output<void>();
+  readonly landed = output<number>();
+
+  protected readonly faces = [1, 2, 3, 4, 5, 6];
+  protected readonly cells = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  protected readonly pips = PIPS;
+
+  protected readonly rotations = signal<[number, number][]>([
+    [-18, 22],
+    [-18, -28],
+  ]);
+  protected readonly rolling = signal(false);
+  protected readonly instant = signal(true);
+  protected readonly showSum = signal(false);
+  protected readonly sum = computed(() => {
+    const d = this.dice();
+    return d ? d[0] + d[1] : null;
+  });
+
+  private lastKey: string | null | undefined = undefined;
+  private spins = [0, 0];
+  private timer: ReturnType<typeof setTimeout> | undefined;
+
+  constructor() {
+    effect(() => {
+      const key = this.rollKey();
+      const dice = this.dice();
+      untracked(() => this.update(key, dice));
+    });
+  }
+
+  private update(key: string | null, dice: [number, number] | null): void {
+    if (key === this.lastKey) return;
+    const first = this.lastKey === undefined;
+    this.lastKey = key;
+    clearTimeout(this.timer);
+    if (!dice) {
+      this.showSum.set(false);
+      return;
+    }
+    if (first) {
+      // Beim Laden kein Wurf-Theater, nur das Ergebnis zeigen.
+      this.instant.set(true);
+      this.rotations.set(dice.map((d) => this.target(d, 0)) as [number, number][]);
+      this.showSum.set(true);
+      return;
+    }
+    this.instant.set(false);
+    this.showSum.set(false);
+    this.rolling.set(true);
+    this.spins = this.spins.map((s) => s + 2 + Math.floor(Math.random() * 2));
+    this.rotations.set(dice.map((d, i) => this.target(d, this.spins[i], i)) as [number, number][]);
+    if (this.sound()) rattle();
+    this.timer = setTimeout(() => {
+      this.rolling.set(false);
+      this.showSum.set(true);
+      this.landed.emit(dice[0] + dice[1]);
+    }, ROLL_DURATION_MS);
+  }
+
+  /** Zielrotation plus ganze Umdrehungen, damit der Würfel sichtbar taumelt. Leichte Schräglage für den 3D-Eindruck. */
+  private target(face: number, spins: number, index = 0): [number, number] {
+    const [x, y] = FACE_ROTATION[face];
+    const tiltX = -14;
+    const tiltY = index === 0 ? 16 : -20;
+    return [x + spins * 360 + tiltX, y + spins * 360 * (index === 0 ? 1 : -1) + tiltY];
+  }
+}
+
+/** Kurzes Würfelklappern aus gefiltertem Rauschen, ohne Sounddatei. */
+function rattle(): void {
+  try {
+    const ctx = new AudioContext();
+    const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.04, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length) ** 3;
+    const hits = [0, 0.09, 0.16, 0.27, 0.35, 0.5, 0.62, 0.8, 0.95];
+    for (const at of hits) {
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = 1800 + Math.random() * 1600;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.5 * (1 - at);
+      src.connect(filter).connect(gain).connect(ctx.destination);
+      src.start(ctx.currentTime + at);
+    }
+    setTimeout(() => void ctx.close(), 1500);
+  } catch {
+    // Ohne Audio geht es auch.
+  }
+}

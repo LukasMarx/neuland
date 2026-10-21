@@ -121,15 +121,104 @@ text {
 }
 
 .hex-target {
-  fill: rgb(255 255 255 / 0.15);
-  stroke: #fff;
-  stroke-width: 3;
-  stroke-dasharray: 6 5;
   cursor: pointer;
-  animation: pulse 1.2s ease-in-out infinite;
+
+  polygon {
+    fill: rgb(255 255 255 / 0.15);
+    stroke: #fff;
+    stroke-width: 3;
+    stroke-dasharray: 6 5;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  .ghost-robber {
+    opacity: 0;
+    pointer-events: none;
+
+    path,
+    circle {
+      fill: #333;
+      stroke: #111;
+      stroke-width: 1.5;
+    }
+  }
 
   &:hover {
-    fill: rgb(255 255 255 / 0.4);
+    polygon {
+      fill: rgb(255 255 255 / 0.4);
+      animation: none;
+    }
+
+    .ghost-robber {
+      opacity: 0.75;
+    }
+  }
+}
+
+/* Nach dem Würfeln leuchten die Felder mit der gewürfelten Zahl auf. */
+.hex.hit {
+  polygon {
+    animation: hit-glow 2.4s ease-out;
+  }
+
+  .token circle:first-child {
+    animation: hit-token 2.4s ease-out;
+  }
+}
+
+.hex.robbed polygon {
+  animation: robbed 2.4s ease-out;
+}
+
+.ghost,
+.ghost-road {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+
+.ghost {
+  stroke: #1d160c;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.ghost-road {
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.vertex-target:hover .ghost,
+.edge-target:hover .ghost-road {
+  opacity: 0.85;
+}
+
+.vertex-target:has(.ghost):hover .mark,
+.edge-target:hover .mark {
+  opacity: 0;
+}
+
+@keyframes hit-glow {
+  0%,
+  70% {
+    stroke: #fff36b;
+    stroke-width: 9;
+    filter: brightness(1.18) drop-shadow(0 0 10px #fff36b);
+  }
+}
+
+@keyframes hit-token {
+  0%,
+  70% {
+    fill: #fff36b;
+  }
+}
+
+@keyframes robbed {
+  0%,
+  70% {
+    stroke: #c0281f;
+    stroke-width: 7;
   }
 }
 

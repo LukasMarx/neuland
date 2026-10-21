@@ -16,8 +16,8 @@ npm start
 
 Danach läuft die App unter http://localhost:4200.
 
-- **Mehrere Spieler im selben Browser:** Im Entwicklungsmodus hat jeder Tab eine eigene Spieler-Identität. Einfach den Einladungslink in weiteren Tabs öffnen.
-- **Ohne Internet testen:** `http://localhost:4200/?local` verbindet die Tabs über `BroadcastChannel` statt über P2P.
+- **Mehrere Spieler im selben Browser:** Normalerweise ist ein Browser ein Spieler, auch über mehrere Tabs. Mit `?tab` in der URL (z. B. `http://localhost:4200/?tab#/KX7Q2M`) bekommt jeder Tab eine eigene Identität, so lassen sich mehrere Spieler in einem Browser testen.
+- **Ohne Internet testen:** `http://localhost:4200/?local` verbindet die Tabs über `BroadcastChannel` statt über P2P (jeder Tab ist dabei ein eigener Spieler).
 - **Konsole:** Im Entwicklungsmodus liegen Raum-Service und Engine unter `window.katan` (z. B. `katan.room.game()`).
 - **Ton** ist im Entwicklungsmodus standardmäßig aus und lässt sich über die Glocke einschalten.
 

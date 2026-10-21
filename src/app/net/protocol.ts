@@ -22,6 +22,7 @@ export type NetMessage =
   | { t: 'hello'; id: string; name: string }
   | { t: 'room'; room: RoomInfo; game: GameState | null }
   | { t: 'profile'; name: string; color: string }
+  | { t: 'claim'; playerId: string }
   | { t: 'action'; action: Action }
   | { t: 'reject'; error: string }
   | { t: 'chat'; id: string; name: string; text: string };

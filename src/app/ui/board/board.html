@@ -13,7 +13,7 @@
   }
 
   @for (h of hexes(); track h.id) {
-    <g class="hex">
+    <g class="hex" [class.hit]="h.hit" [class.robbed]="h.hit && h.robber">
       <polygon [attr.points]="h.points" [attr.fill]="terrainColors[h.terrain]" />
       <text class="terrain-icon" [attr.x]="h.x" [attr.y]="h.y - S * 0.48">{{ terrainIcons[h.terrain] }}</text>
       @if (h.number) {
@@ -53,15 +53,21 @@
   }
 
   @for (h of hexSpots(); track h.id) {
-    <polygon class="hex-target" [attr.points]="h.points" (click)="hexPick.emit(h.id)">
+    <g class="hex-target" (click)="hexPick.emit(h.id)">
       <title>Räuber hierhin</title>
-    </polygon>
+      <polygon [attr.points]="h.points" />
+      <g class="ghost-robber" [attr.transform]="'translate(' + h.x + ',' + (h.y - S * 0.05) + ')'">
+        <path [attr.d]="'M' + -S * 0.13 + ',' + S * 0.2 + ' Q0,' + -S * 0.25 + ' ' + S * 0.13 + ',' + S * 0.2 + ' Z'" />
+        <circle cx="0" [attr.cy]="-S * 0.12" [attr.r]="S * 0.1" />
+      </g>
+    </g>
   }
 
   @for (e of edgeSpots(); track e.id) {
     <g class="edge-target" (click)="edgePick.emit(e.id)">
       <line class="hit" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" />
       <line class="mark" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" />
+      <line class="ghost-road" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" [attr.stroke]="ghostColor()" />
     </g>
   }
 
@@ -69,6 +75,14 @@
     <g class="vertex-target" (click)="vertexPick.emit(v.id)">
       <circle class="hit" [attr.cx]="v.x" [attr.cy]="v.y" [attr.r]="S * 0.26" />
       <circle class="mark" [attr.cx]="v.x" [attr.cy]="v.y" [attr.r]="S * 0.13" />
+      @if (ghost(); as kind) {
+        <path
+          class="ghost"
+          [attr.transform]="'translate(' + v.x + ',' + v.y + ')'"
+          [attr.fill]="ghostColor()"
+          [attr.d]="kind === 'city' ? 'M-16,11 L16,11 L16,-4 L4,-4 L4,-10 L-6,-19 L-16,-10 Z' : 'M-10,9 L10,9 L10,-3 L0,-12 L-10,-3 Z'"
+        />
+      }
     </g>
   }
 </svg>

@@ -26,10 +26,14 @@ const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SEARCH_TIMEOUT_MS = 12000;
 const RE_ELECT_MS = 8000;
 /** Lokaler Testmodus (`?local`): Tabs verbinden sich per BroadcastChannel statt P2P. */
-export const LOCAL_MODE = new URLSearchParams(location.search).has('local') || sessionStorage.getItem('katan:local') === '1';
+const params = new URLSearchParams(location.search);
+/** Lokaler Testmodus (`?local`): Tabs verbinden sich per BroadcastChannel statt P2P. */
+export const LOCAL_MODE = params.has('local') || sessionStorage.getItem('katan:local') === '1';
+/** Jeder Tab ein eigener Spieler (`?tab` oder `?local`), sonst ist ein Browser ein Spieler. */
+const PER_TAB = LOCAL_MODE || params.has('tab') || sessionStorage.getItem('katan:tab') === '1';
 if (LOCAL_MODE) sessionStorage.setItem('katan:local', '1');
-/** Beim Entwickeln hat jeder Tab eine eigene Identität, im Betrieb teilen sich alle Tabs eine. */
-const identity: Storage = LOCAL_MODE || isDevMode() ? sessionStorage : localStorage;
+if (PER_TAB) sessionStorage.setItem('katan:tab', '1');
+const identity: Storage = PER_TAB ? sessionStorage : localStorage;
 
 @Injectable({ providedIn: 'root' })
 export class RoomService {
@@ -127,6 +131,12 @@ export class RoomService {
   updateSettings(settings: GameSettings): void {
     if (!this.isHost()) return;
     this.mutateRoom((r) => ({ ...r, settings }));
+  }
+
+  /** Als Zuschauer einen Platz übernehmen, z. B. nach einem Geräte- oder Browserwechsel. */
+  claimSeat(playerId: string): void {
+    if (this.isHost()) this.applyClaim(this.clientId, playerId, this.transport?.selfId ?? null);
+    else this.toHost({ t: 'claim', playerId });
   }
 
   removePlayer(id: string): void {
@@ -280,6 +290,11 @@ export class RoomService {
       case 'room':
         this.onRoom(msg.room, msg.game, peer);
         break;
+      case 'claim': {
+        const id = this.peerClients.get(peer);
+        if (this.isHost() && id) this.applyClaim(id, msg.playerId, peer);
+        break;
+      }
       case 'profile': {
         const id = this.peerClients.get(peer);
         if (this.isHost() && id) this.applyProfile(id, msg.name, msg.color);
@@ -335,9 +350,35 @@ export class RoomService {
     } catch (e) {
       const error = e instanceof RuleError ? e.message : 'Unerwarteter Fehler.';
       if (!(e instanceof RuleError)) console.error(e);
-      if (peer) this.transport?.send({ t: 'reject', error }, peer);
-      else this.showNotice(error);
+      this.reject(peer, error);
     }
+  }
+
+  private applyClaim(claimantId: string, playerId: string, peer: string | null): void {
+    const room = this.room();
+    const game = this.game();
+    const claimant = room?.spectators.find((p) => p.id === claimantId);
+    const target = room?.players.find((p) => p.id === playerId);
+    const seat = game?.players.findIndex((p) => p.id === playerId) ?? -1;
+    if (!room || !game || !claimant || !target || seat < 0) return;
+    if (target.peerId && target.name !== claimant.name) {
+      this.reject(peer, `${target.name} ist noch verbunden.`);
+      return;
+    }
+    const next = structuredClone(game);
+    next.players[seat].id = claimantId;
+    next.version++;
+    this.game.set(next);
+    this.mutateRoom((r) => ({
+      ...r,
+      players: r.players.map((p) => (p.id === playerId ? { ...p, id: claimantId, peerId: claimant.peerId } : p)),
+      spectators: r.spectators.filter((p) => p.id !== claimantId),
+    }));
+  }
+
+  private reject(peer: string | null, error: string): void {
+    if (peer) this.transport?.send({ t: 'reject', error }, peer);
+    else this.showNotice(error);
   }
 
   private applyProfile(id: string, name: string, color: string): void {
@@ -366,7 +407,9 @@ export class RoomService {
   /** Spieler (oder Zuschauer, wenn das Spiel läuft oder voll ist) hinzufügen bzw. als verbunden markieren. */
   private withMember(room: RoomInfo, game: GameState | null, id: string, name: string, peer: string | null): RoomInfo {
     const update = (p: LobbyPlayer) => (p.id === id ? { ...p, peerId: peer, name: name || p.name } : p);
-    if (room.players.some((p) => p.id === id)) return { ...room, players: room.players.map(update) };
+    // Im laufenden Spiel behält ein Platz seinen Namen, auch wenn ihn jemand mit anderem Namen übernommen hat.
+    const reconnect = (p: LobbyPlayer) => (p.id === id ? { ...p, peerId: peer } : p);
+    if (room.players.some((p) => p.id === id)) return { ...room, players: room.players.map(game ? reconnect : update) };
     if (room.spectators.some((p) => p.id === id)) return { ...room, spectators: room.spectators.map(update) };
     const member: LobbyPlayer = { id, name: name || 'Gast', color: '', peerId: peer };
     if (game || room.players.length >= MAX_PLAYERS) {

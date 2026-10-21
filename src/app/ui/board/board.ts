@@ -14,6 +14,11 @@ export class Board {
   readonly vertexTargets = input<number[]>([]);
   readonly edgeTargets = input<number[]>([]);
   readonly hexTargets = input<number[]>([]);
+  /** Felder mit dieser Zahl leuchten kurz auf (nach dem Würfeln). */
+  readonly highlightNumber = input<number | null>(null);
+  /** Was beim Darüberfahren als Vorschau in der eigenen Farbe erscheint. */
+  readonly ghost = input<'settlement' | 'city' | null>(null);
+  readonly ghostColor = input('#ffffff');
   readonly vertexPick = output<number>();
   readonly edgePick = output<number>();
   readonly hexPick = output<number>();
@@ -75,6 +80,7 @@ export class Board {
         red: number === 6 || number === 8,
         pips: number ? 6 - Math.abs(7 - number) : 0,
         robber: g.robber === h.id,
+        hit: number !== null && number === this.highlightNumber(),
       };
     });
   });
