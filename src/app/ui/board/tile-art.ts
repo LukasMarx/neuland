@@ -6,4 +6,11 @@ import { Terrain } from '../../engine';
  * reihum auf die Felder verteilt. Fehlt ein Eintrag, zeichnet das Brett die
  * eingebaute SVG-Grafik. Vorgaben zu Format und Maßen: docs/GRAFIKEN.md.
  */
-export const TILE_IMAGES: Partial<Record<Terrain, string[]>> = {};
+export const TILE_IMAGES: Partial<Record<Terrain, string[]>> = {
+  wood: ['tiles/papiercollage/wood.png'],
+  brick: ['tiles/papiercollage/brick.png'],
+  sheep: ['tiles/papiercollage/sheep.png'],
+  wheat: ['tiles/papiercollage/wheat.png'],
+  ore: ['tiles/papiercollage/ore.png'],
+  desert: ['tiles/papiercollage/desert.png'],
+};

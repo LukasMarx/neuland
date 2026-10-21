@@ -2,6 +2,17 @@
 
 So müssen Feldgrafiken aussehen, damit sie ohne Nacharbeit ins Brett passen.
 
+## Aktueller Stil: Papiercollage
+
+Die sechs Geländearten verwenden die transparenten PNG-Grafiken in
+`public/tiles/papiercollage/`. Sie sind in `src/app/ui/board/tile-art.ts`
+eingetragen. Die Originale sind 1254 × 1254 px groß; die seitliche Transparenz
+wird durch das bestehende `preserveAspectRatio="xMidYMid slice"` beschnitten.
+Das Brett zeichnet den exakten Hex-Ausschnitt, den Rand und die Zahlenchips.
+
+Designvorlage, vollständige Generierungs-Prompts und eine Vorschau liegen in
+`output/designs/hex-2026-10-21/`.
+
 ## Benötigte Dateien
 
 | Gelände | Rohstoff | Schlüssel |

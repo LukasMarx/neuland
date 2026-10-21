@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neuland · Papiercollage</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f3ecdc; color: #2b2418; font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 1180px; margin: auto; padding: 36px 24px; }
+  header { display: flex; gap: 20px; align-items: center; justify-content: space-between; }
+  h1 { margin: 0; font: 600 clamp(28px, 5vw, 44px)/1.2 Georgia, serif; }
+  p { color: #7a6d55; margin: 10px 0; }
+  label { white-space: nowrap; cursor: pointer; }
+  input { accent-color: #b5502b; }
+  #board { display: block; width: min(100%, 880px); margin: 16px auto 28px; }
+  .outline { fill: none; stroke: #f3e7c6; stroke-width: 3; stroke-linejoin: round; }
+  .number { text-anchor: middle; dominant-baseline: central; font: 700 19px system-ui, sans-serif; }
+  .samples { display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px; }
+  figure { margin: 0; text-align: center; }
+  figure svg { width: 100%; display: block; }
+  figcaption { font-weight: 600; margin-top: 8px; }
+  .hide-chips .token { display: none; }
+  @media(max-width: 700px) { header { align-items: start; flex-direction: column; } .samples { grid-template-columns: repeat(3, 1fr); } }
+</style>
+<main>
+  <header>
+    <div><h1>Neuland · Papiercollage</h1><p>Sechs Geländearten mit freier Mitte für die Zahlenchips.</p></div>
+    <label><input id="chips" type="checkbox" checked> Zahlenchips anzeigen</label>
+  </header>
+  <svg id="board" viewBox="-340 -300 680 600" role="img" aria-label="Vorschau der Papiercollage auf einer Insel aus 19 Hexfeldern"></svg>
+  <div class="samples" id="samples"></div>
+</main>
+<script>
+  const terrains = [ ['wood', 'Wald'], ['brick', 'Lehm'], ['sheep', 'Weide'], ['wheat', 'Acker'], ['ore', 'Gebirge'], ['desert', 'Wüste'] ];
+  const prefix = location.protocol === 'file:' ? '../../../public/' : '/';
+  const points = '0,-60 51.96,-30 51.96,30 0,60 -51.96,30 -51.96,-30';
+  const defs = `<defs>
+    <clipPath id="hexclip"><polygon points="${points}"/></clipPath>
+    <radialGradient id="g-token" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#ead9b5"/></radialGradient>
+    <linearGradient id="g-shine" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.28"/><stop offset="0.45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.18"/></linearGradient>
+    <radialGradient id="ocean"><stop offset="0" stop-color="#4f97c4"/><stop offset="1" stop-color="#2f6f9c"/></radialGradient>
+  </defs>`;
+  function tile(terrain, number, x, y) {
+    const red = number === 6 || number === 8;
+    const ink = red ? '#c0281f' : '#2b2418';
+    const pips = number ? 6 - Math.abs(7-number) : 0;
+    return `<g transform="translate(${x},${y})">
+      <image href="${prefix}tiles/papiercollage/${terrain}.png" x="-51.96" y="-60" width="103.92" height="120" preserveAspectRatio="xMidYMid slice" clip-path="url(#hexclip)"/>
+      <polygon points="${points}" fill="url(#g-shine)"/>
+      <polygon class="outline" points="${points}"/>
+      ${number ? `<g class="token"><circle cx="1.5" cy="5.5" r="18" fill="#000" opacity="0.28"/><circle cy="3" r="18" fill="url(#g-token)" stroke="#8a7550" stroke-width="1.2"/><circle cy="3" r="15" fill="none" stroke="#c9b385" stroke-width="0.8"/><text class="number" y="3" fill="${ink}">${number}</text>${Array.from({length:pips}, (_,p) => `<circle cx="${(p-(pips-1)/2)*4.5}" cy="13.8" r="1.32" fill="${ink}"/>`).join('')}</g>` : ''}
+    </g>`;
+  }
+  const layout = ['wood','sheep','wheat','ore','brick','wood','sheep','wheat','brick','desert','ore','wood','wheat','sheep','ore','wood','sheep','brick','wheat'];
+  const numbers = [5,2,6,3,8,10,9,12,11,null,4,8,10,9,4,5,6,3,11];
+  let cells = '', index = 0;
+  for (let r=-2; r<=2; r++) for (let q=Math.max(-2,-r-2); q<=Math.min(2,-r+2); q++) {
+    cells += tile(layout[index], numbers[index], Math.sqrt(3)*60*(q+r/2),90*r); index++;
+  }
+  document.getElementById('board').innerHTML = defs + '<path d="M-310,-115 L-210,-265 L210,-265 L310,-115 L310,115 L210,265 L-210,265 L-310,115 Z" fill="url(#ocean)" stroke="#2b6690" stroke-width="6" stroke-linejoin="round"/>' + cells;
+  document.getElementById('samples').innerHTML = terrains.map(([key,label]) => `<figure><svg viewBox="-55 -63 110 126" role="img" aria-label="${label}">${tile(key,null,0,0)}</svg><figcaption>${label}</figcaption></figure>`).join('');
+  document.getElementById('chips').addEventListener('change', e => document.body.classList.toggle('hide-chips', !e.target.checked));
+</script>
+</html>
