@@ -8,6 +8,7 @@ direkt aus `public/`, das Beispielbrett aus `shared/board.js`.
 |---|---|---|
 | 01 · Spieltisch | `01-spieltisch.html` | Filztisch, Brett leicht geneigt, Mitspieler ringsum, Kartenfächer, Figurenvorrat, Würfelschale und Wachssiegel-Knopf |
 | 02 · Nachtbühne | `02-nachtbuehne.html` | Dunkel und edel in Bordeaux-Gold, Spieler-Medaillons oben, leuchtendes Brett, Dock unten |
+| 02b · Nachtbühne, ruhig | `02b-nachtbuehne-ruhig.html` | Aufteilung von 02, aber zurückhaltend: flache Flächen, Gold nur als Akzent, schlichte Spieleranzeigen |
 | 03 · Atlas | `03-atlas.html` | Hell und strukturiert, geführte Zugkarte links mit Schritten und Bauliste, Brett auf Papierbogen rechts |
 
 `index.html` zeigt alle drei nebeneinander mit Stärken und Schwächen.
