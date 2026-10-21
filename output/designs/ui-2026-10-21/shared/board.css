@@ -1,0 +1,161 @@
+@import url('../../../../public/fonts/nunito-sans/fonts.css');
+
+/* Gemeinsame Darstellung des Beispielbretts für alle drei Mockups. */
+
+.nl-board-host {
+  position: relative;
+  min-height: 0;
+}
+
+.nl-board {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center;
+}
+
+.nl-ocean {
+  position: absolute;
+  inset: 0;
+  background-size: 420px;
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+  filter: saturate(1.05);
+}
+
+.nl-piers {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.nl-piers line {
+  stroke: #7a5532;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.nl-tile {
+  position: absolute;
+  width: 103.92px;
+  height: 120px;
+  background-size: cover;
+  background-position: center;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+}
+
+.nl-tile.hit {
+  filter: brightness(1.18) saturate(1.15) drop-shadow(0 0 8px #fff5a0);
+}
+
+.nl-token {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #fffaf0, #ead9b5);
+  border: 1.5px solid #8a7550;
+  box-shadow: 1.5px 2.5px 0 rgb(0 0 0 / 0.25);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  line-height: 0.95;
+  color: #2b2418;
+  font-family: 'Nunito Sans', sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.nl-token b {
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.nl-token i {
+  font-style: normal;
+  font-size: 7px;
+  letter-spacing: -1px;
+}
+
+.nl-token.red {
+  color: #b9261d;
+}
+
+.nl-token.blocked {
+  opacity: 0.55;
+}
+
+.nl-robber {
+  position: absolute;
+  width: 18px;
+  height: 28px;
+  margin: -14px 0 0 -9px;
+  background:
+    radial-gradient(circle at 50% 22%, #2d2d33 0 6px, transparent 6.5px),
+    radial-gradient(ellipse at 50% 100%, #2d2d33 0 9px, transparent 9.5px);
+  filter: drop-shadow(1px 2px 1px rgb(0 0 0 / 0.4));
+}
+
+.nl-harbor {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  margin: -22px 0 0 -20px;
+  border-radius: 50%;
+  border: 3px solid #f7ecd3;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.35);
+  background: #f7ecd3;
+}
+
+.nl-harbor img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 30%;
+}
+
+.nl-harbor span {
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  transform: translateX(-50%);
+  background: #fbf3df;
+  border: 1px solid #c9b385;
+  border-radius: 999px;
+  padding: 0 5px;
+  font: 800 9px/1.5 'Nunito Sans', sans-serif;
+  color: #4a3a22;
+}
+
+.nl-road {
+  position: absolute;
+  width: 46px;
+  height: 11.5px;
+  filter: drop-shadow(0 1.5px 1px rgb(0 0 0 / 0.35));
+}
+
+.nl-building {
+  position: absolute;
+  transform: translate(-50%, -58%);
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.35));
+}
+
+.nl-building.settlement {
+  width: 34px;
+}
+
+.nl-building.city {
+  width: 44px;
+}
+
+.nl-target {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.9);
+  border: 2.5px solid #2b2418;
+  box-shadow: 0 0 0 4px rgb(255 255 255 / 0.35);
+}

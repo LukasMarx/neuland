@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neuland · Drei UI-Richtungen</title>
+<link rel="stylesheet" href="../../../public/fonts/nunito-sans/fonts.css">
+<style>
+  :root { --bg: #f3ecdc; --ink: #2b2418; --muted: #7a6d55; --line: #dccfb2; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Nunito Sans', sans-serif; background: var(--bg); color: var(--ink); }
+  header { padding: 36px 48px 8px; }
+  header p { margin: 0; font-size: 12px; font-weight: 900; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+  header h1 { margin: 6px 0 4px; font-size: 32px; font-weight: 900; }
+  header span { color: var(--muted); }
+  main { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; padding: 24px 48px 48px; }
+  article { display: grid; gap: 12px; align-content: start; }
+  .frame {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    box-shadow: 0 14px 30px rgb(60 40 10 / 0.15);
+    background: #fff;
+  }
+  .frame iframe {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1440px;
+    height: 900px;
+    border: 0;
+    transform-origin: 0 0;
+    pointer-events: none;
+  }
+  .frame a { position: absolute; inset: 0; }
+  h2 { margin: 6px 0 0; font-size: 22px; font-weight: 900; }
+  h2 small { font-size: 13px; color: var(--muted); font-weight: 800; margin-right: 6px; }
+  .idea { margin: 0; font-size: 15px; line-height: 1.45; }
+  ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.5; }
+  .pro li::marker { content: '+  '; color: #2f8a46; font-weight: 900; }
+  .con li::marker { content: '–  '; color: #b33a3a; font-weight: 900; }
+  .open { font-weight: 800; color: var(--ink); }
+</style>
+</head>
+<body>
+<header>
+  <p>Neuland · UI-Redesign</p>
+  <h1>Drei grundlegend verschiedene Richtungen</h1>
+  <span>Alle mit den echten Papiercollage-Kacheln, Symbolstark-Karten, Spielfiguren und Nunito Sans. Klick auf ein Bild öffnet den Entwurf in voller Größe (1440 × 900).</span>
+</header>
+<main>
+  <article>
+    <div class="frame"><iframe src="01-spieltisch.html" title="Entwurf 01"></iframe><a href="01-spieltisch.html" aria-label="Entwurf 01 öffnen"></a></div>
+    <h2><small>01</small>Spieltisch</h2>
+    <p class="idea">Wie ein echter Spieleabend: Filztisch, das Brett leicht geneigt in der Mitte, die Mitspieler sitzen ringsum. Deine Karten hältst du als Fächer in der Hand, Figuren und Bank liegen als Vorrat und Stapel auf dem Tisch.</p>
+    <ul class="pro"><li>Am immersivsten, die Papiergrafiken wirken wie echtes Material</li><li>Karten als Fächer fühlen sich nach Kartenspiel an</li><li>Gebaut wird direkt aus dem Figurenvorrat</li></ul>
+    <ul class="con"><li>Braucht Platz, auf kleinen Laptops und Handys schwieriger</li><li>Viele Infos verteilt, weniger auf einen Blick</li></ul>
+  </article>
+  <article>
+    <div class="frame"><iframe src="02-nachtbuehne.html" title="Entwurf 02"></iframe><a href="02-nachtbuehne.html" aria-label="Entwurf 02 öffnen"></a></div>
+    <h2><small>02</small>Nachtbühne</h2>
+    <p class="idea">Dunkel und edel im Stil der Bordeaux-Gold-Entwicklungskarten. Oben die Spieler als Medaillons, das Brett leuchtet in der Mitte wie auf einer Bühne, unten ein Dock mit Hand, Bauen und dem großen goldenen Hauptknopf.</p>
+    <ul class="pro"><li>Die Farben der Grafiken leuchten auf dunklem Grund am stärksten</li><li>Klare Zonen: Spieler oben, Brett Mitte, Aktionen unten</li><li>Fühlt sich nach hochwertigem Spiel an</li></ul>
+    <ul class="con"><li>Weniger gemütlich, eher „Abendmodus“</li><li>Dunkle UI braucht mehr Sorgfalt bei Kontrasten</li></ul>
+  </article>
+  <article>
+    <div class="frame"><iframe src="03-atlas.html" title="Entwurf 03"></iframe><a href="03-atlas.html" aria-label="Entwurf 03 öffnen"></a></div>
+    <h2><small>03</small>Atlas</h2>
+    <p class="idea">Hell, ruhig und strukturiert wie ein gut gesetztes Magazin. Links führt eine Zugkarte Schritt für Schritt durch den Zug, mit Bauliste wie ein Rezept, inklusive was fehlt. Rechts das Brett auf einem großen Papierbogen.</p>
+    <ul class="pro"><li>Am verständlichsten, gut für Neulinge im Team</li><li>Man sieht sofort, was man bauen kann und was fehlt</li><li>Lässt sich am leichtesten für Handys umbauen</li></ul>
+    <ul class="con"><li>Am wenigsten verspielt</li><li>Das Brett bekommt etwas weniger Fläche</li></ul>
+  </article>
+</main>
+<script>
+  const fit = () => document.querySelectorAll('.frame').forEach((f) => {
+    f.querySelector('iframe').style.transform = `scale(${f.clientWidth / 1440})`;
+  });
+  new ResizeObserver(fit).observe(document.body);
+  fit();
+</script>
+</body>
+</html>

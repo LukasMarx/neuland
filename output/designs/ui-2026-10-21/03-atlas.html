@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neuland · UI-Entwurf 03 · Atlas</title>
+<link rel="stylesheet" href="shared/board.css">
+<style>
+  :root {
+    --bg: #ece3cf;
+    --sheet: #fbf6ea;
+    --card: #fffdf7;
+    --ink: #1f2a2c;
+    --muted: #6f6a5c;
+    --line: #ddd2ba;
+    --teal: #1d5961;
+    --teal-2: #2b7680;
+    --ok: #3d8a4a;
+    --warn: #b5502b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: 'Nunito Sans', sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    overflow: hidden;
+  }
+  .page {
+    display: grid;
+    grid-template-columns: 420px minmax(0, 1fr);
+    height: 100vh;
+  }
+
+  /* --- Linke Spalte: die Zugkarte --- */
+  .turn-panel {
+    background: var(--sheet);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    padding: 22px 28px 20px;
+    gap: 16px;
+    overflow: hidden;
+  }
+  .masthead { display: flex; align-items: baseline; justify-content: space-between; }
+  .masthead b { font-size: 20px; font-weight: 900; letter-spacing: -0.01em; }
+  .chip {
+    font-size: 12px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #efe6d2;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+  }
+  .kicker { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+  h1 { margin: 0; font-size: 32px; line-height: 1.02; font-weight: 900; letter-spacing: -0.02em; }
+  h1 span { color: var(--teal); }
+
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+  .step { display: grid; gap: 6px; font-size: 12px; font-weight: 800; color: var(--muted); }
+  .step i { height: 5px; border-radius: 999px; background: var(--line); }
+  .step.done { color: var(--ink); }
+  .step.done i { background: var(--teal); }
+  .step.now { color: var(--teal); }
+  .step.now i { background: linear-gradient(90deg, var(--teal) 50%, var(--line) 50%); }
+  .rolled {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: #eef4f2;
+    font-size: 14px;
+  }
+  .rolled .d {
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+    display: grid;
+    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+    padding: 5px;
+  }
+  .rolled .d i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); place-self: center; }
+  .rolled b { font-size: 22px; font-weight: 900; }
+
+  h2 { margin: 0 0 10px; font-size: 13px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; }
+  h2 small { font-weight: 700; letter-spacing: 0; text-transform: none; }
+
+  .hand { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .res { display: grid; justify-items: center; gap: 4px; }
+  .res img { width: 62px; aspect-ratio: 2 / 3; border-radius: 8px; object-fit: cover; box-shadow: 0 2px 6px rgb(0 0 0 / 0.18); }
+  .res b { font-size: 22px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+  .res small { font-size: 11px; color: var(--muted); font-weight: 700; }
+  .res.zero img { filter: grayscale(1) opacity(0.45); }
+  .res.zero b { color: var(--muted); }
+  .devs { display: flex; gap: 8px; margin-top: 10px; }
+  .dev {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px 5px 5px;
+    border-radius: 10px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .dev img { width: 26px; height: 39px; border-radius: 4px; object-fit: cover; }
+  .dev em { font-style: normal; font-size: 11px; color: var(--muted); font-weight: 700; display: block; }
+
+  .recipes { display: grid; gap: 6px; }
+  .recipe {
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: var(--card);
+    border: 1px solid var(--line);
+  }
+  .recipe > img { width: 44px; height: 38px; object-fit: contain; }
+  .recipe > img.road { height: 12px; }
+  .recipe .what b { display: block; font-size: 14px; }
+  .recipe .cost { display: flex; gap: 3px; margin-top: 3px; }
+  .recipe .cost img { width: 15px; height: 22px; border-radius: 3px; object-fit: cover; }
+  .recipe .cost img.missing { filter: grayscale(1) opacity(0.35); outline: 1.5px dashed var(--warn); outline-offset: 1px; }
+  .recipe button {
+    border: 1px solid var(--teal);
+    background: var(--teal);
+    color: #fff;
+    border-radius: 10px;
+    padding: 7px 14px;
+    font: 800 13px 'Nunito Sans', sans-serif;
+  }
+  .recipe.off { opacity: 0.85; }
+  .recipe.off button { background: transparent; color: var(--muted); border-color: var(--line); font-weight: 700; }
+
+  .actions { margin-top: auto; display: grid; grid-template-columns: 1fr 1.6fr; gap: 10px; }
+  .actions button {
+    padding: 13px 10px;
+    border-radius: 14px;
+    font: 900 16px 'Nunito Sans', sans-serif;
+    border: 1.5px solid var(--teal);
+    background: transparent;
+    color: var(--teal);
+  }
+  .actions button.primary { background: var(--teal); color: #fff; box-shadow: 0 8px 18px rgb(29 89 97 / 0.3); }
+  .actions kbd { font: 700 10px 'Nunito Sans', sans-serif; opacity: 0.7; margin-left: 6px; }
+
+  /* --- Rechte Seite: Spielerband, Brett auf Papierbogen --- */
+  .world { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: 22px 26px 20px; gap: 16px; }
+  .ribbon { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .player {
+    position: relative;
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px 10px 10px;
+    border-radius: 14px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .player::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--c); box-shadow: inset -1px 0 0 rgb(0 0 0 / 0.15); }
+  .player img { width: 40px; }
+  .player b { font-size: 15px; }
+  .player small { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
+  .player .vp { font-size: 30px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+  .player.active { border-color: var(--teal); box-shadow: 0 0 0 2px var(--teal); }
+  .player .flag {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 10px;
+    font-weight: 900;
+    padding: 2px 8px;
+    border-bottom-left-radius: 8px;
+    background: var(--teal);
+    color: #fff;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .player .flag.gold { background: #e3bf5b; color: var(--ink); }
+
+  .sheet {
+    position: relative;
+    border-radius: 22px;
+    background:
+      radial-gradient(ellipse at 50% 45%, #f8f1e1, #efe4cb);
+    border: 1px solid var(--line);
+    box-shadow: 0 1px 0 #fff inset, 0 20px 40px rgb(80 60 20 / 0.12);
+  }
+  .sheet .nl-board-host { position: absolute; inset: 18px; }
+  .legend {
+    position: absolute;
+    left: 18px;
+    bottom: 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgb(255 253 247 / 0.9);
+    border: 1px solid var(--line);
+    font-size: 12px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .legend span { display: flex; align-items: center; gap: 4px; }
+  .legend img { width: 14px; height: 21px; border-radius: 2px; object-fit: cover; }
+  .legend em { font-style: normal; color: var(--muted); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; font-size: 10px; }
+  .hint {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .hint b { color: #9fe1d8; }
+
+  .feed { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px; }
+  .feed div { padding: 10px 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); }
+  .feed h3 { margin: 0 0 4px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .feed p { margin: 2px 0; }
+  .feed p b { color: var(--c); }
+
+  .label-note { position: fixed; right: 18px; bottom: 6px; font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="page">
+  <aside class="turn-panel">
+    <div class="masthead"><b>Neuland</b><span class="chip">RAUM KX7Q2M</span></div>
+
+    <section>
+      <p class="kicker">Zug 14 · Lukas</p>
+      <h1><span>Du bist dran.</span><br>Handeln &amp; bauen</h1>
+      <div class="steps">
+        <div class="step done"><i></i>Würfeln</div>
+        <div class="step now"><i></i>Handeln</div>
+        <div class="step"><i></i>Bauen</div>
+        <div class="step"><i></i>Beenden</div>
+      </div>
+      <div class="rolled">
+        <div class="d"><i style="grid-area:1/1"></i><i style="grid-area:1/3"></i><i style="grid-area:2/2"></i><i style="grid-area:3/1"></i><i style="grid-area:3/3"></i></div>
+        <div class="d"><i style="grid-area:1/3"></i><i style="grid-area:2/2"></i><i style="grid-area:3/1"></i></div>
+        <b>8</b><span>Du bekommst 1 Holz und 1 Getreide.</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Deine Hand <small>8 Karten</small></h2>
+      <div class="hand">
+        <div class="res"><img src="../../../public/cards/symbolstark/wood.png"><b>3</b><small>Holz</small></div>
+        <div class="res"><img src="../../../public/cards/symbolstark/brick.png"><b>2</b><small>Lehm</small></div>
+        <div class="res"><img src="../../../public/cards/symbolstark/sheep.png"><b>1</b><small>Wolle</small></div>
+        <div class="res"><img src="../../../public/cards/symbolstark/wheat.png"><b>2</b><small>Getreide</small></div>
+        <div class="res zero"><img src="../../../public/cards/symbolstark/ore.png"><b>0</b><small>Erz</small></div>
+      </div>
+      <div class="devs">
+        <div class="dev"><img src="../../../public/cards/symbolstark/knight.png"><div>Ritter<em>spielbar</em></div></div>
+        <div class="dev"><img src="../../../public/cards/symbolstark/yearOfPlenty.png"><div>Erfindung<em>ab nächstem Zug</em></div></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Bauen</h2>
+      <div class="recipes">
+        <div class="recipe"><img class="road" src="../../../public/pieces/papiercollage/road-red.png"><div class="what"><b>Straße</b><div class="cost"><img src="../../../public/cards/symbolstark/wood.png"><img src="../../../public/cards/symbolstark/brick.png"></div></div><button>Bauen</button></div>
+        <div class="recipe"><img src="../../../public/pieces/papiercollage/settlement-red.png"><div class="what"><b>Siedlung</b><div class="cost"><img src="../../../public/cards/symbolstark/wood.png"><img src="../../../public/cards/symbolstark/brick.png"><img src="../../../public/cards/symbolstark/sheep.png"><img src="../../../public/cards/symbolstark/wheat.png"></div></div><button>Bauen</button></div>
+        <div class="recipe off"><img src="../../../public/pieces/papiercollage/city-red.png"><div class="what"><b>Stadt</b><div class="cost"><img src="../../../public/cards/symbolstark/wheat.png"><img src="../../../public/cards/symbolstark/wheat.png"><img class="missing" src="../../../public/cards/symbolstark/ore.png"><img class="missing" src="../../../public/cards/symbolstark/ore.png"><img class="missing" src="../../../public/cards/symbolstark/ore.png"></div></div><button>Fehlt 3 Erz</button></div>
+        <div class="recipe off"><img src="../../../public/cards/symbolstark/back.png" style="width:26px;height:39px;justify-self:center;border-radius:4px"><div class="what"><b>Entwicklungskarte</b><div class="cost"><img src="../../../public/cards/symbolstark/sheep.png"><img src="../../../public/cards/symbolstark/wheat.png"><img class="missing" src="../../../public/cards/symbolstark/ore.png"></div></div><button>Fehlt 1 Erz</button></div>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button>Handeln<kbd>H</kbd></button>
+      <button class="primary">Zug beenden<kbd>Leertaste</kbd></button>
+    </div>
+  </aside>
+
+  <main class="world">
+    <div class="ribbon">
+      <div class="player active" style="--c:#d23c3c"><span class="flag">am Zug</span><img src="../../../public/pieces/papiercollage/knight-red.png"><div><b>Lukas</b><small>8 Karten · 2 Entw. · 1 Ritter</small></div><span class="vp">5</span></div>
+      <div class="player" style="--c:#2f64d6"><img src="../../../public/pieces/papiercollage/knight-blue.png"><div><b>Mira</b><small>5 Karten · 1 Entw. · 2 Ritter</small></div><span class="vp">4</span></div>
+      <div class="player" style="--c:#ee8a1c"><span class="flag gold">Längste Straße</span><img src="../../../public/pieces/papiercollage/knight-orange.png"><div><b>Paul</b><small>3 Karten · 0 Entw. · 0 Ritter</small></div><span class="vp">5</span></div>
+      <div class="player" style="--c:#f4f1e8"><img src="../../../public/pieces/papiercollage/knight-white.png"><div><b>Jana</b><small>8 Karten · 2 Entw. · 1 Ritter</small></div><span class="vp">3</span></div>
+    </div>
+
+    <div class="sheet">
+      <div class="nl-board-host" id="board"></div>
+      <div class="hint">Siedlung bauen: <b>Wähle eine markierte Ecke</b> · Esc bricht ab</div>
+      <div class="legend"><em>Bank</em>
+        <span><img src="../../../public/cards/symbolstark/wood.png">14</span>
+        <span><img src="../../../public/cards/symbolstark/brick.png">16</span>
+        <span><img src="../../../public/cards/symbolstark/sheep.png">15</span>
+        <span><img src="../../../public/cards/symbolstark/wheat.png">12</span>
+        <span><img src="../../../public/cards/symbolstark/ore.png">17</span>
+        <span><img src="../../../public/cards/symbolstark/back.png">19</span>
+      </div>
+    </div>
+
+    <div class="feed">
+      <div>
+        <h3>Zuletzt</h3>
+        <p><b style="--c:#d23c3c">Lukas</b> würfelt 8 und erhält 1 Holz, 1 Getreide.</p>
+        <p><b style="--c:#ee8a1c">Paul</b> hat jetzt die längste Straße.</p>
+      </div>
+      <div>
+        <h3>Chat</h3>
+        <p><b style="--c:#2f64d6">Mira:</b> Wer hat Erz? 🙏</p>
+        <p><b style="--c:#c7701a">Paul:</b> Ich, gegen Wolle</p>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="label-note">Entwurf 03 · Atlas</div>
+<script type="module">
+  import { renderBoard } from './shared/board.js';
+  renderBoard(document.getElementById('board'), { targets: [[4, 2], [8, 0], [13, 3]] });
+</script>
+</body>
+</html>

@@ -4,8 +4,23 @@
     {
       "name": "neuland",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["ng", "serve", "--port", "4300"],
+      "runtimeArgs": [
+        "ng",
+        "serve",
+        "--port",
+        "4300"
+      ],
       "port": 4300
+    },
+    {
+      "name": "designs",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/serve-static.mjs",
+        "4310"
+      ],
+      "port": 4310,
+      "autoPort": false
     }
   ]
 }
