@@ -7,10 +7,10 @@ import { Terrain } from '../../engine';
  * eingebaute SVG-Grafik. Vorgaben zu Format und Maßen: docs/GRAFIKEN.md.
  */
 export const TILE_IMAGES: Partial<Record<Terrain, string[]>> = {
-  wood: ['tiles/papiercollage/wood.png'],
-  brick: ['tiles/papiercollage/brick.png'],
-  sheep: ['tiles/papiercollage/sheep.png'],
-  wheat: ['tiles/papiercollage/wheat.png'],
-  ore: ['tiles/papiercollage/ore.png'],
-  desert: ['tiles/papiercollage/desert.png'],
+  wood: ['web/tiles/papiercollage/wood.png'],
+  brick: ['web/tiles/papiercollage/brick.png'],
+  sheep: ['web/tiles/papiercollage/sheep.png'],
+  wheat: ['web/tiles/papiercollage/wheat.png'],
+  ore: ['web/tiles/papiercollage/ore.png'],
+  desert: ['web/tiles/papiercollage/desert.png'],
 };

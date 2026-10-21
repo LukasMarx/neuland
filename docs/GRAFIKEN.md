@@ -2,6 +2,28 @@
 
 So müssen Feldgrafiken aussehen, damit sie ohne Nacharbeit ins Brett passen.
 
+## Web-Fassungen
+
+Die Originale in `public/cards/`, `public/tiles/`, `public/icons/` und `public/pieces/`
+sind groß (zusammen rund 74 MB) und werden **nicht** ausgeliefert (`ignore` in
+`angular.json`). Die App lädt nur verkleinerte Fassungen aus `public/web/`
+(zusammen rund 3,5 MB), etwa in doppelter Anzeigegröße:
+
+| Gruppe | Längste Kante | Format |
+|---|---|---|
+| Karten | 384 px | JPEG |
+| Gelände | 384 px | PNG mit Transparenz |
+| Wasser | 1024 px | JPEG |
+| Rohstoff-Icons | 96 px | PNG mit Transparenz |
+| Spielfiguren | 160 px | PNG mit Transparenz |
+
+Nach neuen oder geänderten Grafiken einmal ausführen und `public/web/` mit committen
+(der CI-Build hat kein `sips` und erzeugt die Fassungen nicht selbst):
+
+```bash
+node scripts/optimize-images.mjs
+```
+
 ## Aktueller Stil: Papiercollage
 
 Die sechs Geländearten verwenden die transparenten PNG-Grafiken in
