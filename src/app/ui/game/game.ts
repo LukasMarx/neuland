@@ -5,6 +5,7 @@ import {
   DEV_CARD_NAMES,
   DevCard,
   emptyResources,
+  GameState,
   hasResources,
   legalCityVertices,
   legalRoadEdges,
@@ -31,6 +32,7 @@ import { DEV_CARD_HELP } from '../shared/labels';
 import { ResourcePicker } from '../shared/resource-picker';
 import { CardInspector } from './card-inspector';
 import { DiceTray, ROLL_DURATION_MS } from './dice-tray';
+import { BannerEvent, EventBanner } from './event-banner';
 import { FlyLayer } from './fly-layer';
 import { OfferList } from './offer-list';
 import { TradeDialog } from './trade-dialog';
@@ -44,7 +46,7 @@ const HIGHLIGHT_MS = 2600;
 
 @Component({
   selector: 'app-game',
-  imports: [Board, CardFace, CardInspector, ChatBox, DiceTray, FlyLayer, OfferList, ResourcePicker, TradeDialog],
+  imports: [Board, CardFace, CardInspector, ChatBox, DiceTray, EventBanner, FlyLayer, OfferList, ResourcePicker, TradeDialog],
   templateUrl: './game.html',
   styleUrl: './game.scss',
   host: { '(document:keydown)': 'onKey($event)' },
@@ -84,7 +86,12 @@ export class GameView {
   protected readonly discardPick = signal<ResourceCounts>(emptyResources());
   protected readonly plentyPick = signal<ResourceCounts>(emptyResources());
   protected readonly highlightNumber = signal<number | null>(null);
-  protected readonly banner = signal<{ text: string; id: number } | null>(null);
+  /** Ereignis-Banner laufen nacheinander, das vorderste ist sichtbar. */
+  private readonly bannerQueue = signal<BannerEvent[]>([]);
+  protected readonly banner = computed(() => this.bannerQueue()[0] ?? null);
+  private bannerId = 0;
+  /** Der Siegerdialog erscheint erst, wenn das Sieg-Banner durchgelaufen ist. */
+  protected readonly winnerReady = signal(false);
   /** Kurz eingeblendete Änderungen an der eigenen Hand („+2“, „−1“). */
   protected readonly handDelta = signal<{ values: Partial<Record<Resource, number>>; id: number } | null>(null);
 
@@ -357,16 +364,14 @@ export class GameView {
     });
 
     let wasMyTurn = false;
-    let bannerTimer: ReturnType<typeof setTimeout> | undefined;
     effect(() => {
       const mine = this.myTurn() && this.g().phase.kind !== 'ended';
       document.title = mine ? '● Du bist dran – Neuland' : 'Neuland';
       if (mine && !wasMyTurn) {
         untracked(() => {
           if (this.sound()) chime();
-          this.banner.set({ text: this.bannerText(), id: Date.now() });
-          clearTimeout(bannerTimer);
-          bannerTimer = setTimeout(() => this.banner.set(null), 1800);
+          const me = this.me();
+          if (me) this.pushBanner({ kind: 'turn', title: this.bannerText(), name: me.name, color: me.color, tag: this.g().turn ? `Zug ${this.g().turn}` : 'Aufbauphase' });
         });
       }
       wasMyTurn = mine;
@@ -375,6 +380,7 @@ export class GameView {
     // Bei jedem neuen Spielstand: Karten fliegen lassen und die Änderung an der eigenen Hand anzeigen.
     // Nach einem Wurf erst, wenn die Würfel gelandet sind.
     let lastVersion: number | null = null;
+    let lastGame: GameState | null = null;
     let lastRollKey: string | null = null;
     let previous: ResourceCounts | null = null;
     let deltaTimer: ReturnType<typeof setTimeout> | undefined;
@@ -389,6 +395,10 @@ export class GameView {
         lastVersion = g.version;
         lastRollKey = rollKey;
         if (isNew) this.fly()?.play(g.transfers ?? [], this.seat(), delay);
+        if (isNew && lastGame) this.detectEvents(lastGame, g, delay);
+        if (g.phase.kind !== 'ended') this.winnerReady.set(false);
+        else if (!lastGame) this.winnerReady.set(true);
+        lastGame = g;
 
         if (current && previous) {
           const values: Partial<Record<Resource, number>> = {};
@@ -412,6 +422,61 @@ export class GameView {
       const el = this.logList()?.nativeElement;
       if (el) el.scrollTop = el.scrollHeight;
     });
+  }
+
+  protected nextBanner(): void {
+    if (this.bannerQueue()[0]?.kind === 'win') this.winnerReady.set(true);
+    this.bannerQueue.update((q) => q.slice(1));
+  }
+
+  private pushBanner(event: Omit<BannerEvent, 'id'>, delay = 0): void {
+    const push = () => this.bannerQueue.update((q) => [...q, { ...event, id: ++this.bannerId }]);
+    if (delay) setTimeout(push, delay);
+    else push();
+  }
+
+  /** Erkennt Ereignisse aus dem Unterschied zwischen zwei Spielständen und stellt Banner dafür an. */
+  private detectEvents(prev: GameState, g: GameState, delay: number): void {
+    const who = (seat: number) => ({ name: g.players[seat].name, color: g.players[seat].color });
+
+    if (g.longestRoad !== null && g.longestRoad !== prev.longestRoad) {
+      const from = prev.longestRoad;
+      this.pushBanner({
+        kind: 'road',
+        title: 'Längste Handelsstraße',
+        ...who(g.longestRoad),
+        tag: from === null ? `+2 Punkte · ${g.roadLengths[g.longestRoad]} Straßen` : `übernimmt von ${g.players[from].name}`,
+      });
+    }
+    if (g.largestArmy !== null && g.largestArmy !== prev.largestArmy) {
+      const from = prev.largestArmy;
+      this.pushBanner({
+        kind: 'army',
+        title: 'Größte Rittermacht',
+        ...who(g.largestArmy),
+        tag: from === null ? `+2 Punkte · ${g.players[g.largestArmy].knights} Ritter` : `übernimmt von ${g.players[from].name}`,
+      });
+    }
+
+    // Monopol und Erfindung erkennt man an ihren Kartenbewegungen.
+    const t = g.transfers ?? [];
+    const target = t[0]?.to.kind === 'player' ? t[0].to.seat : null;
+    const allTo = target !== null && t.every((x) => x.to.kind === 'player' && x.to.seat === target);
+    if (allTo && t.every((x) => x.from.kind === 'player' && !x.hidden && x.card === t[0].card) && t[0].card !== 'dev') {
+      const total = t.reduce((n, x) => n + x.count, 0);
+      this.pushBanner({ kind: 'monopoly', title: `Monopol auf ${RESOURCE_NAMES[t[0].card]}`, ...who(target), tag: `bekommt ${total} Karten`, resource: t[0].card });
+    } else if (allTo && t.every((x) => x.from.kind === 'bank' && x.card !== 'dev') && t.reduce((n, x) => n + x.count, 0) === 2 && prev.devPlayed !== g.devPlayed) {
+      const resources = t.flatMap((x) => Array<Resource>(x.count).fill(x.card as Resource));
+      this.pushBanner({ kind: 'plenty', title: 'Erfindung', ...who(target), tag: resources.map((r) => RESOURCE_NAMES[r]).join(' und '), resources });
+    }
+
+    if (g.phase.kind === 'ended' && prev.phase.kind !== 'ended') {
+      if (g.winner === null) this.winnerReady.set(true);
+      else {
+        const vp = victoryPoints(g, g.winner, true);
+        this.pushBanner({ kind: 'win', title: `${g.players[g.winner].name} gewinnt!`, ...who(g.winner), tag: `${vp} Siegpunkte` }, delay);
+      }
+    }
   }
 
   protected onLanded(sum: number): void {

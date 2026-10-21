@@ -84,7 +84,11 @@ Umgesetzt nach Entwurf **02b · Nachtbühne, ruhig** (`output/designs/ui-2026-10
 
 ## Rückmeldung
 
-- **„Du bist dran!“** blendet groß über dem Brett ein, plus optional ein Ton.
+- **Ereignis-Banner:** Ein breites, halbtransparentes Band läuft über das Brett, links und rechts treten freigestellte Spielteile auf.
+  - Anlässe: „Du bist dran“ (plus optional ein Ton), längste Handelsstraße, größte Rittermacht, Monopol, Erfindung und Sieg.
+  - Mehrere Banner laufen nacheinander. Der Siegerdialog erscheint erst, wenn das Sieg-Banner durch ist.
+  - Erkannt wird alles aus dem Unterschied zweier Spielstände (`GameView.detectEvents`), die Engine bleibt unverändert.
+  - Bis die Banner-Motive aus `output/designs/banner-2026-10-21/einzelteile-auftrag.md` da sind, dienen Figuren und Rohstoff-Icons als Platzhalter.
 - **Hand-Änderungen** zeigen „+n“/„−n“-Plaketten auf den Karten.
 - **Fliegende Karten für alle:** Jede Kartenbewegung ist bei allen Spielern als Flug zu sehen.
   - Ertrag fliegt vom Feld zum Spieler, und zwar erst, wenn die Würfel gelandet sind.

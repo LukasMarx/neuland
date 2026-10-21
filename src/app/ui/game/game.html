@@ -99,7 +99,7 @@
 
     @if (banner(); as b) {
       @for (id of [b.id]; track id) {
-        <div class="banner">{{ b.text }}</div>
+        <app-event-banner [event]="b" (done)="nextBanner()" />
       }
     }
   </section>
@@ -372,7 +372,7 @@
   }
 }
 
-@if (game.phase.kind === 'ended') {
+@if (game.phase.kind === 'ended' && winnerReady()) {
   <div class="modal-backdrop">
     <div class="confetti" aria-hidden="true">
       @for (c of confetti; track $index) {
