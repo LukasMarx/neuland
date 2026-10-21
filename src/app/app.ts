@@ -1,12 +1,18 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { accessPassword } from './net/access';
 import { RoomService } from './net/room.service';
+import { Gate } from './ui/gate/gate';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [Gate, RouterOutlet],
   template: `
-    <router-outlet />
+    @if (unlocked()) {
+      <router-outlet />
+    } @else {
+      <app-gate />
+    }
     @if (toast(); as text) {
       <div class="toast" role="status">{{ text }}</div>
     }
@@ -30,6 +36,7 @@ import { RoomService } from './net/room.service';
 export class App {
   private readonly roomService = inject(RoomService);
   protected readonly toast = signal<string | null>(null);
+  protected readonly unlocked = computed(() => accessPassword() !== null);
 
   constructor() {
     let timer: ReturnType<typeof setTimeout> | undefined;

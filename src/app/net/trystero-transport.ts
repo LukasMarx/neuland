@@ -1,4 +1,5 @@
 import { DataPayload, joinRoom, MessageAction, Room, selfId } from 'trystero';
+import { accessPassword } from './access';
 import { NetMessage } from './protocol';
 import { Transport, TransportHandlers } from './transport';
 
@@ -19,7 +20,12 @@ export class TrysteroTransport implements Transport {
 
   constructor(roomCode: string, handlers: TransportHandlers) {
     this.room = joinRoom(
-      { appId: APP_ID, ...(TURN_SERVERS.length ? { turnConfig: TURN_SERVERS } : {}) },
+      {
+        appId: APP_ID,
+        // Verschlüsselt den Verbindungsaufbau; nur wer das Zugangspasswort kennt, kommt in Räume.
+        password: accessPassword() ?? undefined,
+        ...(TURN_SERVERS.length ? { turnConfig: TURN_SERVERS } : {}),
+      },
       roomCode,
       { onJoinError: (details) => console.warn('Verbindung fehlgeschlagen', details) },
     );

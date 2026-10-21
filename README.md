@@ -4,6 +4,16 @@ Siedler von Catan im Browser, für 2–6 Spieler. Kein Login, kein eigener Serve
 
 Wie das Ganze aufgebaut ist und warum, steht in [docs/KONZEPT.md](docs/KONZEPT.md).
 
+## Zugang
+
+Die Seite ist privat und fragt beim ersten Besuch ein Passwort ab (Groß-/Kleinschreibung egal). Das Passwort bekommt ihr intern, es steht absichtlich nirgends im Repository. Der Browser merkt es sich. Das Passwort ist zugleich der Schlüssel für den P2P-Verbindungsaufbau: Wer es nicht kennt, kommt in keinen Raum, auch wenn er die Abfrage umgeht.
+
+Passwort ändern: Hash erzeugen und in `src/app/net/access.ts` bei `PASSWORD_HASH` eintragen.
+
+```bash
+printf '%s' neuespasswort | shasum -a 256
+```
+
 ## Entwickeln
 
 ```bash
