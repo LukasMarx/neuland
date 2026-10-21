@@ -28,7 +28,7 @@ jobs:
       - run: npm ci
       - run: npx ng test --watch=false
       - run: npx ng build
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist/neuland/browser
 
@@ -40,4 +40,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
