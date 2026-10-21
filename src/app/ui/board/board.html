@@ -2,7 +2,6 @@
   <defs><g appTerrainDefs></g></defs>
   <path class="ocean" [attr.d]="oceanPath()" fill="url(#g-ocean)" />
   <path class="ocean-texture" [attr.d]="oceanPath()" fill="url(#p-ocean-paper)" />
-  <path class="ocean-wash" [attr.d]="oceanPath()" />
 
   @for (h of harbors(); track $index) {
     <g class="harbor">
@@ -32,7 +31,6 @@
         <use class="art" [attr.href]="'#t-' + h.terrain" [attr.transform]="h.transform" />
       }
       <polygon class="shine" [attr.points]="h.points" fill="url(#g-shine)" />
-      <polygon class="terrain-wash" [attr.points]="h.points" />
       <polygon class="outline" [attr.points]="h.points" />
       @if (h.number) {
         <g class="token" [class.red]="h.red" [class.blocked]="h.robber">

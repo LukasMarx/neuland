@@ -105,6 +105,9 @@ einem Grundbild und einer gespeicherten Maske; Export und Anleitung liegen in
 
 Gebäude sitzen mittig auf ihren Kreuzungen (Siedlung 32, Stadt 40 Brett-Einheiten).
 Straßen werden um den Kantenmittelpunkt gedreht und vor den Gebäuden gezeichnet.
+Über den Feldern liegt keine Aufhellung. Damit die Figuren auf jedem Gelände
+lesbar bleiben, bekommen sie einen dünnen, leicht transparenten dunklen Rand
+(Variante E1, Vergleich in `output/designs/board-kontrast-2026-10-21/`).
 Bauvorschau und Bauknöpfe verwenden dieselben PNGs. Die Rittergrafik erscheint
 in der Spielerübersicht bei der Anzahl gespielter Ritter. Die Ritterkarte und
 die Spielregeln ändern sich dadurch nicht. Für unbekannte Farben alter

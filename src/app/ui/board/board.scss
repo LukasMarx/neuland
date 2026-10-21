@@ -27,14 +27,6 @@ text {
   pointer-events: none;
 }
 
-// The same white mix covers water and terrain, below harbors and game pieces.
-.ocean-wash,
-.terrain-wash {
-  fill: #fff;
-  opacity: var(--terrain-whiteness, 0.22);
-  pointer-events: none;
-}
-
 .hex {
   .shine {
     pointer-events: none;
@@ -139,9 +131,13 @@ text {
   }
 }
 
+// Ohne Aufhellung des Bretts hält ein dünner, leicht transparenter dunkler Rand
+// die Figuren auf jedem Gelände lesbar (Variante E1, output/designs/board-kontrast-2026-10-21).
 .piece-art {
   pointer-events: none;
-  filter: drop-shadow(0 0 0.7px #fff4d9) drop-shadow(0 1px 1.2px #30210b99);
+  filter: drop-shadow(0.6px 0 0 rgb(16 26 34 / 0.75)) drop-shadow(-0.6px 0 0 rgb(16 26 34 / 0.75))
+    drop-shadow(0 0.6px 0 rgb(16 26 34 / 0.75)) drop-shadow(0 -0.6px 0 rgb(16 26 34 / 0.75))
+    drop-shadow(0 2px 2px rgb(0 0 0 / 0.45));
 }
 
 .road-outline {
