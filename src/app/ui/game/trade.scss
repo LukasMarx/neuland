@@ -1,0 +1,421 @@
+// Gemeinsame Gestaltung von Tauschtisch und Angebotsansicht (Prototyp: output/designs/handel-2026-10-21).
+// Beide ersetzen den Inhalt des Docks und zeigen Karten so groß wie die Hand oder größer.
+
+:host {
+  --ch: clamp(108px, 17vh, 168px);
+  --cw: calc(var(--ch) * 2 / 3);
+  grid-column: 1 / -1;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(300px, 520px);
+  justify-content: center;
+  align-items: center;
+  gap: 48px;
+  padding: 14px 64px 10px 0;
+  animation: rise 0.22s ease-out;
+}
+
+.rows {
+  display: grid;
+  gap: 14px;
+}
+
+.trow {
+  display: grid;
+  grid-template-columns: 128px auto;
+  align-items: center;
+  gap: 16px;
+
+  > b {
+    font-size: 18px;
+    font-weight: 800;
+
+    small {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+  }
+}
+
+.slots {
+  display: flex;
+  gap: 14px;
+}
+
+.slotwrap {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+
+  > small {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+
+    &.lack {
+      color: var(--bad, #d26a5c);
+    }
+  }
+}
+
+.slot {
+  position: relative;
+  width: var(--cw);
+  padding: 0;
+  border: 2px solid var(--line);
+  border-radius: 11px;
+  background: none;
+  transition: transform 0.12s;
+
+  app-card-face {
+    opacity: 0.4;
+    filter: grayscale(0.5);
+    transition:
+      opacity 0.12s,
+      filter 0.12s;
+  }
+
+  &.on {
+    border-color: var(--accent);
+    box-shadow:
+      0 0 0 2px var(--accent),
+      0 8px 18px rgb(0 0 0 / 0.35);
+
+    app-card-face {
+      opacity: 1;
+      filter: none;
+    }
+  }
+
+  &.short {
+    border-color: var(--bad, #d26a5c);
+    box-shadow: 0 0 0 2px var(--bad, #d26a5c);
+  }
+
+  &:hover:not(:disabled):not(.static) {
+    transform: translateY(-4px);
+
+    app-card-face {
+      opacity: 0.9;
+      filter: none;
+    }
+  }
+
+  &:disabled:not(.on) {
+    opacity: 0.45;
+  }
+
+  &.static {
+    cursor: default;
+  }
+}
+
+.count,
+.minus {
+  position: absolute;
+  top: -12px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  border-radius: 17px;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.4);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.count {
+  right: -12px;
+  padding: 0 8px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 18px;
+}
+
+.minus {
+  left: -12px;
+  width: 34px;
+  padding: 0;
+  border: 2px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 22px;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+}
+
+.rate {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 1;
+  transform: translateX(-50%);
+  padding: 2px 9px;
+  border-radius: 10px;
+  background: rgb(255 248 232 / 0.94);
+  color: #2b2418;
+  font-size: 13px;
+  font-weight: 900;
+  pointer-events: none;
+
+  &.good {
+    background: var(--accent);
+  }
+}
+
+.act {
+  display: grid;
+  gap: 14px;
+  align-content: center;
+}
+
+.head {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 800;
+
+  span {
+    color: var(--muted);
+    font-size: 18px;
+    font-weight: 600;
+  }
+}
+
+.dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--c);
+}
+
+.hint {
+  margin: 0;
+  min-height: 2.9em;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.45;
+
+  b {
+    color: var(--text);
+  }
+
+  &.good b {
+    color: var(--accent);
+  }
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  button {
+    height: 46px;
+    padding: 0 20px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+}
+
+.close {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.answers {
+  display: grid;
+  gap: 8px;
+
+  // Ab vier Mitspielern zweispaltig, damit der Tisch nicht zu hoch wird.
+  &.many {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.answer {
+  display: grid;
+  grid-template-columns: 12px auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 6px 8px 6px 12px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  font-size: 15px;
+
+  button {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+}
+
+.state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 14px;
+
+  &.ok {
+    color: var(--ok, #5fb57a);
+    font-weight: 800;
+  }
+
+  &.bad {
+    color: var(--bad, #d26a5c);
+    font-weight: 700;
+  }
+}
+
+.stack {
+  display: inline-flex;
+  gap: 2px;
+
+  img {
+    width: 22px;
+    height: 33px;
+    border-radius: 3px;
+    object-fit: cover;
+  }
+}
+
+.others {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 14px;
+
+  > span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--c);
+  }
+
+  .ok {
+    color: var(--ok, #5fb57a);
+  }
+
+  .bad {
+    color: var(--bad, #d26a5c);
+  }
+}
+
+.wait::after {
+  content: ' …';
+  animation: blink 1s steps(2) infinite;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (max-width: 1100px) {
+  :host {
+    --ch: clamp(90px, 14vh, 130px);
+    --cw: min(calc(var(--ch) * 2 / 3), calc((100vw - 200px) / 5 - 10px));
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 16px;
+    padding: 12px 8px 8px;
+  }
+
+  .trow {
+    grid-template-columns: 96px auto;
+    gap: 10px;
+
+    > b {
+      font-size: 15px;
+    }
+  }
+
+  .slots {
+    gap: 10px;
+  }
+
+  .act {
+    width: 100%;
+    max-width: 560px;
+  }
+}
+
+@media (max-width: 600px) {
+  :host {
+    --cw: calc((100vw - 60px) / 5);
+  }
+
+  .trow {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 6px;
+  }
+
+  .slots {
+    gap: 6px;
+  }
+
+  .count,
+  .minus {
+    top: -9px;
+    min-width: 26px;
+    height: 26px;
+    font-size: 14px;
+  }
+
+  .count {
+    right: -6px;
+  }
+
+  .minus {
+    left: -6px;
+    width: 26px;
+  }
+
+  .rate {
+    font-size: 11px;
+    padding: 1px 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    animation: none;
+  }
+}

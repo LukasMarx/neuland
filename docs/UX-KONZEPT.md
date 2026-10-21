@@ -80,10 +80,20 @@ Umgesetzt nach Entwurf **02b · Nachtbühne, ruhig** (`output/designs/ui-2026-10
 
 ## Handel
 
-- **„Handeln“** in der Bauleiste (Taste H) öffnet einen Dialog mit zwei Bereichen:
-  - **Bank & Häfen:** Rohstoffe als große Karten mit Kurs („4:1“, „2:1“), wählen, was man gibt und was man bekommt, fertig.
-  - **Mitspieler:** Angebot zusammenstellen und an alle schicken (bzw. als Gegenangebot an den aktiven Spieler).
-- **Offene Angebote** schweben als Karten oben rechts über dem Brett, mit Annehmen/Ablehnen bzw. „Handeln mit …“.
+Prototyp: `output/designs/handel-2026-10-21/index.html`. Gehandelt wird im Dock, nicht in einem Dialog: Das Brett bleibt sichtbar.
+
+- **Tauschtisch** (`TradeTable`): „Handeln“ (Taste H) oder ein Klick auf eine Handkarte macht das Dock zum Tisch.
+  - Zwei Reihen mit allen fünf Rohstoffen als große Karten: „Du gibst“ und „Du bekommst“. Klick legt eine Karte dazu, das Minus oder ein Rechtsklick nimmt eine weg. Ein Rohstoff liegt immer nur auf einer Seite.
+  - Unter „Du gibst“ stehen der eigene Kurs (4:1, 3:1, 2:1) und wie viel man hat. Ein Hinweistext rechnet mit, z. B. „Mit 1 Holz mehr ginge es über die Bank“.
+  - Passt das Angebot zu den Kursen, wird „Mit der Bank tauschen“ der Hauptknopf. Mehrere Pakete gehen auf einmal (8 Holz bei 4:1 gegen 2 Karten); die Engine bekommt dafür mehrere `bankTrade`-Aktionen.
+  - „Allen anbieten“ schickt ein Angebot. Der Tisch zeigt dann die Antworten: nimmt an (mit „Tauschen“), lehnt ab, überlegt, oder ein Gegenangebot (mit „Annehmen“).
+  - Schließen (✕, Esc) zieht das eigene Angebot und alle Gegenangebote zurück. Solange etwas offen ist, bleibt der Tisch offen, auch nach dem Neuladen.
+- **Angebotsansicht** (`OfferPanel`) für alle, die nicht am Zug sind: Das Angebot steht ebenso groß im Dock, das man ohnehin gerade nicht zum Bauen braucht.
+  - „Mira gibt dir“ und „Mira will von dir“, darunter „du hast 2“ bzw. rot „dir fehlt 1“.
+  - Annehmen, Gegenangebot, Ablehnen. Das Gegenangebot öffnet den Tauschtisch gespiegelt vorbefüllt.
+  - Eine Zeile zeigt, was die übrigen Mitspieler antworten.
+  - Ein neues Angebot meldet sich mit Ton und im Tab-Titel („● Tauschangebot von Mira“).
+- Wer nicht am Zug ist, kann über „Handeln“ auch von sich aus ein Angebot an den aktiven Spieler schicken.
 
 ## Rückmeldung
 

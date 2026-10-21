@@ -358,11 +358,6 @@ kbd {
   min-height: 0;
 }
 
-.offers {
-  max-height: 45%;
-  overflow-y: auto;
-}
-
 // ---------------------------------------------------------------------------
 // Dock: Hand, Bauen, Würfel
 
@@ -375,6 +370,15 @@ kbd {
   padding: 10px 20px 14px;
   background: var(--panel);
   border-top: 1px solid var(--line);
+}
+
+.dock.trading {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 10px 20px 12px;
+
+  .turn {
+    display: none;
+  }
 }
 
 .hand {
@@ -411,6 +415,10 @@ kbd {
 
   &:not(.zero):hover {
     transform: translateY(-4px);
+  }
+
+  &.tradable {
+    cursor: pointer;
   }
 }
 

@@ -140,17 +140,18 @@
     } @else {
       <app-chat-box class="chat" />
     }
-
-    @if (game.offers.length) {
-      <app-offer-list class="offers" [game]="game" [seat]="seat()" />
-    }
   </aside>
 
-  <section class="dock">
+  <section class="dock" [class.trading]="showTable() || offerView()">
+    @if (showTable()) {
+      <app-trade-table [game]="game" [seat]="seat()" [prefill]="tradePrefill()" (close)="closeTrade()" />
+    } @else if (offerView()) {
+      <app-offer-panel [game]="game" [seat]="seat()" (counter)="openTrade($event)" />
+    } @else {
     @if (me(); as self) {
       <div class="hand" data-hand="dev">
         @for (r of resources; track r) {
-          <div class="rcard" [attr.data-hand]="r" [class.zero]="!self.resources[r]" [title]="resourceNames[r]">
+          <div class="rcard" [attr.data-hand]="r" [class.zero]="!self.resources[r]" [class.tradable]="canTrade() && isCurrent() && self.resources[r] > 0" [title]="resourceNames[r] + (canTrade() && isCurrent() ? ' · Klick zum Handeln' : '')" (click)="handClick(r)">
             <app-card-face [kind]="r" [badge]="self.resources[r]" />
             @if (handDelta(); as d) {
               @for (id of [d.id]; track id) {
@@ -217,16 +218,18 @@
           <span class="label">Entwicklung <kbd>E</kbd></span>
           <span class="cost">@for (c of costArt(costs.devCard); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
         </button>
-        <button [disabled]="!canTrade()" [title]="canTrade() ? 'Handeln (H)' : 'Gehandelt wird nach dem Würfeln'" (click)="tradeOpen.set(true)">
+        <button [disabled]="!canTrade()" [title]="canTrade() ? 'Handeln (H)' : 'Gehandelt wird nach dem Würfeln'" (click)="openTrade()">
           <span class="figure trade">⇄</span>
           <span class="label">Handeln <kbd>H</kbd></span>
-          <span class="cost text">Bank oder Spieler</span>
+          <span class="cost text">{{ isCurrent() ? 'Bank oder Spieler' : 'an ' + game.players[game.current].name }}</span>
         </button>
       </div>
     } @else {
       <div class="hand spectating muted">Du schaust zu.</div>
     }
+    }
 
+    <!-- Bleibt beim Handeln bestehen (nur ausgeblendet), damit die Würfel ihren Zustand behalten. -->
     <div class="turn">
       <app-dice-tray
         [dice]="game.dice"
@@ -309,9 +312,6 @@
   </section>
 }
 
-@if (tradeOpen() && canTrade()) {
-  <app-trade-dialog [game]="game" [seat]="seat()" (close)="tradeOpen.set(false)" />
-}
 
 @if (discardDue() > 0 && me(); as self) {
   <div class="modal-backdrop">

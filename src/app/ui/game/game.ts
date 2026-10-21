@@ -34,8 +34,8 @@ import { CardInspector } from './card-inspector';
 import { DiceTray, ROLL_DURATION_MS } from './dice-tray';
 import { BannerEvent, EventBanner } from './event-banner';
 import { FlyLayer } from './fly-layer';
-import { OfferList } from './offer-list';
-import { TradeDialog } from './trade-dialog';
+import { hasOfferView, offerFor, OfferPanel } from './offer-panel';
+import { TradeTable, withdrawOffers } from './trade-table';
 
 type BuildMode = 'road' | 'settlement' | 'city';
 type Dialog = { kind: 'yearOfPlenty' } | { kind: 'monopoly' } | { kind: 'victim'; hex: number; victims: number[] };
@@ -46,7 +46,7 @@ const HIGHLIGHT_MS = 2600;
 
 @Component({
   selector: 'app-game',
-  imports: [Board, CardFace, CardInspector, ChatBox, DiceTray, EventBanner, FlyLayer, OfferList, ResourcePicker, TradeDialog],
+  imports: [Board, CardFace, CardInspector, ChatBox, DiceTray, EventBanner, FlyLayer, OfferPanel, ResourcePicker, TradeTable],
   templateUrl: './game.html',
   styleUrl: './game.scss',
   host: { '(document:keydown)': 'onKey($event)' },
@@ -74,6 +74,16 @@ export class GameView {
   protected readonly buildMode = signal<BuildMode | null>(null);
   protected readonly dialog = signal<Dialog | null>(null);
   protected readonly tradeOpen = signal(false);
+  /** Vorbefüllung des Tauschtischs, z. B. das gespiegelte Angebot für ein Gegenangebot. */
+  protected readonly tradePrefill = signal<{ give: ResourceCounts; want: ResourceCounts } | null>(null);
+  /** Der Tisch bleibt offen, solange für den aktiven Spieler Angebote laufen, auch nach dem Neuladen. */
+  protected readonly showTable = computed(
+    () =>
+      this.canTrade() &&
+      (this.tradeOpen() || (this.isCurrent() && this.g().offers.some((o) => o.from === this.seat() || o.counter))),
+  );
+  /** Angebot des aktiven Spielers (oder das eigene an ihn) steht groß im Dock. */
+  protected readonly offerView = computed(() => hasOfferView(this.g(), this.seat()));
   /** Vergrößert angesehene Entwicklungskarte samt Ausgangsposition in der Hand. */
   protected readonly inspect = signal<{ card: DevCard; origin: DOMRect } | null>(null);
   /** Geöffnete Punkte-Übersicht eines Spielers, verankert unter seinem Eintrag. */
@@ -366,7 +376,6 @@ export class GameView {
     let wasMyTurn = false;
     effect(() => {
       const mine = this.myTurn() && this.g().phase.kind !== 'ended';
-      document.title = mine ? '● Du bist dran – Neuland' : 'Neuland';
       if (mine && !wasMyTurn) {
         untracked(() => {
           if (this.sound()) chime();
@@ -375,6 +384,23 @@ export class GameView {
         });
       }
       wasMyTurn = mine;
+    });
+
+    // Ein neues Tauschangebot an mich meldet sich wie „Du bist dran“, im Tab-Titel und mit Ton.
+    let lastOfferId: number | null = null;
+    effect(() => {
+      const g = this.g();
+      const offer = offerFor(g, this.seat());
+      const countered = g.offers.some((o) => o.counter && o.from === this.seat());
+      const pending = offer && !offer.accepted.includes(this.seat()) && !countered ? offer : null;
+      const mine = this.myTurn() && g.phase.kind !== 'ended';
+      document.title = mine
+        ? '● Du bist dran – Neuland'
+        : pending
+          ? `● Tauschangebot von ${g.players[g.current].name} – Neuland`
+          : 'Neuland';
+      if (pending && pending.id !== lastOfferId && this.sound()) untracked(() => chime());
+      lastOfferId = pending?.id ?? lastOfferId;
     });
 
     // Bei jedem neuen Spielstand: Karten fliegen lassen und die Änderung an der eigenen Hand anzeigen.
@@ -626,7 +652,7 @@ export class GameView {
         break;
       case 'escape':
         this.buildMode.set(null);
-        this.tradeOpen.set(false);
+        if (this.showTable()) this.closeTrade();
         if (this.dialog()?.kind !== 'victim') this.dialog.set(null);
         break;
       case 's':
@@ -642,9 +668,29 @@ export class GameView {
         if (options.devCard.enabled) this.buyDevCard();
         break;
       case 'h':
-        if (this.canTrade()) this.tradeOpen.update((o) => !o);
+        if (this.showTable()) this.closeTrade();
+        else if (this.canTrade()) this.openTrade();
         break;
     }
+  }
+
+  protected openTrade(prefill: { give: ResourceCounts; want: ResourceCounts } | null = null): void {
+    this.buildMode.set(null);
+    this.tradePrefill.set(prefill);
+    this.tradeOpen.set(true);
+  }
+
+  /** Wer am Zug ist, zieht beim Schließen sein offenes Angebot samt Gegenangeboten zurück. */
+  protected closeTrade(): void {
+    if (this.isCurrent()) withdrawOffers(this.room, this.g(), this.seat());
+    this.tradeOpen.set(false);
+    this.tradePrefill.set(null);
+  }
+
+  /** Klick auf eine Handkarte öffnet den Tauschtisch mit dieser Karte auf „Du gibst“. */
+  protected handClick(r: Resource): void {
+    if (!this.canTrade() || !this.isCurrent() || !this.me()?.resources[r]) return;
+    this.openTrade({ give: { ...emptyResources(), [r]: 1 }, want: emptyResources() });
   }
 
   private missing(cost: ResourceCounts): string {
