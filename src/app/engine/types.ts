@@ -67,6 +67,23 @@ export type Phase =
   | { kind: 'specialBuild'; queue: number[] }
   | { kind: 'ended' };
 
+/** Wo eine Karte herkommt oder hingeht, für die Flug-Animation. */
+export type TransferPoint =
+  | { kind: 'bank' }
+  | { kind: 'player'; seat: number }
+  | { kind: 'hex'; id: number }
+  | { kind: 'vertex'; id: number }
+  | { kind: 'edge'; id: number };
+
+export interface Transfer {
+  from: TransferPoint;
+  to: TransferPoint;
+  card: Resource | 'dev';
+  count: number;
+  /** Nur Geber und Nehmer sehen, welche Karte es ist (Räuber). */
+  hidden?: boolean;
+}
+
 export interface GameSettings {
   victoryPoints: number;
 }
@@ -98,6 +115,8 @@ export interface GameState {
   offers: TradeOffer[];
   nextOfferId: number;
   log: LogEntry[];
+  /** Kartenbewegungen der letzten Aktion. */
+  transfers: Transfer[];
   winner: number | null;
 }
 

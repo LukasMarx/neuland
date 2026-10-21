@@ -13,7 +13,7 @@
   }
 
   @for (h of hexes(); track h.id) {
-    <g class="hex" [class.hit]="h.hit" [class.robbed]="h.hit && h.robber">
+    <g class="hex" [attr.data-hex]="h.id" [class.hit]="h.hit" [class.robbed]="h.hit && h.robber">
       <polygon [attr.points]="h.points" [attr.fill]="terrainColors[h.terrain]" />
       <text class="terrain-icon" [attr.x]="h.x" [attr.y]="h.y - S * 0.48">{{ terrainIcons[h.terrain] }}</text>
       @if (h.number) {
@@ -36,14 +36,14 @@
   }
 
   @for (r of roads(); track r.id) {
-    <g class="road">
+    <g class="road" [attr.data-edge]="r.id">
       <line class="road-outline" [attr.x1]="r.x1" [attr.y1]="r.y1" [attr.x2]="r.x2" [attr.y2]="r.y2" />
       <line class="road-fill" [attr.x1]="r.x1" [attr.y1]="r.y1" [attr.x2]="r.x2" [attr.y2]="r.y2" [attr.stroke]="r.color" />
     </g>
   }
 
   @for (b of buildings(); track b.id) {
-    <g class="building" [attr.transform]="'translate(' + b.x + ',' + b.y + ')'">
+    <g class="building" [attr.data-vertex]="b.id" [attr.transform]="'translate(' + b.x + ',' + b.y + ')'">
       @if (b.city) {
         <path [attr.fill]="b.color" d="M-16,11 L16,11 L16,-4 L4,-4 L4,-10 L-6,-19 L-16,-10 Z" />
       } @else {

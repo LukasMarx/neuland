@@ -25,7 +25,8 @@ import { Board } from '../board/board';
 import { ChatBox } from '../shared/chat-box';
 import { DEV_CARD_HELP, DEV_CARD_ICONS, RESOURCE_ICONS, TERRAIN_COLORS } from '../shared/labels';
 import { ResourcePicker } from '../shared/resource-picker';
-import { DiceTray } from './dice-tray';
+import { DiceTray, ROLL_DURATION_MS } from './dice-tray';
+import { FlyLayer } from './fly-layer';
 import { OfferList } from './offer-list';
 import { TradeDialog } from './trade-dialog';
 
@@ -38,7 +39,7 @@ const HIGHLIGHT_MS = 2600;
 
 @Component({
   selector: 'app-game',
-  imports: [Board, ChatBox, DiceTray, OfferList, ResourcePicker, TradeDialog],
+  imports: [Board, ChatBox, DiceTray, FlyLayer, OfferList, ResourcePicker, TradeDialog],
   templateUrl: './game.html',
   styleUrl: './game.scss',
   host: { '(document:keydown)': 'onKey($event)' },
@@ -79,6 +80,7 @@ export class GameView {
   protected readonly handDelta = signal<{ values: Partial<Record<Resource, number>>; id: number } | null>(null);
 
   private readonly logList = viewChild<ElementRef<HTMLElement>>('logList');
+  private readonly fly = viewChild(FlyLayer);
 
   protected readonly rollKey = computed(() => {
     const g = this.g();
@@ -316,18 +318,34 @@ export class GameView {
       wasMyTurn = mine;
     });
 
+    // Bei jedem neuen Spielstand: Karten fliegen lassen und die Änderung an der eigenen Hand anzeigen.
+    // Nach einem Wurf erst, wenn die Würfel gelandet sind.
+    let lastVersion: number | null = null;
+    let lastRollKey: string | null = null;
     let previous: ResourceCounts | null = null;
     let deltaTimer: ReturnType<typeof setTimeout> | undefined;
     effect(() => {
+      const g = this.g();
+      const rollKey = this.rollKey();
       const current = this.me()?.resources ?? null;
       untracked(() => {
+        const isNew = lastVersion !== null && g.version !== lastVersion;
+        const rolled = rollKey !== null && rollKey !== lastRollKey;
+        const delay = rolled ? ROLL_DURATION_MS + 150 : 0;
+        lastVersion = g.version;
+        lastRollKey = rollKey;
+        if (isNew) this.fly()?.play(g.transfers ?? [], this.seat(), delay);
+
         if (current && previous) {
           const values: Partial<Record<Resource, number>> = {};
           for (const r of RESOURCES) if (current[r] !== previous[r]) values[r] = current[r] - previous[r];
           if (Object.keys(values).length) {
-            this.handDelta.set({ values, id: Date.now() });
             clearTimeout(deltaTimer);
-            deltaTimer = setTimeout(() => this.handDelta.set(null), 1800);
+            // Das „+n“ erscheint, wenn die Karten ankommen.
+            deltaTimer = setTimeout(() => {
+              this.handDelta.set({ values, id: Date.now() });
+              deltaTimer = setTimeout(() => this.handDelta.set(null), 1800);
+            }, isNew && (g.transfers ?? []).length ? delay + 650 : 0);
           }
         }
         previous = current ? { ...current } : null;

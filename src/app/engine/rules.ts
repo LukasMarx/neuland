@@ -18,6 +18,7 @@ import {
   ResourceCounts,
   ReturnPhase,
   totalResources,
+  TransferPoint,
 } from './types';
 
 export class RuleError extends Error {}
@@ -90,6 +91,7 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
     offers: [],
     nextOfferId: 1,
     log: [],
+    transfers: [],
     winner: null,
   };
   log(state, null, `Spiel gestartet mit ${n} Spielern. ${seated[0].name} beginnt mit der Aufbauphase.`);
@@ -102,6 +104,7 @@ export function applyAction(prev: GameState, seat: number, action: Action): Game
   if (!prev.players[seat]) fail('Unbekannter Spieler.');
   if (!Object.hasOwn(HANDLERS, action?.type)) fail('Unbekannte Aktion.');
   const s = structuredClone(prev);
+  s.transfers = [];
   HANDLERS[action.type](s, seat, action as never);
   s.version = prev.version + 1;
   checkWinner(s);
@@ -126,6 +129,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
         if (terrain !== 'desert' && s.bank[terrain] > 0) {
           s.bank[terrain]--;
           gained[terrain]++;
+          transfer(s, { kind: 'hex', id: h }, seatPoint(seat), terrain, 1);
         }
       }
       addTo(s.players[seat].resources, gained);
@@ -193,6 +197,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (!hasResources(player.resources, resources)) fail('So viele Karten hast du nicht.');
     takeFrom(player.resources, resources);
     addTo(s.bank, resources);
+    transferAll(s, seatPoint(seat), BANK, resources);
     phase.pending[seat] = 0;
     log(s, seat, `${name(s, seat)} wirft ${due} Karten ab.`);
     if (phase.pending.every((n) => n === 0)) s.phase = { kind: 'robber', returnTo: 'main' };
@@ -212,6 +217,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
       const stolen = pool[randomInt(s, pool.length)];
       s.players[victim].resources[stolen]--;
       s.players[seat].resources[stolen]++;
+      s.transfers.push({ from: seatPoint(victim), to: seatPoint(seat), card: stolen, count: 1, hidden: true });
       log(s, seat, `${name(s, seat)} versetzt den Räuber und zieht eine Karte bei ${name(s, victim)}.`);
     } else {
       log(s, seat, `${name(s, seat)} versetzt den Räuber.`);
@@ -237,7 +243,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     requireBuilder(s, seat);
     if (piecesLeft(s, seat, 'road') <= 0) fail('Du hast keine Straßen mehr.');
     if (!canBuildRoad(s, seat, edge)) fail('Hier kannst du keine Straße bauen.');
-    pay(s, seat, COSTS.road);
+    pay(s, seat, COSTS.road, { kind: 'edge', id: edge });
     s.roads[edge] = seat;
     updateLongestRoad(s);
     log(s, seat, `${name(s, seat)} baut eine Straße.`);
@@ -247,7 +253,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     requireBuilder(s, seat);
     if (piecesLeft(s, seat, 'settlement') <= 0) fail('Du hast keine Siedlungen mehr.');
     if (!canBuildSettlement(s, seat, vertex)) fail('Hier kannst du keine Siedlung bauen.');
-    pay(s, seat, COSTS.settlement);
+    pay(s, seat, COSTS.settlement, { kind: 'vertex', id: vertex });
     s.buildings[vertex] = { owner: seat, type: 'settlement' };
     updateLongestRoad(s);
     log(s, seat, `${name(s, seat)} baut eine Siedlung.`);
@@ -258,7 +264,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (piecesLeft(s, seat, 'city') <= 0) fail('Du hast keine Städte mehr.');
     const b = s.buildings[vertex];
     if (!b || b.owner !== seat || b.type !== 'settlement') fail('Eine Stadt kann nur auf eigene Siedlungen.');
-    pay(s, seat, COSTS.city);
+    pay(s, seat, COSTS.city, { kind: 'vertex', id: vertex });
     b.type = 'city';
     log(s, seat, `${name(s, seat)} baut eine Stadt.`);
   },
@@ -268,6 +274,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (s.devDeck.length === 0) fail('Es gibt keine Entwicklungskarten mehr.');
     pay(s, seat, COSTS.devCard);
     s.players[seat].newDevCards.push(s.devDeck.pop()!);
+    transfer(s, BANK, seatPoint(seat), 'dev', 1);
     log(s, seat, `${name(s, seat)} kauft eine Entwicklungskarte.`);
   },
 
@@ -301,6 +308,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     playDevCard(s, seat, 'yearOfPlenty');
     takeFrom(s.bank, need);
     addTo(s.players[seat].resources, need);
+    transferAll(s, BANK, seatPoint(seat), need);
     log(s, seat, `${name(s, seat)} nimmt sich ${formatResources(need)} (Erfindung).`);
   },
 
@@ -311,6 +319,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     s.players.forEach((p, i) => {
       if (i === seat) return;
       total += p.resources[resource];
+      transfer(s, seatPoint(i), seatPoint(seat), resource, p.resources[resource]);
       p.resources[resource] = 0;
     });
     s.players[seat].resources[resource] += total;
@@ -328,6 +337,8 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     s.bank[give] += rate;
     s.bank[get]--;
     player.resources[get]++;
+    transfer(s, seatPoint(seat), BANK, give, rate);
+    transfer(s, BANK, seatPoint(seat), get, 1);
     log(s, seat, `${name(s, seat)} tauscht ${rate} ${RESOURCE_NAMES[give]} gegen 1 ${RESOURCE_NAMES[get]} mit der Bank.`);
   },
 
@@ -373,6 +384,9 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     addTo(to.resources, offer.give);
     takeFrom(to.resources, offer.want);
     addTo(from.resources, offer.want);
+    const toSeat = offer.counter ? seat : partner;
+    transferAll(s, seatPoint(offer.from), seatPoint(toSeat), offer.give);
+    transferAll(s, seatPoint(toSeat), seatPoint(offer.from), offer.want);
     s.offers = s.offers.filter((o) => o.id !== offerId);
     const other = offer.counter ? seat : partner;
     log(s, seat, `${name(s, offer.from)} und ${name(s, other)} handeln: ${formatResources(offer.give)} gegen ${formatResources(offer.want)}.`);
@@ -547,11 +561,27 @@ function validateCounts(r: ResourceCounts): void {
   if (!r || RESOURCES.some((k) => !Number.isInteger(r[k]) || r[k] < 0)) fail('Ungültige Rohstoffangabe.');
 }
 
-function pay(s: GameState, seat: number, cost: ResourceCounts): void {
-  const player = s.players[seat];
-  if (!hasResources(player.resources, cost)) fail('Dafür fehlen dir die Rohstoffe.');
-  takeFrom(player.resources, cost);
+/** Bezahlen an die Bank. `to` ist der Bauplatz, zu dem die Karten in der Animation fliegen. */
+function pay(s: GameState, seat: number, cost: ResourceCounts, to: TransferPoint = BANK): void {
+  const p = s.players[seat];
+  if (!hasResources(p.resources, cost)) fail('Dafür fehlen dir die Rohstoffe.');
+  takeFrom(p.resources, cost);
   addTo(s.bank, cost);
+  transferAll(s, seatPoint(seat), to, cost);
+}
+
+const BANK: TransferPoint = { kind: 'bank' };
+
+function seatPoint(seat: number): TransferPoint {
+  return { kind: 'player', seat };
+}
+
+function transfer(s: GameState, from: TransferPoint, to: TransferPoint, card: Resource | 'dev', count: number): void {
+  if (count > 0) s.transfers.push({ from, to, card, count });
+}
+
+function transferAll(s: GameState, from: TransferPoint, to: TransferPoint, counts: ResourceCounts): void {
+  for (const r of RESOURCES) transfer(s, from, to, r, counts[r]);
 }
 
 function requireTurn(s: GameState, seat: number, phase: 'roll' | 'main'): void {
@@ -586,12 +616,16 @@ function playDevCard(s: GameState, seat: number, card: DevCard): ReturnPhase {
 function produce(s: GameState, sum: number): void {
   const topo = getTopology(s.board.layout);
   const demand = RESOURCES.map(() => s.players.map(() => 0));
+  const sources: { hex: number; seat: number; res: Resource; n: number }[] = [];
   s.board.hexes.forEach((hex, id) => {
     if (hex.number !== sum || hex.terrain === 'desert' || id === s.robber) return;
     const r = RESOURCES.indexOf(hex.terrain);
     for (const v of topo.hexes[id].corners) {
       const b = s.buildings[v];
-      if (b) demand[r][b.owner] += b.type === 'city' ? 2 : 1;
+      if (!b) continue;
+      const n = b.type === 'city' ? 2 : 1;
+      demand[r][b.owner] += n;
+      sources.push({ hex: id, seat: b.owner, res: hex.terrain, n });
     }
   });
 
@@ -608,6 +642,14 @@ function produce(s: GameState, sum: number): void {
       log(s, null, `Die Bank hat nicht genug ${RESOURCE_NAMES[res]}, niemand bekommt welches.`);
     }
   });
+
+  // Für die Animation: Karten fliegen von den liefernden Feldern, höchstens so viele wie tatsächlich ausgezahlt.
+  const left = gained.map((g) => ({ ...g }));
+  for (const { hex, seat, res, n } of sources) {
+    const count = Math.min(n, left[seat][res]);
+    left[seat][res] -= count;
+    transfer(s, { kind: 'hex', id: hex }, seatPoint(seat), res, count);
+  }
 
   gained.forEach((g, seat) => {
     if (totalResources(g) === 0) return;

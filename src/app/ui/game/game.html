@@ -14,6 +14,16 @@
       {{ status() }}
     </div>
 
+    <div class="bank" data-anchor="bank" title="Vorrat der Bank">
+      <span class="bank-title">Bank</span>
+      @for (r of resources; track r) {
+        <span class="bstack" [attr.data-bank]="r" [class.low]="game.bank[r] < 4" [title]="resourceNames[r] + ': ' + game.bank[r]">
+          {{ resourceIcons[r] }} <b>{{ game.bank[r] }}</b>
+        </span>
+      }
+      <span class="bstack" data-bank="dev" title="Entwicklungskarten im Stapel">📜 <b>{{ game.devDeck.length }}</b></span>
+    </div>
+
     <app-board
       [game]="game"
       [vertexTargets]="targets().vertices"
@@ -47,9 +57,9 @@
 
   <section class="dock">
     @if (me(); as self) {
-      <div class="hand">
+      <div class="hand" data-hand="dev">
         @for (r of resources; track r) {
-          <div class="rcard" [style.--c]="terrainColors[r]" [class.zero]="!self.resources[r]" [title]="resourceNames[r]">
+          <div class="rcard" [attr.data-hand]="r" [style.--c]="terrainColors[r]" [class.zero]="!self.resources[r]" [title]="resourceNames[r]">
             <span class="icon">{{ resourceIcons[r] }}</span>
             <span class="count">{{ self.resources[r] }}</span>
             @if (handDelta(); as d) {
@@ -149,7 +159,7 @@
 
     <section class="players">
       @for (p of playerRows(); track p.seat) {
-        <div class="player" [class.active]="p.active" [class.offline]="!p.online" [style.--c]="p.color">
+        <div class="player" [attr.data-seat]="p.seat" [class.active]="p.active" [class.offline]="!p.online" [style.--c]="p.color">
           <div class="pmain">
             <div class="pname">
               <strong>{{ p.name }}</strong>
@@ -208,6 +218,8 @@
     </section>
   </aside>
 </div>
+
+<app-fly-layer />
 
 @if (tradeOpen() && canTrade()) {
   <app-trade-dialog [game]="game" [seat]="seat()" (close)="tradeOpen.set(false)" />

@@ -81,4 +81,11 @@ Ausgangspunkt ist ein Screenshot aus einer echten Partie (2 Spieler, Lukas am Zu
 
 - **„Du bist dran!“** blendet groß über dem Brett ein, plus optional ein Ton.
 - **Hand-Änderungen** zeigen „+n“/„−n“-Plaketten auf den Karten.
+- **Fliegende Karten für alle:** Jede Kartenbewegung ist bei allen Spielern als Flug zu sehen.
+  - Ertrag fliegt vom Feld zum Spieler, und zwar erst, wenn die Würfel gelandet sind.
+  - Baukosten fliegen zum neuen Bauplatz.
+  - Bank-Handel, Erfindung und Entwicklungskarten fliegen von oder zur Bank-Anzeige oben links.
+  - Handel, Monopol und Räuber fliegen von Spieler zu Spieler.
+  - Beim Räuber sehen nur die beiden Beteiligten, welche Karte es war. Alle anderen sehen eine verdeckte Karte.
+  - Die Engine protokolliert dafür pro Aktion die Bewegungen (`GameState.transfers`).
 - **Siegerbildschirm** mit Konfetti.
