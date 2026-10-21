@@ -116,7 +116,7 @@
   padding: 0 8px;
   border-radius: 999px;
   background: var(--text);
-  color: #fff;
+  color: var(--bg);
   font-weight: 800;
   font-size: 18px;
   display: grid;
@@ -126,6 +126,7 @@
 
   &.seven {
     background: #c0281f;
+    color: #fff;
   }
 }
 

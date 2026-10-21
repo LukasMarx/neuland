@@ -62,14 +62,13 @@ import { RESOURCE_ICONS } from '../shared/labels';
     :host {
       display: grid;
       gap: 8px;
-      width: 290px;
     }
     .offer {
       background: var(--panel);
       border: 1px solid var(--line);
       border-top: 4px solid var(--c);
       border-radius: 12px;
-      box-shadow: 0 6px 20px rgb(40 25 5 / 0.18);
+      box-shadow: var(--shadow);
       padding: 10px 12px;
       display: grid;
       gap: 8px;

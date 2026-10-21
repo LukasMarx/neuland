@@ -40,25 +40,27 @@ Ausgangspunkt ist ein Screenshot aus einer echten Partie (2 Spieler, Lukas am Zu
 
 ## Layout
 
+Umgesetzt nach Entwurf **02b · Nachtbühne, ruhig** (`output/designs/ui-2026-10-21/`): ruhiges Dunkel mit flachen Flächen und einem sparsamen sandgoldenen Akzent. Das Brett und seine Grafiken bleiben unverändert.
+
 ```
-┌──────────────────────────────────────────────┬───────────────────┐
-│ ⬢ Neuland · Raum KX7Q2M          🔔  Verlassen │                   │
-├──────────────────────────────────────────────┤  Spielerkarten    │
-│   ( ● Lukas ist am Zug · Handeln und bauen ) │  (aktiver Spieler │
-│                                    [Angebote]│   hervorgehoben)  │
-│                 SPIELBRETT                   │                   │
-│                                              ├───────────────────┤
-│                                              │  Verlauf │ Chat   │
-├──────────────────────────────────────────────┤                   │
-│ [🌲2][🧱1][🐑0][🌾0][🪨1] [⚔️ Ritter]  ⚄⚂ 7  │                   │
-│ [Straße][Siedlung][Stadt][Entw.][Handeln]  [ ZUG BEENDEN ] │      │
-└──────────────────────────────────────────────┴───────────────────┘
+┌─────────────────────────────────────────────────────────────┬──────────────┐
+│ Neuland  Raum KX7Q2M   [Mira 4] [Lukas (du) 5] [Paul 5]  …   │ Ton  Verlass. │
+├─────────────────────────────────────────────────────────────┼──────────────┤
+│        ( Du bist dran · Handeln und bauen )                  │ Verlauf│Chat │
+│ ┌────┐                                                       │ • …          │
+│ │Bank│                 SPIELBRETT                            │ • …          │
+│ └────┘                                                       │ [Angebote]   │
+├─────────────────────────────────────────────────────────────┴──────────────┤
+│ [Holz][Lehm][Wolle][Getreide][Erz] | [Ritter]   Straße Siedlung Stadt   ⚄⚂ 8 │
+│                                                 Entw.  Handeln  [Zug beenden]│
+└────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Oben auf dem Brett eine Status-Pille in der Farbe des aktiven Spielers.
-- Unten die Hand-Leiste über die Breite des Bretts.
-- Rechts die Spielerkarten und darunter Verlauf und Chat.
-- Auf schmalen Bildschirmen wandert die rechte Spalte unter die Hand-Leiste.
+- **Kopfleiste:** Spieler nebeneinander mit Ritter-Avatar in Spielerfarbe, Name, Kartenzahl bzw. „am Zug“ und Siegpunkten. Der aktive Spieler hat eine Fläche und eine goldene Linie.
+- **Brett:** Status oben, Bank links mit den Rohstoff-Icons.
+- **Seitenleiste:** Verlauf und Chat als Tabs, offene Handelsangebote darunter.
+- **Dock:** Karten, Bauraster mit Figur und Kosten, die 3D-Würfel und der Hauptknopf.
+- Unter 1280 px rückt das Bauraster unter die Hand. Auf dem Handy stapeln sich Kopf, Brett, Dock und Seitenleiste.
 
 ## Brett
 

@@ -1,17 +1,20 @@
 :root {
-  --bg: #f3ecdc;
-  --panel: #fffaf0;
-  --panel-2: #f7efdd;
-  --line: #dccfb2;
-  --text: #2b2418;
-  --muted: #7a6d55;
-  --accent: #b5502b;
-  --accent-hover: #9a4022;
-  --accent-text: #fff;
-  --ok: #2f8a46;
-  --danger: #b33a3a;
+  /* Ruhiges Dunkel (Entwurf 02b): flache Flächen, ein sandgoldener Akzent. */
+  color-scheme: dark;
+  --bg: #121c24;
+  --panel: #18242e;
+  --panel-2: #1e2c37;
+  --line: #2a3a46;
+  --line-strong: #3a4c59;
+  --text: #e8e2d6;
+  --muted: #8d9aa4;
+  --accent: #d4b06a;
+  --accent-hover: #e2c286;
+  --accent-text: #1b1508;
+  --ok: #7cc48a;
+  --danger: #e58a78;
   --ocean: #4a8db7;
-  --shadow: 0 1px 2px rgb(60 40 10 / 0.08), 0 4px 14px rgb(60 40 10 / 0.08);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.25), 0 6px 18px rgb(0 0 0 / 0.25);
   --radius: 10px;
   font-family: 'Nunito Sans', sans-serif;
   font-optical-sizing: auto;
@@ -23,6 +26,10 @@
 
 * {
   box-sizing: border-box;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 html,
@@ -43,7 +50,7 @@ button {
   font: inherit;
   cursor: pointer;
   border: 1px solid var(--line);
-  background: var(--panel);
+  background: var(--panel-2);
   color: var(--text);
   border-radius: 8px;
   padding: 0.45em 0.9em;
@@ -53,8 +60,8 @@ button {
     transform 0.05s;
 
   &:hover:not(:disabled) {
-    background: var(--panel-2);
-    border-color: #c9b98f;
+    background: #243441;
+    border-color: var(--line-strong);
   }
 
   &:active:not(:disabled) {
@@ -70,7 +77,7 @@ button {
     background: var(--accent);
     border-color: var(--accent);
     color: var(--accent-text);
-    font-weight: 600;
+    font-weight: 800;
 
     &:hover:not(:disabled) {
       background: var(--accent-hover);
@@ -89,8 +96,8 @@ select,
 textarea {
   font: inherit;
   color: var(--text);
-  background: #fff;
-  border: 1px solid var(--line);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   padding: 0.45em 0.7em;
 
@@ -124,7 +131,7 @@ textarea {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  border: 1.5px solid rgb(0 0 0 / 0.45);
+  border: 1.5px solid rgb(0 0 0 / 0.5);
   vertical-align: -2px;
   flex: none;
 }
@@ -132,7 +139,7 @@ textarea {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgb(30 20 5 / 0.45);
+  background: rgb(5 10 14 / 0.6);
   display: grid;
   place-items: center;
   z-index: 50;
@@ -141,8 +148,9 @@ textarea {
 
 .modal {
   background: var(--panel);
+  border: 1px solid var(--line);
   border-radius: 14px;
-  box-shadow: 0 10px 40px rgb(0 0 0 / 0.3);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.5);
   padding: 20px 22px;
   width: min(440px, 100%);
   max-height: calc(100vh - 32px);

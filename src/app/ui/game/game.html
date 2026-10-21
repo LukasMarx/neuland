@@ -1,27 +1,75 @@
 @let game = g();
 <div class="layout">
   <header class="topbar">
-    <div class="brand">⬢ Neuland</div>
-    <span class="room muted">Raum {{ room.code() }} · {{ game.players.length }} Spieler · Ziel {{ game.settings.victoryPoints }} Punkte</span>
-    <span class="spacer"></span>
-    <button class="icon-btn" (click)="toggleSound()" [title]="sound() ? 'Ton aus' : 'Ton an'">{{ sound() ? '🔔' : '🔕' }}</button>
-    <button (click)="leave.emit()">Verlassen</button>
+    <div class="brand">
+      <b>Neuland</b>
+      <span class="room">Raum {{ room.code() }} · bis {{ game.settings.victoryPoints }}</span>
+    </div>
+
+    <div class="players">
+      @for (p of playerRows(); track p.seat) {
+        <div
+          class="player"
+          [attr.data-seat]="p.seat"
+          [class.active]="p.active"
+          [class.offline]="!p.online"
+          [style.--c]="p.color"
+          [title]="p.dev + ' Entwicklungskarten · ' + p.knights + ' Ritter · längste Straße ' + p.road"
+        >
+          <span class="avatar">
+            @if (pieceImage('knight', p.color); as image) {
+              <img [src]="image" alt="" />
+            }
+          </span>
+          <span class="who">
+            <b>{{ p.name }}@if (p.me) { <span class="me"> (du)</span>}</b>
+            <small>
+              @if (!p.online) {
+                getrennt
+              } @else if (p.active) {
+                am Zug
+              } @else {
+                {{ p.cards }} Karten
+              }
+              @if (p.longestRoad) {
+                · Längste Straße
+              }
+              @if (p.largestArmy) {
+                · Rittermacht
+              }
+            </small>
+          </span>
+          <span class="vp" title="Siegpunkte">{{ p.vp }}</span>
+        </div>
+      }
+    </div>
+
+    <div class="tools">
+      <button class="tool" (click)="toggleSound()" [title]="sound() ? 'Ton ausschalten' : 'Ton einschalten'">{{ sound() ? 'Ton an' : 'Ton aus' }}</button>
+      <button class="tool" (click)="leave.emit()">Verlassen</button>
+    </div>
   </header>
 
   <section class="board-area">
-    <div class="status-pill" [class.mine]="myTurn()" [style.--c]="statusColor()">
-      <span class="color-dot" [style.background]="statusColor()"></span>
-      {{ status() }}
+    <div class="status" [class.mine]="myTurn()">
+      @if (myTurn()) {
+        <b>{{ status() }}</b>
+      } @else {
+        <span class="color-dot" [style.background]="statusColor()"></span>
+        {{ status() }}
+      }
     </div>
 
     <div class="bank" data-anchor="bank" title="Vorrat der Bank">
-      <span class="bank-title">Bank</span>
+      <small>Bank</small>
       @for (r of resources; track r) {
         <span class="bstack" [attr.data-bank]="r" [class.low]="game.bank[r] < 4" [title]="resourceNames[r] + ': ' + game.bank[r]">
-          {{ resourceIcons[r] }} <b>{{ game.bank[r] }}</b>
+          <img [src]="resourceArt[r]" alt="" /> <b>{{ game.bank[r] }}</b>
         </span>
       }
-      <span class="bstack" data-bank="dev" title="Entwicklungskarten im Stapel"><img class="deck-art" [src]="cardArt.back" alt="" /> <b>{{ game.devDeck.length }}</b></span>
+      <span class="bstack" data-bank="dev" title="Entwicklungskarten im Stapel">
+        <img class="deck" [src]="cardArt.back" alt="" /> <b>{{ game.devDeck.length }}</b>
+      </span>
     </div>
 
     <app-board
@@ -37,10 +85,6 @@
       (hexPick)="onHex($event)"
     />
 
-    @if (game.offers.length) {
-      <app-offer-list class="offers" [game]="game" [seat]="seat()" />
-    }
-
     @if (buildMode(); as mode) {
       <div class="board-hint">
         {{ mode === 'road' ? 'Wähle eine Kante für die Straße' : mode === 'settlement' ? 'Wähle eine Ecke für die Siedlung' : 'Wähle eine Siedlung für die Stadt' }}
@@ -50,10 +94,52 @@
 
     @if (banner(); as b) {
       @for (id of [b.id]; track id) {
-        <div class="banner" [style.--c]="myColor()">{{ b.text }}</div>
+        <div class="banner">{{ b.text }}</div>
       }
     }
   </section>
+
+  <aside class="side">
+    @if (seat() < 0) {
+      <section class="spectator">
+        <strong>Du schaust zu.</strong>
+        @if (claimable().length) {
+          <p class="muted">Bist du einer dieser Spieler, z. B. von einem anderen Gerät? Dann übernimm den Platz:</p>
+          <div class="row">
+            @for (p of claimable(); track p.id) {
+              <button class="primary" (click)="room.claimSeat(p.id)">Als {{ p.name }} weiterspielen</button>
+            }
+          </div>
+        } @else {
+          <p class="muted">Alle Plätze sind besetzt. Wird ein Spieler getrennt, kannst du seinen Platz übernehmen.</p>
+        }
+      </section>
+    }
+
+    <div class="tabs" role="tablist">
+      <button role="tab" [class.on]="sideTab() === 'log'" [attr.aria-selected]="sideTab() === 'log'" (click)="sideTab.set('log')">Verlauf</button>
+      <button role="tab" [class.on]="sideTab() === 'chat'" [attr.aria-selected]="sideTab() === 'chat'" (click)="sideTab.set('chat')">
+        Chat
+        @if (room.chat().length) {
+          <span class="count">{{ room.chat().length }}</span>
+        }
+      </button>
+    </div>
+
+    @if (sideTab() === 'log') {
+      <ol class="log" #logList>
+        @for (e of logEntries(); track $index) {
+          <li [style.--c]="e.color">{{ e.text }}</li>
+        }
+      </ol>
+    } @else {
+      <app-chat-box class="chat" />
+    }
+
+    @if (game.offers.length) {
+      <app-offer-list class="offers" [game]="game" [seat]="seat()" />
+    }
+  </aside>
 
   <section class="dock">
     @if (me(); as self) {
@@ -89,41 +175,47 @@
       <div class="build">
         @let opts = buildOptions();
         <button [disabled]="!opts.road.enabled" [class.selected]="buildMode() === 'road'" [title]="opts.road.reason ?? 'Straße bauen (R)'" (click)="toggleBuild('road')">
-          @if (pieceImage("road", myColor()); as image) {
-            <img class="piece piece-art" [src]="image" alt="" />
-          } @else {
-          <svg viewBox="-12 -12 24 24" class="piece"><line x1="-9" y1="6" x2="9" y2="-6" class="road-o" /><line x1="-9" y1="6" x2="9" y2="-6" [attr.stroke]="myColor()" class="road-f" /></svg>
-          }
+          <span class="figure">
+            @if (pieceImage('road', myColor()); as image) {
+              <img class="road" [src]="image" alt="" />
+            } @else {
+              <svg viewBox="-12 -12 24 24"><line x1="-9" y1="6" x2="9" y2="-6" class="road-o" /><line x1="-9" y1="6" x2="9" y2="-6" [attr.stroke]="myColor()" class="road-f" /></svg>
+            }
+          </span>
           <span class="label">Straße <kbd>R</kbd></span>
-          <span class="cost">@for (i of costIcons(costs.road); track $index) {<span>{{ i }}</span>}</span>
+          <span class="cost">@for (c of costArt(costs.road); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
         </button>
         <button [disabled]="!opts.settlement.enabled" [class.selected]="buildMode() === 'settlement'" [title]="opts.settlement.reason ?? 'Siedlung bauen (S)'" (click)="toggleBuild('settlement')">
-          @if (pieceImage("settlement", myColor()); as image) {
-            <img class="piece piece-art" [src]="image" alt="" />
-          } @else {
-          <svg viewBox="-12 -13 24 24" class="piece"><path [attr.fill]="myColor()" d="M-9,8 L9,8 L9,-3 L0,-11 L-9,-3 Z" /></svg>
-          }
+          <span class="figure">
+            @if (pieceImage('settlement', myColor()); as image) {
+              <img [src]="image" alt="" />
+            } @else {
+              <svg viewBox="-12 -13 24 24"><path [attr.fill]="myColor()" d="M-9,8 L9,8 L9,-3 L0,-11 L-9,-3 Z" /></svg>
+            }
+          </span>
           <span class="label">Siedlung <kbd>S</kbd></span>
-          <span class="cost">@for (i of costIcons(costs.settlement); track $index) {<span>{{ i }}</span>}</span>
+          <span class="cost">@for (c of costArt(costs.settlement); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
         </button>
         <button [disabled]="!opts.city.enabled" [class.selected]="buildMode() === 'city'" [title]="opts.city.reason ?? 'Stadt bauen (C)'" (click)="toggleBuild('city')">
-          @if (pieceImage("city", myColor()); as image) {
-            <img class="piece piece-art" [src]="image" alt="" />
-          } @else {
-          <svg viewBox="-17 -20 34 32" class="piece"><path [attr.fill]="myColor()" d="M-16,11 L16,11 L16,-4 L4,-4 L4,-10 L-6,-19 L-16,-10 Z" /></svg>
-          }
+          <span class="figure">
+            @if (pieceImage('city', myColor()); as image) {
+              <img [src]="image" alt="" />
+            } @else {
+              <svg viewBox="-17 -20 34 32"><path [attr.fill]="myColor()" d="M-16,11 L16,11 L16,-4 L4,-4 L4,-10 L-6,-19 L-16,-10 Z" /></svg>
+            }
+          </span>
           <span class="label">Stadt <kbd>C</kbd></span>
-          <span class="cost">@for (i of costIcons(costs.city); track $index) {<span>{{ i }}</span>}</span>
+          <span class="cost">@for (c of costArt(costs.city); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
         </button>
         <button [disabled]="!opts.devCard.enabled" [title]="opts.devCard.reason ?? 'Entwicklungskarte kaufen (E)'" (click)="buyDevCard()">
-          <span class="piece emoji">📜</span>
+          <span class="figure"><img class="deck" [src]="cardArt.back" alt="" /></span>
           <span class="label">Entwicklung <kbd>E</kbd></span>
-          <span class="cost">@for (i of costIcons(costs.devCard); track $index) {<span>{{ i }}</span>}</span>
+          <span class="cost">@for (c of costArt(costs.devCard); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
         </button>
         <button [disabled]="!canTrade()" [title]="canTrade() ? 'Handeln (H)' : 'Gehandelt wird nach dem Würfeln'" (click)="tradeOpen.set(true)">
-          <span class="piece emoji">⇄</span>
+          <span class="figure trade">⇄</span>
           <span class="label">Handeln <kbd>H</kbd></span>
-          <span class="cost muted">Bank · Spieler</span>
+          <span class="cost text">Bank oder Spieler</span>
         </button>
       </div>
     } @else {
@@ -147,89 +239,6 @@
       </button>
     </div>
   </section>
-
-  <aside class="side">
-    @if (seat() < 0) {
-      <section class="panel spectator">
-        <strong>Du schaust zu.</strong>
-        @if (claimable().length) {
-          <p class="muted small">Bist du einer dieser Spieler, z. B. von einem anderen Gerät? Dann übernimm den Platz:</p>
-          <div class="row">
-            @for (p of claimable(); track p.id) {
-              <button class="primary" (click)="room.claimSeat(p.id)">Als {{ p.name }} weiterspielen</button>
-            }
-          </div>
-        } @else {
-          <p class="muted small">Alle Plätze sind besetzt. Wird ein Spieler getrennt, kannst du seinen Platz übernehmen.</p>
-        }
-      </section>
-    }
-
-    <section class="players">
-      @for (p of playerRows(); track p.seat) {
-        <div class="player" [attr.data-seat]="p.seat" [class.active]="p.active" [class.offline]="!p.online" [style.--c]="p.color">
-          <div class="pmain">
-            <div class="pname">
-              <strong>{{ p.name }}</strong>
-              @if (p.me) {
-                <span class="muted"> (du)</span>
-              }
-            </div>
-            <div class="tags">
-              @if (p.active) {
-                <span class="tag turn-tag">am Zug</span>
-              }
-              @if (!p.online) {
-                <span class="tag">getrennt</span>
-              }
-              @if (p.longestRoad) {
-                <span class="tag gold" title="Längste Handelsstraße, 2 Siegpunkte">🛤️ Längste Straße</span>
-              }
-              @if (p.largestArmy) {
-                <span class="tag gold" title="Größte Rittermacht, 2 Siegpunkte">⚔️ Rittermacht</span>
-              }
-            </div>
-            <div class="stats">
-              <span title="Rohstoffkarten auf der Hand"><b>{{ p.cards }}</b> Karten</span>
-              <span title="Entwicklungskarten"><b>{{ p.dev }}</b> Entw.</span>
-              <span class="knight-stat" title="Gespielte Ritter">
-                @if (pieceImage('knight', p.color); as image) {
-                  <img class="knight-piece" [src]="image" alt="" />
-                }
-                <b>{{ p.knights }}</b> Ritter
-              </span>
-              <span title="Längste eigene Straße"><b>{{ p.road }}</b> Straße</span>
-            </div>
-          </div>
-          <div class="vp" title="Siegpunkte">
-            <b>{{ p.vp }}</b>
-            <small>Punkte</small>
-          </div>
-        </div>
-      }
-    </section>
-
-    <section class="panel feed">
-      <div class="tabs">
-        <button [class.selected]="sideTab() === 'log'" (click)="sideTab.set('log')">Verlauf</button>
-        <button [class.selected]="sideTab() === 'chat'" (click)="sideTab.set('chat')">
-          Chat
-          @if (room.chat().length) {
-            <span class="muted">({{ room.chat().length }})</span>
-          }
-        </button>
-      </div>
-      @if (sideTab() === 'log') {
-        <div class="log" #logList>
-          @for (e of logEntries(); track $index) {
-            <div class="entry" [style.border-color]="e.color">{{ e.text }}</div>
-          }
-        </div>
-      } @else {
-        <app-chat-box />
-      }
-    </section>
-  </aside>
 </div>
 
 <app-fly-layer />
@@ -286,7 +295,7 @@
         <h3>Monopol: Welchen Rohstoff willst du?</h3>
         <div class="choice-list">
           @for (r of resources; track r) {
-            <button (click)="monopoly(r)">{{ resourceIcons[r] }} {{ resourceNames[r] }}</button>
+            <button (click)="monopoly(r)"><img class="choice-icon" [src]="resourceArt[r]" alt="" /> {{ resourceNames[r] }}</button>
           }
         </div>
         <div class="row end mt">

@@ -26,7 +26,8 @@ import { ChatBox } from '../shared/chat-box';
 import { CardFace } from '../shared/card-face';
 import { CARD_ART } from '../shared/card-art';
 import { pieceImage } from '../shared/piece-art';
-import { DEV_CARD_HELP, RESOURCE_ICONS } from '../shared/labels';
+import { RESOURCE_ART } from '../shared/resource-art';
+import { DEV_CARD_HELP } from '../shared/labels';
 import { ResourcePicker } from '../shared/resource-picker';
 import { DiceTray, ROLL_DURATION_MS } from './dice-tray';
 import { FlyLayer } from './fly-layer';
@@ -53,7 +54,7 @@ export class GameView {
 
   protected readonly resources = RESOURCES;
   protected readonly cardArt = CARD_ART;
-  protected readonly resourceIcons = RESOURCE_ICONS;
+  protected readonly resourceArt = RESOURCE_ART;
   protected readonly resourceNames = RESOURCE_NAMES;
   protected readonly devNames = DEV_CARD_NAMES;
   protected readonly devHelp = DEV_CARD_HELP;
@@ -462,8 +463,9 @@ export class GameView {
     return totalResources(r);
   }
 
-  protected costIcons(cost: ResourceCounts): string[] {
-    return RESOURCES.flatMap((r) => Array<string>(cost[r]).fill(RESOURCE_ICONS[r]));
+  /** Rohstoffsymbole für die Baukosten, eins pro benötigter Karte. */
+  protected costArt(cost: ResourceCounts): { src: string; name: string }[] {
+    return RESOURCES.flatMap((r) => Array.from({ length: cost[r] }, () => ({ src: RESOURCE_ART[r], name: RESOURCE_NAMES[r] })));
   }
 
   protected deltaLabel(n: number | undefined): string {
