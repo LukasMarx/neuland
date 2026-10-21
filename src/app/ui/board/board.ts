@@ -1,11 +1,13 @@
 import { Component, computed, input, output } from '@angular/core';
 import { GameState, getTopology, RESOURCE_NAMES } from '../../engine';
-import { harborLabel, RESOURCE_ICONS, TERRAIN_COLORS, TERRAIN_ICONS } from '../shared/labels';
+import { harborLabel, RESOURCE_ICONS } from '../shared/labels';
+import { TerrainDefs } from './terrain-defs';
 
 const S = 60;
 
 @Component({
   selector: 'app-board',
+  imports: [TerrainDefs],
   templateUrl: './board.html',
   styleUrl: './board.scss',
 })
@@ -24,8 +26,6 @@ export class Board {
   readonly hexPick = output<number>();
 
   protected readonly S = S;
-  protected readonly terrainIcons = TERRAIN_ICONS;
-  protected readonly terrainColors = TERRAIN_COLORS;
 
   protected readonly topo = computed(() => getTopology(this.game().board.layout));
 
@@ -76,6 +76,8 @@ export class Board {
         y: h.y * S,
         points: h.corners.map((c) => this.point(c)).join(' '),
         terrain: state.terrain,
+        // Jedes zweite Feld gespiegelt, damit gleiche Gelände nicht wie gestempelt aussehen.
+        transform: `translate(${(h.x * S).toFixed(1)},${(h.y * S).toFixed(1)})${h.id % 2 ? ' scale(-1,1)' : ''}`,
         number,
         red: number === 6 || number === 8,
         pips: number ? 6 - Math.abs(7 - number) : 0,

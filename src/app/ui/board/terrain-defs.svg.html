@@ -1,0 +1,210 @@
+<svg:clipPath id="hexclip">
+  <polygon points="0,-60 51.96,-30 51.96,30 0,60 -51.96,30 -51.96,-30" />
+</svg:clipPath>
+
+<!-- Grundfarben als Verlauf, hell oben links, dunkel unten rechts -->
+<svg:radialGradient id="g-wood" cx="35%" cy="30%" r="80%">
+  <stop offset="0" stop-color="#6da24c" />
+  <stop offset="1" stop-color="#2c6129" />
+</svg:radialGradient>
+<svg:radialGradient id="g-sheep" cx="35%" cy="30%" r="80%">
+  <stop offset="0" stop-color="#c3e37f" />
+  <stop offset="1" stop-color="#79ae43" />
+</svg:radialGradient>
+<svg:radialGradient id="g-wheat" cx="35%" cy="30%" r="80%">
+  <stop offset="0" stop-color="#f8e08a" />
+  <stop offset="1" stop-color="#d49d2a" />
+</svg:radialGradient>
+<svg:radialGradient id="g-brick" cx="35%" cy="30%" r="80%">
+  <stop offset="0" stop-color="#e3946a" />
+  <stop offset="1" stop-color="#a24c27" />
+</svg:radialGradient>
+<svg:radialGradient id="g-ore" cx="35%" cy="30%" r="80%">
+  <stop offset="0" stop-color="#b9c2cc" />
+  <stop offset="1" stop-color="#66717e" />
+</svg:radialGradient>
+<svg:radialGradient id="g-desert" cx="35%" cy="30%" r="80%">
+  <stop offset="0" stop-color="#f6e9c2" />
+  <stop offset="1" stop-color="#d6bb82" />
+</svg:radialGradient>
+<svg:linearGradient id="g-shine" x1="0" y1="0" x2="0.4" y2="1">
+  <stop offset="0" stop-color="#fff" stop-opacity="0.28" />
+  <stop offset="0.45" stop-color="#fff" stop-opacity="0" />
+  <stop offset="1" stop-color="#000" stop-opacity="0.18" />
+</svg:linearGradient>
+<svg:radialGradient id="g-ocean" cx="50%" cy="45%" r="65%">
+  <stop offset="0.55" stop-color="#4f97c4" />
+  <stop offset="1" stop-color="#2f6f9c" />
+</svg:radialGradient>
+<svg:pattern id="p-waves" width="46" height="26" patternUnits="userSpaceOnUse">
+  <path d="M2,8 q5,-5 10,0 t10,0" fill="none" stroke="#fff" stroke-opacity="0.22" stroke-width="1.6" stroke-linecap="round" />
+  <path d="M25,20 q5,-5 10,0 t10,0" fill="none" stroke="#fff" stroke-opacity="0.16" stroke-width="1.6" stroke-linecap="round" />
+</svg:pattern>
+<svg:radialGradient id="g-token" cx="40%" cy="35%" r="70%">
+  <stop offset="0" stop-color="#fffaf0" />
+  <stop offset="1" stop-color="#ead9b5" />
+</svg:radialGradient>
+
+<!-- Bausteine -->
+<svg:g id="pine">
+  <rect x="-1.6" y="7" width="3.2" height="6" rx="1" fill="#5b3a1c" />
+  <path d="M0,-15 L8,-3 L-8,-3 Z" fill="#1f5427" />
+  <path d="M0,-9 L10,3 L-10,3 Z" fill="#1f5427" />
+  <path d="M0,-3 L12,9 L-12,9 Z" fill="#1f5427" />
+  <path d="M0,-15 L0,-3 L-8,-3 Z M0,-9 L0,3 L-10,3 Z M0,-3 L0,9 L-12,9 Z" fill="#3f8a3e" />
+</svg:g>
+<svg:g id="bush">
+  <circle cx="-4" cy="1" r="4.5" fill="#2f6e2e" />
+  <circle cx="3" cy="0" r="5" fill="#3a7d37" />
+  <circle cx="0" cy="-3" r="4" fill="#4a9142" />
+</svg:g>
+<svg:g id="sheep-figure">
+  <ellipse cx="0" cy="7.5" rx="9" ry="2" fill="#000" opacity="0.15" />
+  <rect x="-5" y="2" width="1.8" height="5" fill="#3b3b3b" />
+  <rect x="3" y="2" width="1.8" height="5" fill="#3b3b3b" />
+  <g fill="#fbfbf6" stroke="#d6d6cc" stroke-width="0.8">
+    <circle cx="-4" cy="-1" r="4" />
+    <circle cx="1" cy="-3" r="4.2" />
+    <circle cx="5" cy="0" r="3.8" />
+    <circle cx="0" cy="2" r="4" />
+  </g>
+  <ellipse cx="-8.5" cy="-2" rx="3" ry="2.4" fill="#3b3b3b" />
+  <circle cx="-9.5" cy="-2.6" r="0.6" fill="#fff" />
+</svg:g>
+<svg:g id="tuft">
+  <path d="M-3,2 L-1,-3 M0,2 L0,-4 M3,2 L1,-3" stroke="#5c9a34" stroke-width="1.3" stroke-linecap="round" fill="none" />
+</svg:g>
+<svg:g id="sheaf">
+  <path d="M0,10 L-5,-6 M0,10 L0,-8 M0,10 L5,-6 M0,10 L-2.5,-7 M0,10 L2.5,-7" stroke="#b07f1c" stroke-width="1.2" fill="none" />
+  <g fill="#e9b93a" stroke="#b07f1c" stroke-width="0.6">
+    <ellipse cx="-5" cy="-8" rx="1.8" ry="3.5" transform="rotate(-18 -5 -8)" />
+    <ellipse cx="0" cy="-10" rx="1.8" ry="3.5" />
+    <ellipse cx="5" cy="-8" rx="1.8" ry="3.5" transform="rotate(18 5 -8)" />
+    <ellipse cx="-2.5" cy="-9.5" rx="1.6" ry="3.2" transform="rotate(-9 -2.5 -9.5)" />
+    <ellipse cx="2.5" cy="-9.5" rx="1.6" ry="3.2" transform="rotate(9 2.5 -9.5)" />
+  </g>
+  <rect x="-4" y="3" width="8" height="2.2" rx="1" fill="#9b6b1a" />
+</svg:g>
+<svg:g id="bricks">
+  <g fill="#9a3f1e" stroke="#f0c9a8" stroke-width="0.9">
+    <rect x="-11" y="0" width="7.5" height="4" />
+    <rect x="-3.5" y="0" width="7.5" height="4" />
+    <rect x="4" y="0" width="7.5" height="4" />
+    <rect x="-7.5" y="-4" width="7.5" height="4" />
+    <rect x="0" y="-4" width="7.5" height="4" />
+    <rect x="-3.5" y="-8" width="7.5" height="4" />
+  </g>
+</svg:g>
+<svg:g id="mountain-big">
+  <path d="M-26,18 L0,-24 L26,18 Z" fill="#7d8996" />
+  <path d="M0,-24 L26,18 L6,18 Z" fill="#5d6874" />
+  <path d="M0,-24 L-8,-11 L-3,-13 L0,-8 L4,-13 L8,-11 Z" fill="#fbfcff" />
+  <path d="M-12,18 L-6,8 L-1,18 Z" fill="#6d7884" />
+</svg:g>
+<svg:g id="rock">
+  <path d="M-6,3 L-4,-3 L1,-5 L6,-1 L5,3 Z" fill="#8b96a1" stroke="#5d6874" stroke-width="0.8" />
+  <path d="M1,-5 L6,-1 L5,3 L1,2 Z" fill="#6b7682" />
+</svg:g>
+<svg:g id="cactus">
+  <ellipse cx="0" cy="12" rx="7" ry="2" fill="#000" opacity="0.12" />
+  <g fill="#4f9a4c" stroke="#2f6b33" stroke-width="0.9" stroke-linejoin="round">
+    <path d="M-2.5,12 L-2.5,-10 Q0,-14 2.5,-10 L2.5,12 Z" />
+    <path d="M-2.5,2 L-6,2 Q-8,2 -8,-1 L-8,-6 Q-6.5,-8 -5,-6 L-5,-1 L-2.5,-1 Z" />
+    <path d="M2.5,-1 L6,-1 Q8,-1 8,-4 L8,-8 Q6.5,-10 5,-8 L5,-4 L2.5,-4 Z" />
+  </g>
+</svg:g>
+
+<!-- Gelände -->
+<svg:g id="t-wood" clip-path="url(#hexclip)">
+  <polygon points="0,-60 51.96,-30 51.96,30 0,60 -51.96,30 -51.96,-30" fill="url(#g-wood)" />
+  <use href="#bush" x="-38" y="-14" />
+  <use href="#bush" x="40" y="-14" />
+  <use href="#bush" x="-6" y="52" />
+  <use href="#pine" transform="translate(-26,-30) scale(1.05)" />
+  <use href="#pine" transform="translate(-2,-40) scale(1.15)" />
+  <use href="#pine" transform="translate(22,-32) scale(0.95)" />
+  <use href="#pine" transform="translate(38,4) scale(0.85)" />
+  <use href="#pine" transform="translate(-40,10) scale(0.9)" />
+  <use href="#pine" transform="translate(-26,36) scale(1.05)" />
+  <use href="#pine" transform="translate(24,36) scale(1.1)" />
+  <use href="#pine" transform="translate(4,46) scale(0.8)" />
+</svg:g>
+
+<svg:g id="t-sheep" clip-path="url(#hexclip)">
+  <polygon points="0,-60 51.96,-30 51.96,30 0,60 -51.96,30 -51.96,-30" fill="url(#g-sheep)" />
+  <use href="#tuft" x="-30" y="-6" />
+  <use href="#tuft" x="34" y="-14" />
+  <use href="#tuft" x="-10" y="-44" />
+  <use href="#tuft" x="14" y="50" />
+  <use href="#tuft" x="-36" y="20" />
+  <use href="#tuft" x="38" y="16" />
+  <circle cx="-18" cy="-44" r="1.4" fill="#fff6b0" />
+  <circle cx="30" cy="-34" r="1.4" fill="#fff" />
+  <circle cx="-34" cy="30" r="1.4" fill="#fff6b0" />
+  <g stroke="#8b5a2b" stroke-width="1.8" stroke-linecap="round">
+    <line x1="14" y1="30" x2="44" y2="18" />
+    <line x1="14" y1="36" x2="44" y2="24" />
+    <line x1="16" y1="26" x2="16" y2="40" />
+    <line x1="30" y1="20" x2="30" y2="34" />
+    <line x1="43" y1="15" x2="43" y2="29" />
+  </g>
+  <use href="#sheep-figure" transform="translate(-24,-24) scale(1.2)" />
+  <use href="#sheep-figure" transform="translate(20,-32) scale(-1.05,1.05)" />
+  <use href="#sheep-figure" transform="translate(-20,38) scale(1.1)" />
+</svg:g>
+
+<svg:g id="t-wheat" clip-path="url(#hexclip)">
+  <polygon points="0,-60 51.96,-30 51.96,30 0,60 -51.96,30 -51.96,-30" fill="url(#g-wheat)" />
+  <g stroke="#c48d22" stroke-width="2.4" stroke-opacity="0.55" stroke-linecap="round">
+    <line x1="-70" y1="-30" x2="40" y2="-75" />
+    <line x1="-70" y1="-16" x2="50" y2="-65" />
+    <line x1="-70" y1="-2" x2="60" y2="-55" />
+    <line x1="-70" y1="12" x2="70" y2="-45" />
+    <line x1="-70" y1="26" x2="70" y2="-31" />
+    <line x1="-70" y1="40" x2="70" y2="-17" />
+    <line x1="-70" y1="54" x2="70" y2="-3" />
+    <line x1="-60" y1="64" x2="70" y2="11" />
+    <line x1="-46" y1="72" x2="70" y2="25" />
+    <line x1="-30" y1="78" x2="70" y2="39" />
+  </g>
+  <use href="#sheaf" transform="translate(-28,-28) scale(1.1)" />
+  <use href="#sheaf" transform="translate(28,-26)" />
+  <use href="#sheaf" transform="translate(-32,30) scale(0.95)" />
+  <use href="#sheaf" transform="translate(30,34) scale(1.05)" />
+</svg:g>
+
+<svg:g id="t-brick" clip-path="url(#hexclip)">
+  <polygon points="0,-60 51.96,-30 51.96,30 0,60 -51.96,30 -51.96,-30" fill="url(#g-brick)" />
+  <path d="M-60,-20 Q-30,-52 0,-30 Q30,-58 60,-26 L60,-60 L-60,-60 Z" fill="#c9693d" />
+  <path d="M-60,-24 Q-30,-56 0,-34 Q30,-62 60,-30" fill="none" stroke="#f0a77d" stroke-width="1.6" stroke-opacity="0.7" />
+  <path d="M-60,44 Q-28,22 4,42 Q32,24 60,40 L60,70 L-60,70 Z" fill="#b65a30" />
+  <path d="M-60,40 Q-28,18 4,38 Q32,20 60,36" fill="none" stroke="#e88f61" stroke-width="1.6" stroke-opacity="0.7" />
+  <use href="#bricks" transform="translate(-30,-12) scale(1.1)" />
+  <use href="#bricks" transform="translate(30,-16)" />
+  <use href="#bricks" transform="translate(-4,46) scale(0.9)" />
+  <circle cx="-38" cy="20" r="1.6" fill="#8a3a18" />
+  <circle cx="36" cy="18" r="1.4" fill="#8a3a18" />
+</svg:g>
+
+<svg:g id="t-ore" clip-path="url(#hexclip)">
+  <polygon points="0,-60 51.96,-30 51.96,30 0,60 -51.96,30 -51.96,-30" fill="url(#g-ore)" />
+  <use href="#mountain-big" transform="translate(-22,-26) scale(0.95)" />
+  <use href="#mountain-big" transform="translate(20,-32) scale(1.1)" />
+  <use href="#mountain-big" transform="translate(-30,36) scale(0.7)" />
+  <use href="#mountain-big" transform="translate(28,36) scale(0.75)" />
+  <use href="#rock" x="-40" y="6" />
+  <use href="#rock" x="42" y="2" />
+  <use href="#rock" x="0" y="50" />
+</svg:g>
+
+<svg:g id="t-desert" clip-path="url(#hexclip)">
+  <polygon points="0,-60 51.96,-30 51.96,30 0,60 -51.96,30 -51.96,-30" fill="url(#g-desert)" />
+  <path d="M-60,-24 Q-24,-46 10,-30 T60,-36 L60,-60 L-60,-60 Z" fill="#ead39a" />
+  <path d="M-60,-24 Q-24,-46 10,-30 T60,-36" fill="none" stroke="#c9a868" stroke-width="1.4" />
+  <path d="M-60,36 Q-20,20 16,34 T60,30 L60,70 L-60,70 Z" fill="#e2c88c" />
+  <path d="M-60,36 Q-20,20 16,34 T60,30" fill="none" stroke="#c4a061" stroke-width="1.4" />
+  <path d="M-44,8 q6,-3 12,0 M24,10 q6,-3 12,0" stroke="#c9a868" stroke-width="1.2" fill="none" stroke-linecap="round" />
+  <use href="#cactus" transform="translate(-24,-30) scale(1.15)" />
+  <use href="#cactus" transform="translate(30,38) scale(0.95)" />
+  <use href="#rock" transform="translate(30,-24) scale(0.8)" />
+</svg:g>

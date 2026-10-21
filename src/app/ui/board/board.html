@@ -1,5 +1,7 @@
 <svg [attr.viewBox]="viewBox()" role="img" aria-label="Spielbrett">
-  <path class="ocean" [attr.d]="oceanPath()" />
+  <defs><g appTerrainDefs></g></defs>
+  <path class="ocean" [attr.d]="oceanPath()" fill="url(#g-ocean)" />
+  <path class="waves" [attr.d]="oceanPath()" fill="url(#p-waves)" />
 
   @for (h of harbors(); track $index) {
     <g class="harbor">
@@ -14,11 +16,14 @@
 
   @for (h of hexes(); track h.id) {
     <g class="hex" [attr.data-hex]="h.id" [class.hit]="h.hit" [class.robbed]="h.hit && h.robber">
-      <polygon [attr.points]="h.points" [attr.fill]="terrainColors[h.terrain]" />
-      <text class="terrain-icon" [attr.x]="h.x" [attr.y]="h.y - S * 0.48">{{ terrainIcons[h.terrain] }}</text>
+      <use class="art" [attr.href]="'#t-' + h.terrain" [attr.transform]="h.transform" />
+      <polygon class="shine" [attr.points]="h.points" fill="url(#g-shine)" />
+      <polygon class="outline" [attr.points]="h.points" />
       @if (h.number) {
         <g class="token" [class.red]="h.red" [class.blocked]="h.robber">
-          <circle [attr.cx]="h.x" [attr.cy]="h.y + S * 0.05" [attr.r]="S * 0.3" />
+          <circle class="shadow" [attr.cx]="h.x + 1.5" [attr.cy]="h.y + S * 0.05 + 2.5" [attr.r]="S * 0.3" />
+          <circle class="disc" [attr.cx]="h.x" [attr.cy]="h.y + S * 0.05" [attr.r]="S * 0.3" fill="url(#g-token)" />
+          <circle class="ring" [attr.cx]="h.x" [attr.cy]="h.y + S * 0.05" [attr.r]="S * 0.25" />
           <text class="number" [attr.x]="h.x" [attr.y]="h.y + S * 0.05">{{ h.number }}</text>
           @for (p of pipsArray(h.pips); track p) {
             <circle class="pip" [attr.cx]="h.x + (p - (h.pips - 1) / 2) * S * 0.075" [attr.cy]="h.y + S * 0.23" [attr.r]="S * 0.022" />

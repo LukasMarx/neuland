@@ -18,27 +18,42 @@ text {
 }
 
 .ocean {
-  fill: var(--ocean);
-  stroke: #3b7aa1;
+  stroke: #2b6690;
   stroke-width: 6;
   stroke-linejoin: round;
 }
 
-.hex polygon {
-  stroke: #f2e6c7;
-  stroke-width: 3;
-  stroke-linejoin: round;
+.waves {
+  pointer-events: none;
 }
 
-.terrain-icon {
-  font-size: 17px;
+.hex {
+  .shine {
+    pointer-events: none;
+  }
+
+  .outline {
+    fill: none;
+    stroke: #f3e7c6;
+    stroke-width: 3;
+    stroke-linejoin: round;
+  }
 }
 
 .token {
-  circle:first-child {
-    fill: #f8f0dc;
+  .shadow {
+    fill: rgb(0 0 0 / 0.28);
+  }
+
+  .disc {
     stroke: #8a7550;
-    stroke-width: 1.5;
+    stroke-width: 1.2;
+  }
+
+  .ring {
+    fill: none;
+    stroke: #c9b385;
+    stroke-width: 0.8;
   }
 
   .number {
@@ -157,16 +172,20 @@ text {
 
 /* Nach dem Würfeln leuchten die Felder mit der gewürfelten Zahl auf. */
 .hex.hit {
-  polygon {
+  .outline {
     animation: hit-glow 2.4s ease-out;
   }
 
-  .token circle:first-child {
+  .art {
+    animation: hit-bright 2.4s ease-out;
+  }
+
+  .token .disc {
     animation: hit-token 2.4s ease-out;
   }
 }
 
-.hex.robbed polygon {
+.hex.robbed .outline {
   animation: robbed 2.4s ease-out;
 }
 
@@ -203,7 +222,14 @@ text {
   70% {
     stroke: #fff36b;
     stroke-width: 9;
-    filter: brightness(1.18) drop-shadow(0 0 10px #fff36b);
+    filter: drop-shadow(0 0 10px #fff36b);
+  }
+}
+
+@keyframes hit-bright {
+  0%,
+  70% {
+    filter: brightness(1.2) saturate(1.15);
   }
 }
 
