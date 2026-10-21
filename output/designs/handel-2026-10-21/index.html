@@ -38,7 +38,6 @@
     height: 100vh;
     transition: grid-template-rows 0.25s ease;
   }
-  .stage.trading { grid-template-rows: 68px minmax(0, 1fr) 214px; }
 
   /* --- Kopf --- */
   .top {
@@ -119,13 +118,13 @@
     display: grid; gap: 10px;
   }
   .incoming.enter { animation: rise 0.25s ease-out; }
-  .incoming p { margin: 0; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .incoming p { margin: 0; font-weight: 800; font-size: 16px; display: flex; align-items: center; gap: 8px; }
   .incoming p span { color: var(--muted); font-weight: 400; }
   .incoming .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
   .terms { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; }
   .terms small { color: var(--muted); font-size: 12px; }
   .stack { display: flex; gap: 3px; flex-wrap: wrap; }
-  .stack img { width: 26px; height: 39px; border-radius: 3px; object-fit: cover; box-shadow: 0 2px 4px rgb(0 0 0 / 0.3); }
+  .stack img { width: 34px; height: 51px; border-radius: 3px; object-fit: cover; box-shadow: 0 2px 4px rgb(0 0 0 / 0.3); }
   .incoming .row { display: flex; gap: 6px; flex-wrap: wrap; }
   .incoming .note { color: var(--muted); font-size: 12px; margin: 0; }
 
@@ -188,62 +187,82 @@
   .dice { display: flex; gap: 8px; align-items: center; }
   .go { height: 52px; padding: 0 26px; border-radius: 10px; border: none; background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: 16px; }
 
-  /* --- Tauschtisch --- */
-  .table {
-    display: grid; grid-template-columns: auto minmax(220px, 1fr); gap: 22px; align-items: center;
+  /* --- Tauschtisch ---
+     Während des Handelns wird das Dock zum Tisch: Die Hand tritt zurück, weil „Du gibst“ sie vollständig zeigt.
+     Karten wachsen mit der Fensterhöhe. */
+  .stage.trading { grid-template-rows: 68px minmax(0, 1fr) auto; }
+  .dock.trading {
+    --ch: clamp(108px, 17vh, 168px);
+    --cw: calc(var(--ch) * 2 / 3);
+    grid-template-columns: auto minmax(300px, 420px);
+    justify-content: center;
+    gap: 48px;
+    padding: 22px 64px 22px 24px;
   }
-  .table.enter { animation: rise 0.22s ease-out; }
-  .rows { display: grid; gap: 10px; }
-  .trow { display: grid; grid-template-columns: 92px auto; align-items: center; gap: 10px; }
-  .trow > b { font-size: 13px; }
-  .trow > b small { display: block; color: var(--muted); font-weight: 600; font-size: 11px; }
-  .slots { display: flex; gap: 8px; }
+  .table { display: contents; }
+  .rows { display: grid; gap: 16px; }
+  .rows.enter, .act.enter { animation: rise 0.22s ease-out; }
+  .trow { display: grid; grid-template-columns: 128px auto; align-items: center; gap: 16px; }
+  .trow > b { font-size: 18px; font-weight: 800; }
+  .trow > b small { display: block; margin-top: 2px; color: var(--muted); font-weight: 600; font-size: 13px; }
+  .slots { display: flex; gap: 14px; }
+  .slotwrap { display: grid; justify-items: center; gap: 6px; }
+  .slotwrap small { color: var(--muted); font-size: 12px; font-weight: 700; }
   .slot {
-    position: relative; width: 50px; height: 75px; padding: 0; border-radius: 7px;
-    border: 1px solid var(--line); background: var(--surface-2); overflow: visible;
+    position: relative; width: var(--cw); height: var(--ch); padding: 0; border-radius: 11px;
+    border: 2px solid var(--line); background: var(--surface-2); overflow: visible;
+    transition: transform 0.12s;
   }
-  .slot img { width: 100%; height: 100%; border-radius: 6px; object-fit: cover; display: block; opacity: 0.42; filter: grayscale(0.5); transition: opacity 0.12s, filter 0.12s; }
-  .slot.on img { opacity: 1; filter: none; }
-  .slot.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-  .slot:hover:not(:disabled) img { opacity: 0.75; filter: none; }
-  .slot.on:hover:not(:disabled) img { opacity: 1; }
-  .slot:disabled { opacity: 0.45; }
+  .slot img { width: 100%; height: 100%; border-radius: 9px; object-fit: cover; display: block; opacity: 0.4; filter: grayscale(0.5); transition: opacity 0.12s, filter 0.12s; }
+  .slot .name {
+    position: absolute; left: 8px; right: 8px; bottom: 9px; text-align: center; padding: 3px 0; border-radius: 6px;
+    font-weight: 900; font-size: 14px; color: #2b2418; background: linear-gradient(#fffaf0, #efe0c0); opacity: 0.6;
+  }
+  .slot.on img, .slot.on .name { opacity: 1; filter: none; }
+  .slot.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), 0 8px 18px rgb(0 0 0 / 0.35); }
+  .slot:hover:not(:disabled) { transform: translateY(-4px); }
+  .slot:hover:not(:disabled) img, .slot:hover:not(:disabled) .name { opacity: 0.85; filter: none; }
+  .slot:disabled:not(.on) { opacity: 0.4; }
   .slot .cnt {
-    position: absolute; top: -8px; right: -8px; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px;
-    display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-weight: 900; font-size: 12px;
+    position: absolute; top: -12px; right: -12px; min-width: 34px; height: 34px; padding: 0 8px; border-radius: 17px;
+    display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-weight: 900; font-size: 18px;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.4);
   }
   .slot .minus {
-    position: absolute; top: -8px; left: -8px;
-    width: 22px; height: 22px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface);
-    display: grid; place-items: center; font-size: 13px; font-weight: 900; line-height: 1; padding: 0;
+    position: absolute; top: -12px; left: -12px;
+    width: 34px; height: 34px; border-radius: 17px; border: 2px solid var(--line); background: var(--surface);
+    display: grid; place-items: center; font-size: 22px; font-weight: 900; line-height: 1; padding: 0; color: var(--text);
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.4);
   }
+  .slot .minus:hover { border-color: var(--accent); }
   .slot .rate {
-    position: absolute; bottom: 3px; left: 3px; right: 3px; text-align: center; border-radius: 4px;
-    font-size: 10px; font-weight: 900; color: #2b2418; background: rgb(255 248 232 / 0.92);
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%); padding: 2px 9px; border-radius: 10px;
+    font-size: 13px; font-weight: 900; color: #2b2418; background: rgb(255 248 232 / 0.94);
   }
   .slot .rate.good { background: var(--accent); }
-  .arrow { color: var(--muted); font-size: 18px; text-align: center; width: 92px; }
 
-  .act { display: grid; gap: 10px; align-content: center; }
-  .hint { margin: 0; color: var(--muted); line-height: 1.4; min-height: 2.8em; }
+  .act { display: grid; gap: 16px; align-content: center; }
+  .hint { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.45; min-height: 4.4em; }
   .hint b { color: var(--text); }
   .hint.good b { color: var(--accent); }
-  .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+  .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+  .dock.trading .btn { height: 46px; padding: 0 20px; font-size: 15px; border-radius: 10px; }
+  .dock.trading .btn.small { height: 38px; padding: 0 14px; font-size: 14px; }
   .close {
-    position: absolute; top: 10px; right: 14px; width: 30px; height: 30px; border-radius: 8px;
-    border: 1px solid var(--line); background: transparent; color: var(--muted);
+    position: absolute; top: 16px; right: 18px; width: 38px; height: 38px; border-radius: 10px;
+    border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 16px;
   }
 
-  .answers { display: grid; gap: 6px; }
+  .answers { display: grid; gap: 8px; }
   .answer {
-    display: grid; grid-template-columns: 10px auto 1fr auto; align-items: center; gap: 8px;
-    padding: 6px 8px 6px 10px; border-radius: 8px; background: var(--surface-2); min-height: 40px;
+    display: grid; grid-template-columns: 12px auto 1fr auto; align-items: center; gap: 12px;
+    padding: 8px 10px 8px 14px; border-radius: 10px; background: var(--surface-2); min-height: 56px; font-size: 16px;
   }
-  .answer .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
-  .answer .state { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-  .answer .state.ok { color: var(--ok); font-weight: 700; }
-  .answer .state.bad { color: var(--bad); }
-  .answer .stack img { width: 18px; height: 27px; }
+  .answer .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); }
+  .answer .state { color: var(--muted); font-size: 15px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .answer .state.ok { color: var(--ok); font-weight: 800; }
+  .answer .state.bad { color: var(--bad); font-weight: 700; }
+  .answer .stack img { width: 26px; height: 39px; }
   .wait::after { content: ' …'; animation: blink 1s steps(2) infinite; }
 
   .legend {
@@ -374,8 +393,7 @@
   function render() {
     const stage = document.getElementById('stage');
     stage.classList.toggle('trading', state.trading);
-    document.documentElement.style.setProperty('--dock', state.trading ? '214px' : '180px');
-    const current = state.scenario === 'mine' ? 'Lukas' : 'Mira';
+        const current = state.scenario === 'mine' ? 'Lukas' : 'Mira';
 
     document.getElementById('players').innerHTML = PLAYERS.map((p) => `
       <div class="player ${p.name === current ? 'active' : ''}" style="--c:${p.color}">
@@ -385,7 +403,7 @@
       </div>`).join('');
 
     document.getElementById('status').innerHTML = state.scenario === 'mine'
-      ? (state.trading ? '<b>Handeln</b> · Angebot zusammenstellen' : '<b>Du bist dran</b> · Handeln und bauen')
+      ? (state.trading ? (state.mode === 'waiting' ? '<b>Handeln</b> · Warte auf Antworten' : '<b>Handeln</b> · Angebot zusammenstellen') : '<b>Du bist dran</b> · Handeln und bauen')
       : 'Mira ist am Zug';
     document.getElementById('bank').innerHTML = '<small>Bank</small>' +
       RES.map((r) => `<div><img src="${CARD(r)}" alt="">${state.bank[r]}</div>`).join('') +
@@ -442,13 +460,15 @@
       const max = side === 'give' ? state.hand[r] : state.bank[r];
       const full = n >= max;
       const rate = side === 'give' && state.mode !== 'counter' ? `<span class="rate ${RATE[r] === 2 ? 'good' : ''}">${RATE[r]}:1</span>` : '';
-      return `<button class="slot ${n ? 'on' : ''}" data-slot="${side}:${r}" ${locked || (full && !n) ? 'disabled' : ''}
-          title="${NAME[r]}${side === 'give' ? ` · du hast ${state.hand[r]}` : ''}">
-        <img src="${CARD(r)}" alt="${NAME[r]}">
+      const caption = side === 'give' ? `du hast ${state.hand[r]}` : state.mode === 'counter' ? '&nbsp;' : `Bank ${state.bank[r]}`;
+      return `<span class="slotwrap"><button class="slot ${n ? 'on' : ''}" data-slot="${side}:${r}" ${locked || (full && !n) ? 'disabled' : ''}
+          title="${NAME[r]}: Klick legt eine dazu">
+        <img src="${CARD(r)}" alt="">
+        <span class="name">${NAME[r]}</span>
         ${rate}
         ${n ? `<span class="cnt">${n}</span>` : ''}
         ${n && !locked ? `<span class="minus" data-minus="${side}:${r}" title="Eine weniger">−</span>` : ''}
-      </button>`;
+      </button><small>${caption}</small></span>`;
     }).join('');
   }
 
@@ -456,6 +476,7 @@
     const dock = document.getElementById('dock');
     if (!state.trading) {
       shownTable = false;
+      dock.classList.remove('trading');
       const mine = state.scenario === 'mine';
       dock.innerHTML = `
         <div class="hand">${handHtml()}</div>
@@ -496,14 +517,15 @@
           <button class="btn" data-act="clear" ${g || w ? '' : 'disabled'}>Leeren</button>
         </div>`;
     }
+    dock.classList.add('trading');
+    const enter = shownTable ? '' : 'enter';
     dock.innerHTML = `
-      <div class="hand">${handHtml()}</div>
-      <div class="table ${shownTable ? '' : 'enter'}">
-        <div class="rows">
+      <div class="table">
+        <div class="rows ${enter}">
           <div class="trow"><b>Du gibst<small>${state.mode === 'counter' ? 'an Mira' : 'aus deiner Hand'}</small></b><div class="slots">${slotRow('give')}</div></div>
           <div class="trow"><b>Du bekommst<small>${state.mode === 'counter' ? 'von Mira' : 'von Bank oder Mitspielern'}</small></b><div class="slots">${slotRow('want')}</div></div>
         </div>
-        <div class="act">${act}</div>
+        <div class="act ${enter}">${act}</div>
       </div>
       <button class="close" data-act="close" title="Schließen (Esc)">✕</button>`;
     shownTable = true;
