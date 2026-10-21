@@ -1,7 +1,8 @@
 import { Component, computed, input, output } from '@angular/core';
-import { GameState, getTopology, RESOURCE_NAMES } from '../../engine';
+import { GameState, getTopology, RESOURCE_NAMES, Terrain } from '../../engine';
 import { harborLabel, RESOURCE_ICONS } from '../shared/labels';
 import { TerrainDefs } from './terrain-defs';
+import { TILE_IMAGES } from './tile-art';
 
 const S = 60;
 
@@ -76,6 +77,7 @@ export class Board {
         y: h.y * S,
         points: h.corners.map((c) => this.point(c)).join(' '),
         terrain: state.terrain,
+        image: tileImage(state.terrain, h.id),
         // Jedes zweite Feld gespiegelt, damit gleiche Gelände nicht wie gestempelt aussehen.
         transform: `translate(${(h.x * S).toFixed(1)},${(h.y * S).toFixed(1)})${h.id % 2 ? ' scale(-1,1)' : ''}`,
         number,
@@ -163,6 +165,12 @@ export class Board {
       y2: lerp(a.y, b.y, 1 - inset),
     };
   }
+}
+
+/** Eigene Grafik für dieses Feld, Varianten reihum verteilt. */
+function tileImage(terrain: Terrain, hexId: number): string | null {
+  const variants = TILE_IMAGES[terrain];
+  return variants?.length ? variants[hexId % variants.length] : null;
 }
 
 function avg(values: number[]): number {

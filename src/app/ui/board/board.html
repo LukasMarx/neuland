@@ -16,7 +16,13 @@
 
   @for (h of hexes(); track h.id) {
     <g class="hex" [attr.data-hex]="h.id" [class.hit]="h.hit" [class.robbed]="h.hit && h.robber">
-      <use class="art" [attr.href]="'#t-' + h.terrain" [attr.transform]="h.transform" />
+      @if (h.image) {
+        <g class="art" [attr.transform]="'translate(' + h.x + ',' + h.y + ')'">
+          <image [attr.href]="h.image" x="-51.96" y="-60" width="103.92" height="120" preserveAspectRatio="xMidYMid slice" clip-path="url(#hexclip)" />
+        </g>
+      } @else {
+        <use class="art" [attr.href]="'#t-' + h.terrain" [attr.transform]="h.transform" />
+      }
       <polygon class="shine" [attr.points]="h.points" fill="url(#g-shine)" />
       <polygon class="outline" [attr.points]="h.points" />
       @if (h.number) {
