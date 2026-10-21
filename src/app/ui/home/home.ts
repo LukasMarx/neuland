@@ -8,7 +8,7 @@ import { recentRooms, RoomService } from '../../net/room.service';
     <main>
       <header>
         <div class="logo" aria-hidden="true">⬢</div>
-        <h1>Katan</h1>
+        <h1>Neuland</h1>
         <p class="muted">Siedeln, handeln, bauen – direkt im Browser, für 2 bis 6 Spieler. Kein Login, kein Server.</p>
       </header>
 

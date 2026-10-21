@@ -3,7 +3,7 @@ import { accessPassword } from './access';
 import { NetMessage } from './protocol';
 import { Transport, TransportHandlers } from './transport';
 
-const APP_ID = 'katan-remote-b7e2c4';
+const APP_ID = 'neuland-remote-b7e2c4';
 
 /**
  * Falls in manchen Netzen keine direkte Verbindung zustande kommt, hier einen

@@ -28,17 +28,17 @@ const RE_ELECT_MS = 8000;
 /** Lokaler Testmodus (`?local`): Tabs verbinden sich per BroadcastChannel statt P2P. */
 const params = new URLSearchParams(location.search);
 /** Lokaler Testmodus (`?local`): Tabs verbinden sich per BroadcastChannel statt P2P. */
-export const LOCAL_MODE = params.has('local') || sessionStorage.getItem('katan:local') === '1';
+export const LOCAL_MODE = params.has('local') || sessionStorage.getItem('neuland:local') === '1';
 /** Jeder Tab ein eigener Spieler (`?tab` oder `?local`), sonst ist ein Browser ein Spieler. */
-const PER_TAB = LOCAL_MODE || params.has('tab') || sessionStorage.getItem('katan:tab') === '1';
-if (LOCAL_MODE) sessionStorage.setItem('katan:local', '1');
-if (PER_TAB) sessionStorage.setItem('katan:tab', '1');
+const PER_TAB = LOCAL_MODE || params.has('tab') || sessionStorage.getItem('neuland:tab') === '1';
+if (LOCAL_MODE) sessionStorage.setItem('neuland:local', '1');
+if (PER_TAB) sessionStorage.setItem('neuland:tab', '1');
 const identity: Storage = PER_TAB ? sessionStorage : localStorage;
 
 @Injectable({ providedIn: 'root' })
 export class RoomService {
-  readonly clientId = storedValue('katan:clientId', () => crypto.randomUUID());
-  readonly name = signal(identity.getItem('katan:name') ?? '');
+  readonly clientId = storedValue('neuland:clientId', () => crypto.randomUUID());
+  readonly name = signal(identity.getItem('neuland:name') ?? '');
   readonly status = signal<RoomStatus>('idle');
   readonly room = signal<RoomInfo | null>(null);
   readonly game = signal<GameState | null>(null);
@@ -63,7 +63,7 @@ export class RoomService {
 
   constructor() {
     // Zum Debuggen in der Browser-Konsole, nur im Entwicklungsmodus.
-    if (isDevMode()) Object.assign(window, { katan: { room: this, engine } });
+    if (isDevMode()) Object.assign(window, { neuland: { room: this, engine } });
   }
 
   /** Neuen Raum eröffnen, der Ersteller ist Host. */
@@ -119,7 +119,7 @@ export class RoomService {
   setName(name: string): void {
     const trimmed = name.trim().slice(0, 20);
     this.name.set(trimmed);
-    identity.setItem('katan:name', trimmed);
+    identity.setItem('neuland:name', trimmed);
   }
 
   updateProfile(name: string, color: string): void {
@@ -465,7 +465,7 @@ function storedValue(key: string, create: () => string): string {
 function save(room: RoomInfo, game: GameState | null): void {
   try {
     const data: SavedRoom = { room, game, savedAt: Date.now() };
-    localStorage.setItem(`katan:save:${room.code}`, JSON.stringify(data));
+    localStorage.setItem(`neuland:save:${room.code}`, JSON.stringify(data));
   } catch {
     // Speicher voll oder gesperrt: Spielen geht trotzdem.
   }
@@ -473,7 +473,7 @@ function save(room: RoomInfo, game: GameState | null): void {
 
 export function loadSaved(code: string): SavedRoom | null {
   try {
-    const raw = localStorage.getItem(`katan:save:${code}`);
+    const raw = localStorage.getItem(`neuland:save:${code}`);
     return raw ? (JSON.parse(raw) as SavedRoom) : null;
   } catch {
     return null;
@@ -484,8 +484,8 @@ export function recentRooms(): { code: string; savedAt: number; started: boolean
   const result = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (!key?.startsWith('katan:save:')) continue;
-    const saved = loadSaved(key.slice('katan:save:'.length));
+    if (!key?.startsWith('neuland:save:')) continue;
+    const saved = loadSaved(key.slice('neuland:save:'.length));
     if (saved) {
       result.push({
         code: saved.room.code,

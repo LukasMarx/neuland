@@ -5,7 +5,7 @@ import { signal } from '@angular/core';
  * `printf '%s' neuespasswort | shasum -a 256` und den Wert hier eintragen.
  */
 const PASSWORD_HASH = '5a30976afc62b3368a95ddbc6efe1168cf90b5d5cef7741b11edecf5b32916ae';
-const STORAGE_KEY = 'katan:access';
+const STORAGE_KEY = 'neuland:access';
 
 /**
  * Das Passwort selbst, sobald es einmal richtig eingegeben wurde. Es dient auch als

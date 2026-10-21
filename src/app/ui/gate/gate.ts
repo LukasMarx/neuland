@@ -8,7 +8,7 @@ import { unlock } from '../../net/access';
     <main>
       <form class="panel" (submit)="submit($event)">
         <div class="logo" aria-hidden="true">⬢</div>
-        <h1>Katan</h1>
+        <h1>Neuland</h1>
         <p class="muted">Privates Spiel. Bitte gib das Passwort ein.</p>
         <input
           type="password"

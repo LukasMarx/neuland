@@ -1,7 +1,7 @@
 @let game = g();
 <div class="layout">
   <header class="topbar">
-    <div class="brand">⬢ Katan</div>
+    <div class="brand">⬢ Neuland</div>
     <span class="room muted">Raum {{ room.code() }} · {{ game.players.length }} Spieler · Ziel {{ game.settings.victoryPoints }} Punkte</span>
     <span class="spacer"></span>
     <button class="icon-btn" (click)="toggleSound()" [title]="sound() ? 'Ton aus' : 'Ton an'">{{ sound() ? '🔔' : '🔕' }}</button>

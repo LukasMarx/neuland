@@ -1,6 +1,6 @@
-# Katan im Browser – Konzept
+# Neuland – Konzept
 
-Ein Siedler-von-Catan-Klon für Remote-Teams. Ein Link genügt: man öffnet ihn, gibt einen Namen ein und sitzt in der Lobby. Es gibt keinen Login und keinen eigenen Server.
+Ein Brettspiel für Remote-Teams: Rohstoffe sammeln, handeln, Straßen und Siedlungen bauen, auf einer Insel aus Sechseckfeldern. Ein Link genügt: man öffnet ihn, gibt einen Namen ein und sitzt in der Lobby. Es gibt keinen Login und keinen eigenen Server.
 
 ## Entscheidungen
 

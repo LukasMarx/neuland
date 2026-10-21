@@ -30,7 +30,7 @@ jobs:
       - run: npx ng build
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: dist/katan/browser
+          path: dist/neuland/browser
 
   deploy:
     needs: build

@@ -25,7 +25,7 @@ export class LocalTransport implements Transport {
     roomCode: string,
     private readonly handlers: TransportHandlers,
   ) {
-    this.channel = new BroadcastChannel(`katan-local-${roomCode}`);
+    this.channel = new BroadcastChannel(`neuland-local-${roomCode}`);
     this.channel.onmessage = (e: MessageEvent<Packet>) => this.receive(e.data);
     this.timer = setInterval(() => this.heartbeat(), HEARTBEAT_MS);
     addEventListener('pagehide', this.onPageHide);

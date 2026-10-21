@@ -1,4 +1,4 @@
-# Katan – UX/UI-Konzept
+# Neuland – UX/UI-Konzept
 
 ## Was am ersten Stand nicht gut ist
 
@@ -39,7 +39,7 @@ Ausgangspunkt ist ein Screenshot aus einer echten Partie (2 Spieler, Lukas am Zu
 
 ```
 ┌──────────────────────────────────────────────┬───────────────────┐
-│ ⬢ Katan · Raum KX7Q2M          🔔  Verlassen │                   │
+│ ⬢ Neuland · Raum KX7Q2M          🔔  Verlassen │                   │
 ├──────────────────────────────────────────────┤  Spielerkarten    │
 │   ( ● Lukas ist am Zug · Handeln und bauen ) │  (aktiver Spieler │
 │                                    [Angebote]│   hervorgehoben)  │

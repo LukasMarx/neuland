@@ -70,7 +70,7 @@ export class GameView {
   protected readonly sideTab = signal<'log' | 'chat'>('log');
   // Beim Entwickeln standardmäßig stumm, sonst an, solange man ihn nicht ausschaltet.
   protected readonly sound = signal(
-    isDevMode() ? localStorage.getItem('katan:sound') === 'on' : localStorage.getItem('katan:sound') !== 'off',
+    isDevMode() ? localStorage.getItem('neuland:sound') === 'on' : localStorage.getItem('neuland:sound') !== 'off',
   );
   protected readonly discardPick = signal<ResourceCounts>(emptyResources());
   protected readonly plentyPick = signal<ResourceCounts>(emptyResources());
@@ -306,7 +306,7 @@ export class GameView {
     let bannerTimer: ReturnType<typeof setTimeout> | undefined;
     effect(() => {
       const mine = this.myTurn() && this.g().phase.kind !== 'ended';
-      document.title = mine ? '● Du bist dran – Katan' : 'Katan';
+      document.title = mine ? '● Du bist dran – Neuland' : 'Neuland';
       if (mine && !wasMyTurn) {
         untracked(() => {
           if (this.sound()) chime();
@@ -372,7 +372,7 @@ export class GameView {
 
   protected toggleSound(): void {
     this.sound.update((s) => !s);
-    localStorage.setItem('katan:sound', this.sound() ? 'on' : 'off');
+    localStorage.setItem('neuland:sound', this.sound() ? 'on' : 'off');
   }
 
   protected onVertex(vertex: number): void {
