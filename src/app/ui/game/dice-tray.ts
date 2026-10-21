@@ -37,12 +37,16 @@ export const ROLL_DURATION_MS = 1100;
       @for (die of rotations(); track $index) {
         <div class="scene" [style.animation-delay]="$index * 60 + 'ms'">
           <div class="die" [style.transform]="'rotateX(' + die[0] + 'deg) rotateY(' + die[1] + 'deg)'" [class.instant]="instant()">
+            <!-- Innerer, etwas kleinerer Würfel: Hinter jeder Kante liegt so eine geschlossene Fläche. -->
+            @for (face of faces; track face) {
+              <div class="inner" [class]="'side-' + face"></div>
+            }
             @for (face of faces; track face) {
               <div class="face" [class]="'face-' + face">
                 @for (cell of cells; track cell) {
                   <span class="cell">
                     @if (pips[face].includes(cell)) {
-                      <i class="pip" [class.red]="face === 1"></i>
+                      <i class="pip"></i>
                     }
                   </span>
                 }
