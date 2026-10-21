@@ -114,7 +114,7 @@ import { recentRooms, RoomService } from '../../net/room.service';
     .code {
       flex: 1;
       min-width: 0;
-      font-family: ui-monospace, monospace;
+      font-variant-numeric: tabular-nums;
       letter-spacing: 0.2em;
       text-transform: uppercase;
     }

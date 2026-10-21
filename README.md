@@ -4,6 +4,9 @@ Ein Brettspiel um Rohstoffe, Handel und Siedlungen auf einer Insel aus Sechseckf
 
 Wie das Ganze aufgebaut ist und warum, steht in [docs/KONZEPT.md](docs/KONZEPT.md).
 
+Die verbindliche Schriftwahl **Nunito Sans** und ihre Verwendung sind in
+[docs/TYPOGRAFIE.md](docs/TYPOGRAFIE.md) dokumentiert.
+
 ## Zugang
 
 Die Seite ist privat und fragt beim ersten Besuch ein Passwort ab (Groß-/Kleinschreibung egal). Das Passwort bekommt ihr intern, es steht absichtlich nirgends im Repository. Der Browser merkt es sich. Das Passwort ist zugleich der Schlüssel für den P2P-Verbindungsaufbau: Wer es nicht kennt, kommt in keinen Raum, auch wenn er die Abfrage umgeht.

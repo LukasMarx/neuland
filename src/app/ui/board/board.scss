@@ -28,6 +28,13 @@ text {
 }
 
 .hex {
+  // Mix white over terrain, below tokens, roads and buildings.
+  .terrain-wash {
+    fill: #fff;
+    opacity: var(--terrain-whiteness, 0.22);
+    pointer-events: none;
+  }
+
   .shine {
     pointer-events: none;
   }
@@ -96,26 +103,48 @@ text {
 
 .harbor {
   line {
-    stroke: #8a6a3e;
-    stroke-width: 4;
+    stroke: #735536;
+    stroke-width: 5;
     stroke-linecap: round;
   }
 
-  circle {
-    fill: #fbf4e2;
-    stroke: #8a6a3e;
+  .pier {
+    stroke: #dbc18e;
     stroke-width: 2;
+    stroke-dasharray: 3 3;
   }
 
-  .harbor-icon {
-    font-size: 13px;
+  .harbor-shadow {
+    fill: rgb(16 46 54 / 0.3);
+  }
+
+  .harbor-rim {
+    fill: #fff0ce;
+    stroke: #87683f;
+    stroke-width: 1.2;
+  }
+
+  .harbor-art {
+    pointer-events: none;
+  }
+
+  .harbor-plaque {
+    fill: #fff0ce;
+    stroke: #87683f;
+    stroke-width: 1;
   }
 
   .harbor-rate {
-    font-size: 9.5px;
-    font-weight: 700;
-    fill: #5b4527;
+    font-size: 11px;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    fill: #372917;
   }
+}
+
+.piece-art {
+  pointer-events: none;
+  filter: drop-shadow(0 0 0.7px #fff4d9) drop-shadow(0 1px 1.2px #30210b99);
 }
 
 .road-outline {

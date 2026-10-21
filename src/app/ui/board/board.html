@@ -1,5 +1,8 @@
 <svg [attr.viewBox]="viewBox()" role="img" aria-label="Spielbrett">
-  <defs><g appTerrainDefs></g></defs>
+  <defs>
+    <g appTerrainDefs></g>
+    <clipPath id="harbor-art-clip" clipPathUnits="objectBoundingBox"><circle cx="0.5" cy="0.5" r="0.5" /></clipPath>
+  </defs>
   <path class="ocean" [attr.d]="oceanPath()" fill="url(#g-ocean)" />
   <path class="ocean-texture" [attr.d]="oceanPath()" fill="url(#p-ocean-paper)" />
 
@@ -8,9 +11,16 @@
       <title>{{ h.title }}</title>
       <line [attr.x1]="h.x" [attr.y1]="h.y" [attr.x2]="h.ax" [attr.y2]="h.ay" />
       <line [attr.x1]="h.x" [attr.y1]="h.y" [attr.x2]="h.bx" [attr.y2]="h.by" />
-      <circle [attr.cx]="h.x" [attr.cy]="h.y" [attr.r]="S * 0.3" />
-      <text class="harbor-icon" [attr.x]="h.x" [attr.y]="h.y - S * 0.06">{{ h.icon }}</text>
-      <text class="harbor-rate" [attr.x]="h.x" [attr.y]="h.y + S * 0.17">{{ h.label }}</text>
+      <line class="pier" [attr.x1]="h.x" [attr.y1]="h.y" [attr.x2]="h.ax" [attr.y2]="h.ay" />
+      <line class="pier" [attr.x1]="h.x" [attr.y1]="h.y" [attr.x2]="h.bx" [attr.y2]="h.by" />
+      <g class="harbor-medallion" [attr.transform]="'translate(' + h.x + ',' + h.y + ')'">
+        <circle class="harbor-shadow" cx="0" cy="-1" r="23" />
+        <circle class="harbor-rim" cx="0" cy="-3" r="23" />
+        <image class="harbor-art" [attr.href]="h.image" x="-20" y="-23" width="40" height="40"
+          preserveAspectRatio="xMidYMid slice" clip-path="url(#harbor-art-clip)" />
+        <rect class="harbor-plaque" x="-15" y="12" width="30" height="15" rx="7.5" />
+        <text class="harbor-rate" x="0" y="20">{{ h.label }}</text>
+      </g>
     </g>
   }
 
@@ -24,6 +34,7 @@
         <use class="art" [attr.href]="'#t-' + h.terrain" [attr.transform]="h.transform" />
       }
       <polygon class="shine" [attr.points]="h.points" fill="url(#g-shine)" />
+      <polygon class="terrain-wash" [attr.points]="h.points" />
       <polygon class="outline" [attr.points]="h.points" />
       @if (h.number) {
         <g class="token" [class.red]="h.red" [class.blocked]="h.robber">
@@ -48,14 +59,24 @@
 
   @for (r of roads(); track r.id) {
     <g class="road" [attr.data-edge]="r.id">
-      <line class="road-outline" [attr.x1]="r.x1" [attr.y1]="r.y1" [attr.x2]="r.x2" [attr.y2]="r.y2" />
-      <line class="road-fill" [attr.x1]="r.x1" [attr.y1]="r.y1" [attr.x2]="r.x2" [attr.y2]="r.y2" [attr.stroke]="r.color" />
+      <title>{{ r.title }}</title>
+      @if (r.image) {
+        <image class="piece-art" [attr.href]="r.image" [attr.transform]="r.transform"
+          [attr.x]="-r.length / 2" [attr.y]="-r.height / 2" [attr.width]="r.length" [attr.height]="r.height" />
+      } @else {
+        <line class="road-outline" [attr.x1]="r.x1" [attr.y1]="r.y1" [attr.x2]="r.x2" [attr.y2]="r.y2" />
+        <line class="road-fill" [attr.x1]="r.x1" [attr.y1]="r.y1" [attr.x2]="r.x2" [attr.y2]="r.y2" [attr.stroke]="r.color" />
+      }
     </g>
   }
 
   @for (b of buildings(); track b.id) {
     <g class="building" [attr.data-vertex]="b.id" [attr.transform]="'translate(' + b.x + ',' + b.y + ')'">
-      @if (b.city) {
+      <title>{{ b.title }}</title>
+      @if (b.image) {
+        <image class="piece-art" [attr.href]="b.image" [attr.x]="-b.size / 2" [attr.y]="-b.size / 2"
+          [attr.width]="b.size" [attr.height]="b.size" />
+      } @else if (b.city) {
         <path [attr.fill]="b.color" d="M-16,11 L16,11 L16,-4 L4,-4 L4,-10 L-6,-19 L-16,-10 Z" />
       } @else {
         <path [attr.fill]="b.color" d="M-10,9 L10,9 L10,-3 L0,-12 L-10,-3 Z" />
@@ -78,7 +99,12 @@
     <g class="edge-target" (click)="edgePick.emit(e.id)">
       <line class="hit" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" />
       <line class="mark" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" />
-      <line class="ghost-road" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" [attr.stroke]="ghostColor()" />
+      @if (ghostRoadImage(); as image) {
+        <image class="ghost-road piece-art" [attr.href]="image" [attr.transform]="e.transform"
+          [attr.x]="-e.length / 2" [attr.y]="-e.height / 2" [attr.width]="e.length" [attr.height]="e.height" />
+      } @else {
+        <line class="ghost-road" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" [attr.stroke]="ghostColor()" />
+      }
     </g>
   }
 
@@ -87,12 +113,18 @@
       <circle class="hit" [attr.cx]="v.x" [attr.cy]="v.y" [attr.r]="S * 0.26" />
       <circle class="mark" [attr.cx]="v.x" [attr.cy]="v.y" [attr.r]="S * 0.13" />
       @if (ghost(); as kind) {
-        <path
-          class="ghost"
-          [attr.transform]="'translate(' + v.x + ',' + v.y + ')'"
-          [attr.fill]="ghostColor()"
-          [attr.d]="kind === 'city' ? 'M-16,11 L16,11 L16,-4 L4,-4 L4,-10 L-6,-19 L-16,-10 Z' : 'M-10,9 L10,9 L10,-3 L0,-12 L-10,-3 Z'"
-        />
+        @if (ghostBuildingImage(); as image) {
+          <image class="ghost piece-art" [attr.href]="image"
+            [attr.x]="v.x - ghostSize() / 2" [attr.y]="v.y - ghostSize() / 2"
+            [attr.width]="ghostSize()" [attr.height]="ghostSize()" />
+        } @else {
+          <path
+            class="ghost"
+            [attr.transform]="'translate(' + v.x + ',' + v.y + ')'"
+            [attr.fill]="ghostColor()"
+            [attr.d]="kind === 'city' ? 'M-16,11 L16,11 L16,-4 L4,-4 L4,-10 L-6,-19 L-16,-10 Z' : 'M-10,9 L10,9 L10,-3 L0,-12 L-10,-3 Z'"
+          />
+        }
       }
     </g>
   }

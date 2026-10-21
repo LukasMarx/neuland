@@ -136,7 +136,7 @@ import { ChatBox } from '../shared/chat-box';
       flex-wrap: wrap;
     }
     .code {
-      font-family: ui-monospace, monospace;
+      font-variant-numeric: tabular-nums;
       font-size: 2rem;
       font-weight: 700;
       letter-spacing: 0.15em;

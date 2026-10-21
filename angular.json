@@ -30,6 +30,7 @@
               }
             ],
             "styles": [
+              "public/fonts/nunito-sans/fonts.css",
               "src/styles.scss"
             ]
           },

@@ -1,0 +1,74 @@
+{
+  "reports": [
+    {
+      "view": "gallery",
+      "font": "\"Nunito Sans\", sans-serif",
+      "fontLoaded": true,
+      "brokenImages": [],
+      "overflow": false,
+      "clippedLabels": [],
+      "cardCount": 11
+    },
+    {
+      "view": "game-desktop",
+      "font": "\"Nunito Sans\", sans-serif",
+      "fontLoaded": true,
+      "brokenImages": [],
+      "overflow": false,
+      "clippedLabels": [],
+      "cardCount": 10,
+      "freshButton": true
+    },
+    {
+      "view": "game-mobile",
+      "font": "\"Nunito Sans\", sans-serif",
+      "fontLoaded": true,
+      "brokenImages": [],
+      "overflow": false,
+      "clippedLabels": [],
+      "cardCount": 10,
+      "freshButton": true
+    },
+    {
+      "view": "trade-mobile",
+      "font": "\"Nunito Sans\", sans-serif",
+      "fontLoaded": true,
+      "brokenImages": [],
+      "overflow": false,
+      "clippedLabels": [],
+      "cardCount": 30,
+      "freshButton": true
+    },
+    {
+      "view": "trade-interactions",
+      "selected": 2,
+      "exchangeEnabled": true,
+      "pickerBefore": "0",
+      "pickerAfter": "1"
+    },
+    {
+      "view": "trade-small",
+      "font": "\"Nunito Sans\", sans-serif",
+      "fontLoaded": true,
+      "brokenImages": [],
+      "overflow": false,
+      "clippedLabels": [],
+      "cardCount": 30,
+      "freshButton": true
+    },
+    {
+      "view": "trade-interactions",
+      "selected": 2,
+      "exchangeEnabled": true,
+      "pickerBefore": "0",
+      "pickerAfter": "1"
+    },
+    {
+      "view": "card-privacy",
+      "hidden": "url(\"cards/symbolstark/back.png\")",
+      "development": "url(\"cards/symbolstark/back.png\")",
+      "visible": "url(\"cards/symbolstark/wood.png\")"
+    }
+  ],
+  "errors": []
+}

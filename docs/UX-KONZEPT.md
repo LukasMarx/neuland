@@ -1,5 +1,8 @@
 # Neuland – UX/UI-Konzept
 
+Für das gesamte Spiel gilt die festgelegte Schriftfamilie **Nunito Sans**.
+Schriftwahl, Verwendung und lokale Einbindung: [TYPOGRAFIE.md](TYPOGRAFIE.md).
+
 ## Was am ersten Stand nicht gut ist
 
 Ausgangspunkt ist ein Screenshot aus einer echten Partie (2 Spieler, Lukas am Zug nach einer 7).

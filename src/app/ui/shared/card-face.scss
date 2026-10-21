@@ -1,0 +1,61 @@
+:host {
+  display: block;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  container-type: inline-size;
+  overflow: hidden;
+  border-radius: 9px;
+  background: #235563;
+  color: #302312;
+  box-shadow: 0 2px 0 #776548, 0 4px 9px rgb(46 34 18 / 0.18);
+  isolation: isolate;
+}
+
+img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.caption {
+  position: absolute;
+  bottom: 5%;
+  left: 6%;
+  right: 6%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  padding: 5px 2px;
+  border: 1px solid #f6e5bd;
+  border-radius: 7px;
+  background: linear-gradient(140deg, #fff5df, #ead6ab);
+  box-shadow: 0 2px 3px rgb(37 24 12 / 0.22);
+  text-align: center;
+}
+
+.name {
+  font-size: clamp(9px, 12cqi, 24px);
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.badge {
+  position: absolute;
+  top: 5%;
+  right: 6%;
+  display: grid;
+  place-items: center;
+  min-width: 25%;
+  min-height: 20%;
+  padding: 2px 4px;
+  background: #fff1d5;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  font-size: clamp(12px, 20cqi, 30px);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}

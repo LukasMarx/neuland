@@ -22,7 +22,40 @@ sie auf die jeweilige Brettform. So entstehen auch auf größeren Inseln keine
 Kachelnähte. Der blaue Verlauf darunter bleibt als Ladehintergrund erhalten;
 Häfen und Spielfelder werden über dem Wasser gezeichnet.
 
+### Häfen
+
+Die Hafenmedaillons verwenden dieselben Rohstoffmotive wie die Karten aus
+`public/cards/symbolstark/`. Allgemeine 3:1-Häfen zeigen das neutrale
+Neuland-Motiv der Kartenrückseite. Die Bilder werden im SVG rund beschnitten
+und mit einem cremefarbenen Rand sowie angedeuteten Holzstegen dargestellt.
+Das Tauschverhältnis bleibt separater Text in Nunito Sans auf einem hellen
+Schild; der Tooltip nennt Rohstoff und Verhältnis. Positionen und Zuordnung
+zu den beiden Küstenkreuzungen folgen weiterhin der Brettgeometrie.
+
 ## Benötigte Dateien
+
+### Karten und Schrift
+
+Die Karten verwenden das gewählte Design **02 · Symbolstark**. Textfreie
+Papiercollage-Motive für die fünf Rohstoffe, fünf Entwicklungskarten und eine
+neutrale Rückseite liegen in `public/cards/symbolstark/`. Die Zuordnung steht
+in `src/app/ui/shared/card-art.ts`; `CardFace` ergänzt Namen und Mengen als
+echten Text und wird in Hand, Bankhandel und Rohstoffauswahl wiederverwendet.
+Fluganimationen verwenden dieselben Bilder. Verdeckte Karten zeigen nur die
+neutrale Rückseite. Auswahl, Spielbarkeit und Zähler folgen weiter dem Spielzustand.
+
+**Nunito Sans** gilt global, einschließlich Formulare, Raumcodes, Dialoge,
+Karten und SVG-Beschriftungen. Die verbindliche Entscheidung und Regeln für
+neue Entwürfe stehen in [TYPOGRAFIE.md](TYPOGRAFIE.md).
+Die variablen WOFF2-Dateien (normal/kursiv,
+Gewichte 200–1000) mit SIL-OFL-Lizenz liegen in `public/fonts/nunito-sans/`
+und werden über die globalen Styles eingebunden. Keine externe Font-Abfrage
+zur Laufzeit. Quelle: [Google Fonts – Nunito Sans](https://fonts.google.com/specimen/Nunito+Sans).
+
+Designentwürfe, Produktions-Prompts und Screenshots der Integration:
+`output/designs/cards-2026-10-21/`.
+
+### Gelände
 
 | Gelände | Rohstoff | Schlüssel |
 |---|---|---|
@@ -58,3 +91,19 @@ Pro Gelände reicht eine Datei. Mehrere Varianten (z. B. drei verschiedene Wäld
    ```
 
 Gelände ohne Eintrag zeigen weiter die eingebaute SVG-Grafik.
+
+
+## Spielfiguren
+
+Städte, Siedlungen und Straßen verwenden transparente PNGs aus
+`public/pieces/papiercollage/`. `src/app/ui/shared/piece-art.ts` ordnet die
+Spielerfarbe der passenden Datei zu. Die acht Farbvarianten entstehen aus je
+einem Grundbild und einer gespeicherten Maske; Export und Anleitung liegen in
+`scripts/build-piece-assets.py` und `output/designs/pieces-2026-10-21/README.md`.
+
+Gebäude sitzen mittig auf ihren Kreuzungen (Siedlung 32, Stadt 40 Brett-Einheiten).
+Straßen werden um den Kantenmittelpunkt gedreht und vor den Gebäuden gezeichnet.
+Bauvorschau und Bauknöpfe verwenden dieselben PNGs. Die Rittergrafik erscheint
+in der Spielerübersicht bei der Anzahl gespielter Ritter. Die Ritterkarte und
+die Spielregeln ändern sich dadurch nicht. Für unbekannte Farben alter
+Spielstände bleiben die bisherigen farbigen SVG-Figuren als Rückfall erhalten.

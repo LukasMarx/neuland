@@ -23,7 +23,10 @@ import {
 import { RoomService } from '../../net/room.service';
 import { Board } from '../board/board';
 import { ChatBox } from '../shared/chat-box';
-import { DEV_CARD_HELP, DEV_CARD_ICONS, RESOURCE_ICONS, TERRAIN_COLORS } from '../shared/labels';
+import { CardFace } from '../shared/card-face';
+import { CARD_ART } from '../shared/card-art';
+import { pieceImage } from '../shared/piece-art';
+import { DEV_CARD_HELP, RESOURCE_ICONS } from '../shared/labels';
 import { ResourcePicker } from '../shared/resource-picker';
 import { DiceTray, ROLL_DURATION_MS } from './dice-tray';
 import { FlyLayer } from './fly-layer';
@@ -39,7 +42,7 @@ const HIGHLIGHT_MS = 2600;
 
 @Component({
   selector: 'app-game',
-  imports: [Board, ChatBox, DiceTray, FlyLayer, OfferList, ResourcePicker, TradeDialog],
+  imports: [Board, CardFace, ChatBox, DiceTray, FlyLayer, OfferList, ResourcePicker, TradeDialog],
   templateUrl: './game.html',
   styleUrl: './game.scss',
   host: { '(document:keydown)': 'onKey($event)' },
@@ -49,13 +52,13 @@ export class GameView {
   readonly leave = output<void>();
 
   protected readonly resources = RESOURCES;
+  protected readonly cardArt = CARD_ART;
   protected readonly resourceIcons = RESOURCE_ICONS;
   protected readonly resourceNames = RESOURCE_NAMES;
-  protected readonly terrainColors = TERRAIN_COLORS;
-  protected readonly devIcons = DEV_CARD_ICONS;
   protected readonly devNames = DEV_CARD_NAMES;
   protected readonly devHelp = DEV_CARD_HELP;
   protected readonly costs = COSTS;
+  protected readonly pieceImage = pieceImage;
 
   protected readonly g = computed(() => this.room.game()!);
   protected readonly seat = this.room.mySeat;

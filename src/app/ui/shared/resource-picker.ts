@@ -1,14 +1,15 @@
 import { Component, input, model } from '@angular/core';
 import { RESOURCE_NAMES, RESOURCES, Resource, ResourceCounts } from '../../engine';
-import { RESOURCE_ICONS } from './labels';
+import { CardFace } from './card-face';
 
 /** Mengenauswahl je Rohstoff mit −/+. `max` begrenzt pro Rohstoff, `total` die Summe. */
 @Component({
   selector: 'app-resource-picker',
+  imports: [CardFace],
   template: `
     @for (r of resources; track r) {
       <div class="cell" [title]="names[r]">
-        <span class="icon">{{ icons[r] }}</span>
+        <app-card-face [kind]="r" />
         <div class="controls">
           <button class="small" type="button" [disabled]="value()[r] <= 0" (click)="change(r, -1)" [attr.aria-label]="names[r] + ' weniger'">−</button>
           <span class="count">{{ value()[r] }}</span>
@@ -23,28 +24,33 @@ import { RESOURCE_ICONS } from './labels';
   styles: `
     :host {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 6px;
     }
     .cell {
+      min-width: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 2px;
+      gap: 6px;
       background: var(--panel-2);
       border-radius: 8px;
       padding: 6px 2px;
     }
-    .icon {
-      font-size: 22px;
+    app-card-face {
+      width: min(100%, 64px);
     }
     .controls {
-      display: flex;
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
       align-items: center;
-      gap: 3px;
+      gap: 1px;
     }
     .controls button {
-      padding: 0 6px;
+      min-width: 0;
+      min-height: 28px;
+      padding: 2px 0;
       line-height: 1.5;
     }
     .count {
@@ -55,6 +61,11 @@ import { RESOURCE_ICONS } from './labels';
     .have {
       font-size: 0.75em;
     }
+    @media (max-width: 360px) {
+      :host {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
   `,
 })
 export class ResourcePicker {
@@ -63,7 +74,6 @@ export class ResourcePicker {
   readonly total = input<number | null>(null);
 
   protected readonly resources = RESOURCES;
-  protected readonly icons = RESOURCE_ICONS;
   protected readonly names = RESOURCE_NAMES;
 
   protected canAdd(r: Resource): boolean {

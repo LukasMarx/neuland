@@ -21,7 +21,7 @@
           {{ resourceIcons[r] }} <b>{{ game.bank[r] }}</b>
         </span>
       }
-      <span class="bstack" data-bank="dev" title="Entwicklungskarten im Stapel">📜 <b>{{ game.devDeck.length }}</b></span>
+      <span class="bstack" data-bank="dev" title="Entwicklungskarten im Stapel"><img class="deck-art" [src]="cardArt.back" alt="" /> <b>{{ game.devDeck.length }}</b></span>
     </div>
 
     <app-board
@@ -59,9 +59,8 @@
     @if (me(); as self) {
       <div class="hand" data-hand="dev">
         @for (r of resources; track r) {
-          <div class="rcard" [attr.data-hand]="r" [style.--c]="terrainColors[r]" [class.zero]="!self.resources[r]" [title]="resourceNames[r]">
-            <span class="icon">{{ resourceIcons[r] }}</span>
-            <span class="count">{{ self.resources[r] }}</span>
+          <div class="rcard" [attr.data-hand]="r" [class.zero]="!self.resources[r]" [title]="resourceNames[r]">
+            <app-card-face [kind]="r" [badge]="self.resources[r]" />
             @if (handDelta(); as d) {
               @for (id of [d.id]; track id) {
                 @if (d.values[r]) {
@@ -75,16 +74,13 @@
           <span class="divider"></span>
           @for (d of myDevCards(); track d.card) {
             <div class="dcard" [class.fresh]="!d.ready" [title]="devHelp[d.card]">
-              <span class="icon">{{ devIcons[d.card] }}</span>
-              <span class="dname">{{ devNames[d.card] }}</span>
-              @if (d.ready + d.fresh > 1) {
-                <span class="dcount">×{{ d.ready + d.fresh }}</span>
-              }
-              @if (isPlayable(d.card)) {
-                <button class="small" [disabled]="!canPlayDev() || !d.ready" (click)="play(d.card)">
-                  {{ d.ready ? 'Spielen' : 'neu' }}
-                </button>
-              }
+              <app-card-face [kind]="d.card" [badge]="d.ready + d.fresh > 1 ? '×' + (d.ready + d.fresh) : null">
+                @if (isPlayable(d.card)) {
+                  <button class="small" [disabled]="!canPlayDev() || !d.ready" (click)="play(d.card)" [attr.aria-label]="devNames[d.card] + (d.ready ? ' spielen' : ' – ab nächstem Zug spielbar')">
+                    {{ d.ready ? 'Spielen' : 'Neu' }}
+                  </button>
+                }
+              </app-card-face>
             </div>
           }
         }
@@ -93,17 +89,29 @@
       <div class="build">
         @let opts = buildOptions();
         <button [disabled]="!opts.road.enabled" [class.selected]="buildMode() === 'road'" [title]="opts.road.reason ?? 'Straße bauen (R)'" (click)="toggleBuild('road')">
+          @if (pieceImage("road", myColor()); as image) {
+            <img class="piece piece-art" [src]="image" alt="" />
+          } @else {
           <svg viewBox="-12 -12 24 24" class="piece"><line x1="-9" y1="6" x2="9" y2="-6" class="road-o" /><line x1="-9" y1="6" x2="9" y2="-6" [attr.stroke]="myColor()" class="road-f" /></svg>
+          }
           <span class="label">Straße <kbd>R</kbd></span>
           <span class="cost">@for (i of costIcons(costs.road); track $index) {<span>{{ i }}</span>}</span>
         </button>
         <button [disabled]="!opts.settlement.enabled" [class.selected]="buildMode() === 'settlement'" [title]="opts.settlement.reason ?? 'Siedlung bauen (S)'" (click)="toggleBuild('settlement')">
+          @if (pieceImage("settlement", myColor()); as image) {
+            <img class="piece piece-art" [src]="image" alt="" />
+          } @else {
           <svg viewBox="-12 -13 24 24" class="piece"><path [attr.fill]="myColor()" d="M-9,8 L9,8 L9,-3 L0,-11 L-9,-3 Z" /></svg>
+          }
           <span class="label">Siedlung <kbd>S</kbd></span>
           <span class="cost">@for (i of costIcons(costs.settlement); track $index) {<span>{{ i }}</span>}</span>
         </button>
         <button [disabled]="!opts.city.enabled" [class.selected]="buildMode() === 'city'" [title]="opts.city.reason ?? 'Stadt bauen (C)'" (click)="toggleBuild('city')">
+          @if (pieceImage("city", myColor()); as image) {
+            <img class="piece piece-art" [src]="image" alt="" />
+          } @else {
           <svg viewBox="-17 -20 34 32" class="piece"><path [attr.fill]="myColor()" d="M-16,11 L16,11 L16,-4 L4,-4 L4,-10 L-6,-19 L-16,-10 Z" /></svg>
+          }
           <span class="label">Stadt <kbd>C</kbd></span>
           <span class="cost">@for (i of costIcons(costs.city); track $index) {<span>{{ i }}</span>}</span>
         </button>
@@ -184,7 +192,12 @@
             <div class="stats">
               <span title="Rohstoffkarten auf der Hand"><b>{{ p.cards }}</b> Karten</span>
               <span title="Entwicklungskarten"><b>{{ p.dev }}</b> Entw.</span>
-              <span title="Gespielte Ritter"><b>{{ p.knights }}</b> Ritter</span>
+              <span class="knight-stat" title="Gespielte Ritter">
+                @if (pieceImage('knight', p.color); as image) {
+                  <img class="knight-piece" [src]="image" alt="" />
+                }
+                <b>{{ p.knights }}</b> Ritter
+              </span>
               <span title="Längste eigene Straße"><b>{{ p.road }}</b> Straße</span>
             </div>
           </div>

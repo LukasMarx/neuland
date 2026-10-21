@@ -1,8 +1,10 @@
 import { Component, computed, input, output } from '@angular/core';
 import { GameState, getTopology, RESOURCE_NAMES, Terrain } from '../../engine';
-import { harborLabel, RESOURCE_ICONS } from '../shared/labels';
+import { harborLabel } from '../shared/labels';
+import { CARD_ART } from '../shared/card-art';
 import { TerrainDefs } from './terrain-defs';
 import { TILE_IMAGES } from './tile-art';
+import { pieceImage } from '../shared/piece-art';
 
 const S = 60;
 
@@ -27,6 +29,12 @@ export class Board {
   readonly hexPick = output<number>();
 
   protected readonly S = S;
+  protected readonly ghostBuildingImage = computed(() => {
+    const kind = this.ghost();
+    return kind ? pieceImage(kind, this.ghostColor()) : null;
+  });
+  protected readonly ghostSize = computed(() => this.ghost() === 'city' ? 40 : 32);
+  protected readonly ghostRoadImage = computed(() => pieceImage('road', this.ghostColor()));
 
   protected readonly topo = computed(() => getTopology(this.game().board.layout));
 
@@ -110,15 +118,22 @@ export class Board {
         bx: b.x * S,
         by: b.y * S,
         label: harborLabel(harbor.type),
-        icon: harbor.type === 'any' ? '?' : RESOURCE_ICONS[harbor.type],
-        title: harbor.type === 'any' ? 'Hafen 3:1' : `Hafen 2:1 ${RESOURCE_NAMES[harbor.type]}`,
+        image: CARD_ART[harbor.type === 'any' ? 'back' : harbor.type],
+        title: harbor.type === 'any' ? 'Hafen 3:1 – alle Rohstoffe' : `Hafen 2:1 ${RESOURCE_NAMES[harbor.type]}`,
       };
     }),
   );
 
   protected readonly roads = computed(() => {
     const g = this.game();
-    return g.roads.flatMap((owner, id) => (owner === null ? [] : [{ id, ...this.edgeLine(id, 0.14), color: g.players[owner].color }]));
+    return g.roads.flatMap((owner, id) => {
+      if (owner === null) return [];
+      const player = g.players[owner];
+      return [{
+        id, ...this.edgeLine(id, 0.08), color: player.color,
+        image: pieceImage('road', player.color), title: `${player.name}: Straße`,
+      }];
+    });
   });
 
   protected readonly buildings = computed(() => {
@@ -126,7 +141,12 @@ export class Board {
     return g.buildings.flatMap((b, id) => {
       if (!b) return [];
       const v = this.topo().vertices[id];
-      return [{ id, x: v.x * S, y: v.y * S, city: b.type === 'city', color: g.players[b.owner].color }];
+      const player = g.players[b.owner];
+      return [{
+        id, x: v.x * S, y: v.y * S, city: b.type === 'city', color: player.color,
+        size: b.type === 'city' ? 40 : 32, image: pieceImage(b.type, player.color),
+        title: `${player.name}: ${b.type === 'city' ? 'Stadt' : 'Siedlung'}`,
+      }];
     });
   });
 
@@ -137,7 +157,7 @@ export class Board {
     }),
   );
 
-  protected readonly edgeSpots = computed(() => this.edgeTargets().map((id) => ({ id, ...this.edgeLine(id, 0.2) })));
+  protected readonly edgeSpots = computed(() => this.edgeTargets().map((id) => ({ id, ...this.edgeLine(id, 0.08) })));
 
   protected readonly hexSpots = computed(() => {
     const targets = new Set(this.hexTargets());
@@ -158,7 +178,13 @@ export class Board {
     const a = this.topo().vertices[e.a];
     const b = this.topo().vertices[e.b];
     const lerp = (p: number, q: number, t: number) => (p + (q - p) * t) * S;
+    const length = Math.hypot(b.x - a.x, b.y - a.y) * S * (1 - 2 * inset);
+    // A horizontal sprite rotates around the edge midpoint; buildings stay upright.
+    const angle = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
     return {
+      length,
+      height: length / 4,
+      transform: `translate(${(a.x + b.x) * S / 2},${(a.y + b.y) * S / 2}) rotate(${angle})`,
       x1: lerp(a.x, b.x, inset),
       y1: lerp(a.y, b.y, inset),
       x2: lerp(a.x, b.x, 1 - inset),

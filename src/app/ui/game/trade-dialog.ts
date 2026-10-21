@@ -11,12 +11,13 @@ import {
   tradeRate,
 } from '../../engine';
 import { RoomService } from '../../net/room.service';
-import { RESOURCE_ICONS, TERRAIN_COLORS } from '../shared/labels';
+import { RESOURCE_ICONS } from '../shared/labels';
+import { CardFace } from '../shared/card-face';
 import { ResourcePicker } from '../shared/resource-picker';
 
 @Component({
   selector: 'app-trade-dialog',
-  imports: [ResourcePicker],
+  imports: [CardFace, ResourcePicker],
   template: `
     @let g = game();
     <div class="modal-backdrop" (click)="close.emit()">
@@ -35,14 +36,13 @@ import { ResourcePicker } from '../shared/resource-picker';
               @for (r of resources; track r) {
                 <button
                   class="rcard"
-                  [style.--c]="colors[r]"
                   [class.selected]="bankGive() === r"
+                  [attr.aria-pressed]="bankGive() === r"
                   [disabled]="me()!.resources[r] < rates()[r]"
                   [title]="'Du hast ' + me()!.resources[r] + ' ' + names[r]"
                   (click)="bankGive.set(r)"
                 >
-                  <span class="icon">{{ icons[r] }}</span>
-                  <span class="rate">{{ rates()[r] }}:1</span>
+                  <app-card-face [kind]="r"><span class="rate">{{ rates()[r] }}:1</span></app-card-face>
                 </button>
               }
             </div>
@@ -51,14 +51,13 @@ import { ResourcePicker } from '../shared/resource-picker';
               @for (r of resources; track r) {
                 <button
                   class="rcard"
-                  [style.--c]="colors[r]"
                   [class.selected]="bankGet() === r"
+                  [attr.aria-pressed]="bankGet() === r"
                   [disabled]="r === bankGive() || g.bank[r] === 0"
                   [title]="names[r] + (g.bank[r] === 0 ? ' (Bank leer)' : '')"
                   (click)="bankGet.set(r)"
                 >
-                  <span class="icon">{{ icons[r] }}</span>
-                  <span class="rate">{{ names[r] }}</span>
+                  <app-card-face [kind]="r" />
                 </button>
               }
             </div>
@@ -110,33 +109,27 @@ import { ResourcePicker } from '../shared/resource-picker';
     }
     .cards {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 6px;
     }
     .rcard {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-      padding: 8px 0 6px;
+      min-width: 0;
+      padding: 0;
       border-radius: 10px;
       border: 2px solid transparent;
-      background: color-mix(in srgb, var(--c) 30%, #fff);
-      .icon {
-        font-size: 26px;
-        line-height: 1.1;
-      }
+      background: transparent;
       .rate {
         font-size: 11px;
         font-weight: 700;
       }
       &.selected {
-        border-color: var(--text);
-        background: color-mix(in srgb, var(--c) 60%, #fff);
-        box-shadow: 0 3px 10px rgb(0 0 0 / 0.15);
+        border-color: var(--accent);
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
       }
       &:hover:not(:disabled) {
-        background: color-mix(in srgb, var(--c) 45%, #fff);
+        border-color: var(--accent);
+        transform: translateY(-2px);
       }
     }
     .full {
@@ -146,6 +139,11 @@ import { ResourcePicker } from '../shared/resource-picker';
     .hint {
       font-size: 0.82em;
       margin: 0;
+    }
+    @media (max-width: 360px) {
+      .cards {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
     }
   `,
 })
@@ -158,7 +156,6 @@ export class TradeDialog {
   protected readonly resources = RESOURCES;
   protected readonly icons = RESOURCE_ICONS;
   protected readonly names = RESOURCE_NAMES;
-  protected readonly colors = TERRAIN_COLORS;
 
   protected readonly bankGive = signal<Resource | null>(null);
   protected readonly bankGet = signal<Resource | null>(null);
