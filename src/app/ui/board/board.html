@@ -1,0 +1,74 @@
+<svg [attr.viewBox]="viewBox()" role="img" aria-label="Spielbrett">
+  <path class="ocean" [attr.d]="oceanPath()" />
+
+  @for (h of harbors(); track $index) {
+    <g class="harbor">
+      <title>{{ h.title }}</title>
+      <line [attr.x1]="h.x" [attr.y1]="h.y" [attr.x2]="h.ax" [attr.y2]="h.ay" />
+      <line [attr.x1]="h.x" [attr.y1]="h.y" [attr.x2]="h.bx" [attr.y2]="h.by" />
+      <circle [attr.cx]="h.x" [attr.cy]="h.y" [attr.r]="S * 0.3" />
+      <text class="harbor-icon" [attr.x]="h.x" [attr.y]="h.y - S * 0.06">{{ h.icon }}</text>
+      <text class="harbor-rate" [attr.x]="h.x" [attr.y]="h.y + S * 0.17">{{ h.label }}</text>
+    </g>
+  }
+
+  @for (h of hexes(); track h.id) {
+    <g class="hex">
+      <polygon [attr.points]="h.points" [attr.fill]="terrainColors[h.terrain]" />
+      <text class="terrain-icon" [attr.x]="h.x" [attr.y]="h.y - S * 0.48">{{ terrainIcons[h.terrain] }}</text>
+      @if (h.number) {
+        <g class="token" [class.red]="h.red" [class.blocked]="h.robber">
+          <circle [attr.cx]="h.x" [attr.cy]="h.y + S * 0.05" [attr.r]="S * 0.3" />
+          <text class="number" [attr.x]="h.x" [attr.y]="h.y + S * 0.05">{{ h.number }}</text>
+          @for (p of pipsArray(h.pips); track p) {
+            <circle class="pip" [attr.cx]="h.x + (p - (h.pips - 1) / 2) * S * 0.075" [attr.cy]="h.y + S * 0.23" [attr.r]="S * 0.022" />
+          }
+        </g>
+      }
+      @if (h.robber) {
+        <g class="robber" [attr.transform]="'translate(' + (h.x + S * 0.42) + ',' + (h.y + S * 0.1) + ')'">
+          <ellipse cx="0" [attr.cy]="S * 0.2" [attr.rx]="S * 0.16" [attr.ry]="S * 0.06" />
+          <path [attr.d]="'M' + -S * 0.13 + ',' + S * 0.2 + ' Q0,' + -S * 0.25 + ' ' + S * 0.13 + ',' + S * 0.2 + ' Z'" />
+          <circle cx="0" [attr.cy]="-S * 0.12" [attr.r]="S * 0.1" />
+        </g>
+      }
+    </g>
+  }
+
+  @for (r of roads(); track r.id) {
+    <g class="road">
+      <line class="road-outline" [attr.x1]="r.x1" [attr.y1]="r.y1" [attr.x2]="r.x2" [attr.y2]="r.y2" />
+      <line class="road-fill" [attr.x1]="r.x1" [attr.y1]="r.y1" [attr.x2]="r.x2" [attr.y2]="r.y2" [attr.stroke]="r.color" />
+    </g>
+  }
+
+  @for (b of buildings(); track b.id) {
+    <g class="building" [attr.transform]="'translate(' + b.x + ',' + b.y + ')'">
+      @if (b.city) {
+        <path [attr.fill]="b.color" d="M-16,11 L16,11 L16,-4 L4,-4 L4,-10 L-6,-19 L-16,-10 Z" />
+      } @else {
+        <path [attr.fill]="b.color" d="M-10,9 L10,9 L10,-3 L0,-12 L-10,-3 Z" />
+      }
+    </g>
+  }
+
+  @for (h of hexSpots(); track h.id) {
+    <polygon class="hex-target" [attr.points]="h.points" (click)="hexPick.emit(h.id)">
+      <title>Räuber hierhin</title>
+    </polygon>
+  }
+
+  @for (e of edgeSpots(); track e.id) {
+    <g class="edge-target" (click)="edgePick.emit(e.id)">
+      <line class="hit" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" />
+      <line class="mark" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" />
+    </g>
+  }
+
+  @for (v of vertexSpots(); track v.id) {
+    <g class="vertex-target" (click)="vertexPick.emit(v.id)">
+      <circle class="hit" [attr.cx]="v.x" [attr.cy]="v.y" [attr.r]="S * 0.26" />
+      <circle class="mark" [attr.cx]="v.x" [attr.cy]="v.y" [attr.r]="S * 0.13" />
+    </g>
+  }
+</svg>

@@ -1,0 +1,50 @@
+# Katan
+
+Siedler von Catan im Browser, für 2–6 Spieler. Kein Login, kein eigener Server: Ein Spieler eröffnet einen Raum und schickt den Link herum, die Browser verbinden sich direkt per WebRTC.
+
+Wie das Ganze aufgebaut ist und warum, steht in [docs/KONZEPT.md](docs/KONZEPT.md).
+
+## Entwickeln
+
+```bash
+npm install
+```
+
+```bash
+npm start
+```
+
+Danach läuft die App unter http://localhost:4200.
+
+- **Mehrere Spieler im selben Browser:** Im Entwicklungsmodus hat jeder Tab eine eigene Spieler-Identität. Einfach den Einladungslink in weiteren Tabs öffnen.
+- **Ohne Internet testen:** `http://localhost:4200/?local` verbindet die Tabs über `BroadcastChannel` statt über P2P.
+- **Konsole:** Im Entwicklungsmodus liegen Raum-Service und Engine unter `window.katan` (z. B. `katan.room.game()`).
+- **Ton** ist im Entwicklungsmodus standardmäßig aus und lässt sich über die Glocke einschalten.
+
+## Tests
+
+```bash
+npx ng test --watch=false
+```
+
+Die Tests decken die Spiel-Engine ab (`src/app/engine/*.spec.ts`).
+
+## Build und Hosting
+
+```bash
+npx ng build
+```
+
+Das Ergebnis in `dist/katan/browser` ist eine rein statische Seite. Sie läuft auf jedem Static Hosting (GitHub/GitLab Pages, Netlify, Cloudflare Pages …), auch in einem Unterverzeichnis, weil die App Hash-Routing und relative Pfade nutzt.
+
+## Wenn Spieler sich nicht verbinden können
+
+Manche Firmennetze oder VPNs blockieren direkte WebRTC-Verbindungen. Dann einen TURN-Server in `src/app/net/trystero-transport.ts` unter `TURN_SERVERS` eintragen, z. B. von Cloudflare (Gratiskontingent) oder Open Relay von Metered.
+
+## Aufbau
+
+| Ordner | Inhalt |
+|---|---|
+| `src/app/engine` | Spielregeln als reines TypeScript, ohne Angular |
+| `src/app/net` | Transport (Trystero/P2P bzw. BroadcastChannel), Lobby, Host-Logik, Host-Wechsel, Speichern |
+| `src/app/ui` | Angular-Komponenten: Startseite, Lobby, Spielbrett (SVG), Spielansicht, Handel |

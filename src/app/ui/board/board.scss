@@ -1,0 +1,182 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  user-select: none;
+}
+
+text {
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+.ocean {
+  fill: var(--ocean);
+  stroke: #3b7aa1;
+  stroke-width: 6;
+  stroke-linejoin: round;
+}
+
+.hex polygon {
+  stroke: #f2e6c7;
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.terrain-icon {
+  font-size: 17px;
+}
+
+.token {
+  circle:first-child {
+    fill: #f8f0dc;
+    stroke: #8a7550;
+    stroke-width: 1.5;
+  }
+
+  .number {
+    font-size: 19px;
+    font-weight: 700;
+    fill: #2b2418;
+  }
+
+  .pip {
+    fill: #2b2418;
+  }
+
+  &.red {
+    .number {
+      fill: #c0281f;
+    }
+
+    .pip {
+      fill: #c0281f;
+    }
+  }
+
+  &.blocked {
+    opacity: 0.45;
+  }
+}
+
+.robber {
+  ellipse {
+    fill: rgb(0 0 0 / 0.3);
+  }
+
+  path,
+  circle {
+    fill: #333;
+    stroke: #111;
+    stroke-width: 1.5;
+  }
+}
+
+.harbor {
+  line {
+    stroke: #8a6a3e;
+    stroke-width: 4;
+    stroke-linecap: round;
+  }
+
+  circle {
+    fill: #fbf4e2;
+    stroke: #8a6a3e;
+    stroke-width: 2;
+  }
+
+  .harbor-icon {
+    font-size: 13px;
+  }
+
+  .harbor-rate {
+    font-size: 9.5px;
+    font-weight: 700;
+    fill: #5b4527;
+  }
+}
+
+.road-outline {
+  stroke: #1d160c;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.road-fill {
+  stroke-width: 6.5;
+  stroke-linecap: round;
+}
+
+.building path {
+  stroke: #1d160c;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.hex-target {
+  fill: rgb(255 255 255 / 0.15);
+  stroke: #fff;
+  stroke-width: 3;
+  stroke-dasharray: 6 5;
+  cursor: pointer;
+  animation: pulse 1.2s ease-in-out infinite;
+
+  &:hover {
+    fill: rgb(255 255 255 / 0.4);
+  }
+}
+
+.edge-target {
+  cursor: pointer;
+
+  .hit {
+    stroke: transparent;
+    stroke-width: 18;
+  }
+
+  .mark {
+    stroke: #fff;
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 4 5;
+    opacity: 0.9;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  &:hover .mark {
+    stroke-dasharray: none;
+    stroke: #ffe36e;
+  }
+}
+
+.vertex-target {
+  cursor: pointer;
+
+  .hit {
+    fill: transparent;
+  }
+
+  .mark {
+    fill: rgb(255 255 255 / 0.85);
+    stroke: #2b2418;
+    stroke-width: 2;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  &:hover .mark {
+    fill: #ffe36e;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
