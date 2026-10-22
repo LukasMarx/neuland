@@ -11,192 +11,220 @@ import { MapThumb } from './map-thumb';
   template: `
     @let r = room.room()!;
     <main>
-      <header class="row">
+      <header class="top">
         <h1>Lobby</h1>
-        <span class="spacer"></span>
+        <div class="invite">
+          <span class="muted">Raumcode</span>
+          <b class="code">{{ r.code }}</b>
+          <button (click)="copy()" [title]="inviteLink">{{ copied() ? 'Link kopiert ✓' : 'Link kopieren' }}</button>
+        </div>
         <button (click)="leave.emit()">Verlassen</button>
       </header>
 
-      <section class="panel invite">
-        <div>
-          <div class="muted">Raumcode</div>
-          <div class="code">{{ r.code }}</div>
-        </div>
-        <div class="link">
-          <div class="muted">Link für die anderen</div>
-          <div class="row nowrap">
-            <input readonly [value]="inviteLink" (focus)="$any($event.target).select()" aria-label="Einladungslink" />
-            <button (click)="copy()">{{ copied() ? 'Kopiert ✓' : 'Kopieren' }}</button>
-          </div>
-        </div>
-      </section>
-
-      <div class="grid">
-        <section class="panel">
-          <h3>Spieler ({{ r.players.length }}/{{ maxPlayers }})</h3>
-          <ul class="players">
-            @for (p of r.players; track p.id) {
-              <li [class.offline]="!p.peerId">
-                <span class="color-dot" [style.background]="p.color"></span>
-                <span class="name">{{ p.name }}</span>
-                @if (p.id === room.clientId) {
-                  <span class="tag">Du</span>
-                }
-                @if (p.id === r.hostId) {
-                  <span class="tag">Gastgeber</span>
-                }
-                @if (!p.peerId) {
-                  <span class="muted small">getrennt</span>
-                  @if (room.isHost()) {
-                    <button class="small" (click)="room.removePlayer(p.id)">Entfernen</button>
+      <div class="layout">
+        <aside class="side">
+          <section class="panel">
+            <h3>Spieler <span class="muted">{{ r.players.length }}/{{ maxPlayers }}</span></h3>
+            <ul class="players">
+              @for (p of r.players; track p.id) {
+                <li [class.offline]="!p.peerId">
+                  <span class="color-dot" [style.background]="p.color"></span>
+                  <span class="name">{{ p.name }}</span>
+                  @if (p.id === room.clientId) {
+                    <span class="tag">Du</span>
                   }
-                }
-              </li>
-            }
-          </ul>
-          @if (r.spectators.length) {
-            <p class="muted small">Zuschauer: {{ spectatorNames() }}</p>
-          }
-
-          @if (room.me(); as me) {
-            <h3 class="mt">Deine Farbe</h3>
-            <div class="row">
-              @for (c of colors; track c.hex) {
-                <button
-                  class="swatch"
-                  [style.background]="c.hex"
-                  [class.selected]="me.color === c.hex"
-                  [disabled]="takenColors().has(c.hex) && me.color !== c.hex"
-                  [attr.aria-label]="c.name"
-                  [title]="c.name"
-                  (click)="room.updateProfile(room.name(), c.hex)"
-                ></button>
+                  @if (p.id === r.hostId) {
+                    <span class="tag">Gastgeber</span>
+                  }
+                  @if (!p.peerId) {
+                    <span class="muted small">getrennt</span>
+                    @if (room.isHost()) {
+                      <button class="small" (click)="room.removePlayer(p.id)">Entfernen</button>
+                    }
+                  }
+                </li>
               }
-            </div>
-          }
-        </section>
-
-        <section class="panel">
-          <h3>Einstellungen</h3>
-          <label class="row">
-            Siegpunkte
-            @if (room.isHost()) {
-              <select (change)="setVp($any($event.target).value)">
-                @for (vp of vpOptions; track vp) {
-                  <option [value]="vp" [selected]="vp === r.settings.victoryPoints">{{ vp }}</option>
+            </ul>
+            @if (r.spectators.length) {
+              <p class="muted small">Zuschauer: {{ spectatorNames() }}</p>
+            }
+            @if (room.me(); as me) {
+              <div class="swatches" role="radiogroup" aria-label="Deine Farbe">
+                @for (c of colors; track c.hex) {
+                  <button
+                    class="swatch"
+                    role="radio"
+                    [attr.aria-checked]="me.color === c.hex"
+                    [style.background]="c.hex"
+                    [class.selected]="me.color === c.hex"
+                    [disabled]="takenColors().has(c.hex) && me.color !== c.hex"
+                    [attr.aria-label]="c.name"
+                    [title]="c.name"
+                    (click)="room.updateProfile(room.name(), c.hex)"
+                  ></button>
                 }
-              </select>
-            } @else {
-              <strong>{{ r.settings.victoryPoints }}</strong>
+              </div>
             }
-          </label>
+          </section>
 
-          <h3 class="mt">Karte</h3>
-          <div class="maps" role="radiogroup" aria-label="Karte">
-            @for (m of maps; track m.id) {
-              @let fits = fitsNow(m);
-              <button
-                type="button"
-                class="map"
-                role="radio"
-                [attr.aria-checked]="m.id === map().id"
-                [class.selected]="m.id === map().id"
-                [class.unfit]="!fits"
-                [disabled]="!room.isHost() && m.id !== map().id"
-                [title]="m.description"
-                (click)="room.isHost() && setMap(m)"
-              >
-                <app-map-thumb [map]="m" [players]="present()" />
-                <b>{{ m.name }}</b>
-                <small>{{ m.players[0] }}–{{ m.players[1] }} Spieler</small>
-              </button>
-            }
-          </div>
-          <p class="muted small">
-            <b>{{ map().name }}</b> · {{ tiles() }} · {{ map().description }}
-            @if (present() > 4) {
-              Mit 5–6 Spielern gibt es nach jedem Zug eine Sonderbauphase.
-            }
-          </p>
-
-          <h3 class="mt">Varianten</h3>
-          <div class="variants">
-            @for (v of variants; track v.id) {
-              <label class="variant" [class.on]="variantOn(v)">
-                <input type="checkbox" [checked]="variantOn(v)" [disabled]="!room.isHost()" (change)="toggleVariant(v, $any($event.target).checked)" />
-                <span>
-                  <b>{{ v.name }}</b>
-                  <small>{{ v.description }}</small>
-                </span>
-              </label>
-            }
-          </div>
-
-          <div class="start">
+          <section class="panel summary">
+            <dl>
+              <dt>Karte</dt>
+              <dd>{{ map().name }} <span class="muted">· {{ tiles() }}</span></dd>
+              <dt>Dazu</dt>
+              <dd>{{ activeNames() || 'Grundspiel' }}</dd>
+              <dt>Siegpunkte</dt>
+              <dd>
+                @if (room.isHost()) {
+                  <select (change)="setVp($any($event.target).value)" aria-label="Siegpunkte">
+                    @for (vp of vpOptions; track vp) {
+                      <option [value]="vp" [selected]="vp === r.settings.victoryPoints">{{ vp }}</option>
+                    }
+                  </select>
+                } @else {
+                  <strong>{{ r.settings.victoryPoints }}</strong>
+                }
+              </dd>
+            </dl>
             @if (room.isHost()) {
               <button class="primary big" [disabled]="!canStart()" (click)="room.startGame()">Spiel starten</button>
-              @if (present() < 2) {
-                <p class="muted small">Mindestens 2 Spieler nötig. Schick den Link herum!</p>
-              } @else if (!fitsNow(map())) {
-                <p class="muted small">{{ map().name }} ist für {{ map().players[0] }}–{{ map().players[1] }} Spieler, gerade sind {{ present() }} da.</p>
-              } @else if (variantMismatch(); as text) {
-                <p class="muted small">{{ text }}</p>
+              @if (startHint(); as hint) {
+                <p class="muted small">{{ hint }}</p>
               }
             } @else {
               <p class="muted">Warte darauf, dass der Gastgeber das Spiel startet …</p>
             }
-          </div>
-        </section>
+          </section>
 
-        <section class="panel chat">
-          <h3>Chat</h3>
-          <app-chat-box />
-        </section>
+          <section class="panel chat">
+            <h3>Chat</h3>
+            <app-chat-box />
+          </section>
+        </aside>
+
+        <div class="settings">
+          <section class="panel">
+            <h3>Karte</h3>
+            @for (group of mapGroups; track group.name) {
+              <h4>{{ group.name }}</h4>
+              <div class="maps" role="radiogroup" [attr.aria-label]="'Karte, ' + group.name">
+                @for (m of group.maps; track m.id) {
+                  @let fits = fitsNow(m);
+                  <button
+                    type="button"
+                    class="map"
+                    role="radio"
+                    [attr.aria-checked]="m.id === map().id"
+                    [class.selected]="m.id === map().id"
+                    [class.unfit]="!fits"
+                    [disabled]="!room.isHost() && m.id !== map().id"
+                    [title]="m.description"
+                    (click)="room.isHost() && setMap(m)"
+                  >
+                    <app-map-thumb [map]="m" [players]="present()" />
+                    <b>{{ m.name }}</b>
+                    <small>{{ m.players[0] }}–{{ m.players[1] }} Spieler</small>
+                  </button>
+                }
+              </div>
+            }
+            <p class="muted small about">
+              <b>{{ map().name }}:</b> {{ map().description }}
+              @if (present() > 4) {
+                Mit 5–6 Spielern gibt es nach jedem Zug eine Sonderbauphase.
+              }
+            </p>
+          </section>
+
+          @for (group of variantGroups; track group.kind) {
+            <section class="panel">
+              <h3>{{ group.name }} <span class="muted small">{{ group.hint }}</span></h3>
+              <div class="variants">
+                @for (v of group.variants; track v.id) {
+                  @let blocked = blockedReason(v);
+                  <div class="variant" [class.on]="variantOn(v)" [class.blocked]="!!blocked">
+                    <label>
+                      <input type="checkbox" [checked]="variantOn(v)" [disabled]="!room.isHost()" (change)="toggleVariant(v, $any($event.target).checked)" />
+                      <span>
+                        <b>
+                          {{ v.name }}
+                          @if (v.victoryPoints) {
+                            <span class="tag">+{{ v.victoryPoints }} Punkte</span>
+                          }
+                        </b>
+                        <small>{{ blocked ?? v.short }}</small>
+                      </span>
+                    </label>
+                    <button class="small more" [attr.aria-expanded]="open().has(v.id)" (click)="toggleOpen(v.id)">{{ open().has(v.id) ? 'weniger' : 'mehr' }}</button>
+                    @if (open().has(v.id)) {
+                      <p class="full">{{ v.description }}</p>
+                    }
+                  </div>
+                }
+              </div>
+            </section>
+          }
+        </div>
       </div>
     </main>
   `,
   styles: `
     main {
-      max-width: 980px;
+      max-width: 1180px;
       margin: 0 auto;
-      padding: 24px 16px 48px;
+      padding: 20px 16px 48px;
       display: grid;
       gap: 16px;
     }
-    header h1 {
-      margin: 0;
-    }
-    .spacer {
-      flex: 1;
+    .top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      h1 {
+        margin: 0;
+        margin-right: auto;
+      }
     }
     .invite {
       display: flex;
-      gap: 24px;
-      align-items: end;
-      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
     }
     .code {
       font-variant-numeric: tabular-nums;
-      font-size: 2rem;
-      font-weight: 700;
+      font-size: 1.5rem;
       letter-spacing: 0.15em;
     }
-    .link {
-      flex: 1;
-      min-width: 240px;
-    }
-    .nowrap {
-      flex-wrap: nowrap;
-      input {
-        flex: 1;
-        min-width: 0;
-      }
-    }
-    .grid {
+    .layout {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: minmax(0, 1fr) 320px;
+      grid-template-areas: 'settings side';
       gap: 16px;
       align-items: start;
+    }
+    .settings {
+      grid-area: settings;
+      display: grid;
+      gap: 16px;
+      min-width: 0;
+    }
+    .side {
+      grid-area: side;
+      display: grid;
+      gap: 16px;
+      position: sticky;
+      top: 16px;
+    }
+    h3 {
+      margin: 0 0 10px;
+    }
+    h4 {
+      margin: 12px 0 6px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
     }
     .players {
       list-style: none;
@@ -215,20 +243,25 @@ import { MapThumb } from './map-thumb';
     }
     .tag {
       font-size: 0.75em;
+      font-weight: 600;
       background: var(--panel-2);
       border: 1px solid var(--line);
       border-radius: 999px;
       padding: 0 8px;
+      white-space: nowrap;
     }
     .small {
       font-size: 0.85em;
     }
-    .mt {
-      margin-top: 18px;
+    .swatches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
     }
     .swatch {
-      width: 34px;
-      height: 34px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       border: 2px solid rgb(0 0 0 / 0.3);
       padding: 0;
@@ -237,44 +270,31 @@ import { MapThumb } from './map-thumb';
         outline-offset: 2px;
       }
     }
-    .start {
-      margin-top: 16px;
-    }
-    .variants {
-      display: grid;
-      gap: 6px;
-    }
-    .variant {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 8px;
-      align-items: start;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid var(--line);
-      cursor: pointer;
-
-      input {
-        margin-top: 3px;
+    .summary {
+      dl {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 6px 12px;
+        margin: 0 0 14px;
+        align-items: center;
       }
-      b {
-        display: block;
-        font-size: 13px;
-      }
-      small {
+      dt {
         color: var(--muted);
-        font-size: 12px;
-        line-height: 1.35;
+        font-size: 0.85em;
       }
-      &.on {
-        border-color: var(--accent);
+      dd {
+        margin: 0;
       }
+    }
+    .big {
+      width: 100%;
+      padding: 0.7em;
+      font-size: 1.05rem;
     }
     .maps {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
       gap: 8px;
-      margin-bottom: 10px;
     }
     .map {
       display: grid;
@@ -308,10 +328,78 @@ import { MapThumb } from './map-thumb';
         cursor: default;
       }
     }
-    .big {
-      width: 100%;
-      padding: 0.7em;
-      font-size: 1.05rem;
+    .about {
+      margin: 12px 0 0;
+    }
+    .variants {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 8px;
+    }
+    .variant {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: start;
+      gap: 4px 8px;
+      padding: 8px 8px 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+
+      label {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 8px;
+        cursor: pointer;
+      }
+      input {
+        margin-top: 3px;
+      }
+      b {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+      }
+      small {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .more {
+        padding: 1px 8px;
+        font-size: 11px;
+      }
+      .full {
+        grid-column: 1 / -1;
+        margin: 4px 0 0;
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--muted);
+      }
+      &.on {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 8%, transparent);
+      }
+      &.blocked small {
+        color: var(--danger);
+      }
+    }
+    // Schmal: eine Spalte, Spieler und Start zuerst, dann die Einstellungen, der Chat zuletzt.
+    @media (max-width: 820px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: none;
+      }
+      .side {
+        display: contents;
+      }
+      .settings {
+        grid-area: auto;
+        order: 1;
+      }
+      .chat {
+        order: 2;
+      }
     }
   `,
 })
@@ -357,7 +445,45 @@ export class Lobby {
     return mapFits(map, Math.max(2, this.present()));
   }
 
-  protected readonly variants = VARIANTS;
+  /** Karten getrennt nach Land und Meer (Seewege). */
+  protected readonly mapGroups = [
+    { name: 'Land', maps: MAPS.filter((m) => !m.seafaring) },
+    { name: 'Meer · Seewege', maps: MAPS.filter((m) => m.seafaring) },
+  ];
+  protected readonly variantGroups = [
+    { kind: 'expansion', name: 'Erweiterungen', hint: 'neue Teile und Regeln', variants: VARIANTS.filter((v) => v.kind === 'expansion') },
+    { kind: 'house', name: 'Hausregeln', hint: 'kleine Änderungen am Grundspiel', variants: VARIANTS.filter((v) => v.kind === 'house') },
+  ];
+  /** Varianten, deren volle Beschreibung aufgeklappt ist (nur für mich). */
+  protected readonly open = signal(new Set<string>());
+  protected readonly activeNames = computed(() =>
+    VARIANTS.filter((v) => this.variantOn(v))
+      .map((v) => v.name)
+      .join(', '),
+  );
+  /** Warum gerade nicht gestartet werden kann. */
+  protected readonly startHint = computed(() => {
+    const map = this.map();
+    if (this.present() < 2) return 'Mindestens 2 Spieler nötig. Schick den Link herum!';
+    if (!this.fitsNow(map)) return `${map.name} ist für ${map.players[0]}–${map.players[1]} Spieler, gerade sind ${this.present()} da.`;
+    return this.variantMismatch();
+  });
+
+  /** Passt eine Variante gerade nicht (Spielerzahl, Karte)? Dann steht der Grund statt der Kurzbeschreibung da. */
+  protected blockedReason(v: VariantDef): string | null {
+    // Mit nur einem Spieler im Raum ist die Spielerzahl noch offen.
+    if (v.players && this.present() >= 2 && v.players !== this.present()) return `Nur für ${v.players} Spieler.`;
+    if (v.landOnly && this.map().seafaring) return 'Nur auf Karten ohne Meer.';
+    return null;
+  }
+
+  protected toggleOpen(id: string): void {
+    this.open.update((s) => {
+      const next = new Set(s);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  }
 
   /** Karte wählen; das Siegziel folgt dem Vorschlag der Karte (plus Varianten wie dem Hafenvogt). */
   protected setMap(map: MapDef): void {

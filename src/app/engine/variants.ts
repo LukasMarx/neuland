@@ -4,6 +4,10 @@ export type VariantId = 'milderRaeuber' | 'hafenvogt' | 'wuerfelstapel' | 'fisch
 export interface VariantDef {
   id: VariantId;
   name: string;
+  /** Hausregel (kleine Änderung am Grundspiel) oder Erweiterung (neue Teile und Regeln). */
+  kind: 'house' | 'expansion';
+  /** Eine Zeile für die Lobby; die volle Beschreibung gibt es auf Nachfrage. */
+  short: string;
   description: string;
   /** Um so viele Punkte steigt das Siegziel, wenn die Variante an ist. */
   victoryPoints?: number;
@@ -16,11 +20,15 @@ export interface VariantDef {
 export const VARIANTS: VariantDef[] = [
   {
     id: 'milderRaeuber',
+    kind: 'house',
+    short: 'Der Räuber verschont Spieler mit höchstens 2 Punkten.',
     name: 'Milder Räuber',
     description: 'Der Räuber darf nicht an Spieler mit höchstens 2 Siegpunkten. Geht das nirgends, kommt er in die Wüste.',
   },
   {
     id: 'hafenvogt',
+    kind: 'house',
+    short: 'Häfen bringen Hafenpunkte, die meisten geben 2 Siegpunkte.',
     name: 'Hafenvogt',
     description:
       'Siedlung am Hafen zählt 1 Hafenpunkt, Stadt 2. Wer zuerst 3 hat, bekommt 2 Siegpunkte; wer mehr hat, übernimmt. Siegziel +1.',
@@ -28,17 +36,23 @@ export const VARIANTS: VariantDef[] = [
   },
   {
     id: 'wuerfelstapel',
+    kind: 'house',
+    short: 'Karten statt Würfel, mit fairer Verteilung.',
     name: 'Würfelstapel',
     description: '36 Karten statt Würfeln, genau mit der Verteilung zweier Würfel. Kurz vor dem Ende wird neu gemischt.',
   },
   {
     id: 'fischgruende',
+    kind: 'expansion',
+    short: 'Fische an der Küste als zweite Währung.',
     name: 'Fischgründe',
     description:
       'Ein See statt Wüste und Fischgründe an der Küste. Fische bringen Räuber weg (2), eine Karte vom Gegner (3), einen Rohstoff (4), eine Straße (5) oder eine Entwicklung (7). Wer den Rostigen Anker hat, braucht einen Punkt mehr.',
   },
   {
     id: 'duell',
+    kind: 'expansion',
+    short: 'Für zwei, mit zwei neutralen Mitspielern zum Blockieren.',
     name: 'Duell',
     players: 2,
     description:
@@ -46,6 +60,8 @@ export const VARIANTS: VariantDef[] = [
   },
   {
     id: 'flusslaeufe',
+    kind: 'expansion',
+    short: 'Flüsse, Brücken und Münzen.',
     name: 'Flussläufe',
     landOnly: true,
     description:
@@ -53,6 +69,8 @@ export const VARIANTS: VariantDef[] = [
   },
   {
     id: 'stadtwacht',
+    kind: 'expansion',
+    short: 'Güter, Stadtausbau, Wächter gegen die Flotte, Einflusskarten.',
     name: 'Stadtwacht',
     victoryPoints: 3,
     description:
