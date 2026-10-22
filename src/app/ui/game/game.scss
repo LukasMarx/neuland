@@ -26,7 +26,9 @@ kbd {
 .topbar {
   grid-area: top;
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr);
+  // Die Spieler stehen mittig über dem Brett, nicht über dem ganzen Fenster: Die letzte Spalte liegt über
+  // dem Verlauf (320 px, abzüglich Rand und Lücke der Kopfzeile).
+  grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr) 304px;
   align-items: center;
   gap: 16px;
   min-height: 64px;
@@ -35,6 +37,9 @@ kbd {
 }
 
 .brand {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 
   b {
@@ -155,6 +160,7 @@ kbd {
 }
 
 .tools {
+  grid-column: 4;
   display: flex;
   justify-content: flex-end;
   gap: 6px;
@@ -178,7 +184,8 @@ kbd {
   grid-area: board;
   position: relative;
   min-height: 0;
-  padding: 52px 16px 8px 108px;
+  // Links Platz für die Bank, rechts genauso viel, damit Brett und Statuszeile auf derselben Mitte stehen.
+  padding: 52px 108px 8px;
 }
 
 .status {

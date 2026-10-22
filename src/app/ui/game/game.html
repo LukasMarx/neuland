@@ -1,9 +1,9 @@
 @let game = g();
 <div class="layout">
   <header class="topbar">
-    <div class="brand">
+    <div class="brand" [title]="'Raum ' + room.code() + ' · ' + mapName() + ' · bis ' + game.settings.victoryPoints + (variantNames().length ? ' · ' + variantNames().join(', ') : '')">
       <b>Neuland</b>
-      <span class="room" [title]="variantNames().join(', ')">
+      <span class="room">
         Raum {{ room.code() }} · {{ mapName() }} · bis {{ game.settings.victoryPoints }}
         @if (variantNames().length) {
           · {{ variantNames().length === 1 ? variantNames()[0] : variantNames().length + ' Varianten' }}
