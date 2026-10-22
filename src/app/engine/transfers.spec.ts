@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BANK_SIZE, getTopology } from './board';
+import { bankSize, getTopology } from './board';
 import { randomInt } from './rng';
 import { applyAction, createGame } from './rules';
 import { emptyResources, GameState, RESOURCES, ResourceCounts, Transfer } from './types';
@@ -17,7 +17,7 @@ function game(): GameState {
 function give(s: GameState, seat: number, r: Partial<ResourceCounts>): void {
   s.players[seat].resources = { ...emptyResources(), ...r };
   for (const k of RESOURCES) {
-    s.bank[k] = BANK_SIZE[s.board.layout] - s.players.reduce((sum, p) => sum + p.resources[k], 0);
+    s.bank[k] = bankSize(getTopology(s.board).hexes.length) - s.players.reduce((sum, p) => sum + p.resources[k], 0);
   }
 }
 
@@ -40,7 +40,7 @@ describe('Kartenbewegungen', () => {
   it('Ertrag fliegt vom liefernden Feld zum Spieler, Städte zählen doppelt', () => {
     const s = game();
     const hex = producingHex(s);
-    const corners = getTopology(s.board.layout).hexes[hex].corners;
+    const corners = getTopology(s.board).hexes[hex].corners;
     s.buildings[corners[0]] = { owner: 1, type: 'settlement' };
     s.buildings[corners[3]] = { owner: 2, type: 'city' };
     s.phase = { kind: 'roll' };
@@ -53,7 +53,7 @@ describe('Kartenbewegungen', () => {
 
   it('Ertrag und Bewegungen stimmen mit den Handkarten überein', () => {
     const s = game();
-    const topo = getTopology(s.board.layout);
+    const topo = getTopology(s.board);
     // Viele Gebäude verteilen, dann alle Zahlen würfeln
     topo.vertices.forEach((v, i) => {
       if (i % 5 === 0) s.buildings[v.id] = { owner: i % 3, type: i % 2 ? 'city' : 'settlement' };
@@ -78,7 +78,7 @@ describe('Kartenbewegungen', () => {
   it('beim Räuber-Feld gibt es keine Bewegung', () => {
     const s = game();
     const hex = producingHex(s);
-    s.buildings[getTopology(s.board.layout).hexes[hex].corners[0]] = { owner: 1, type: 'settlement' };
+    s.buildings[getTopology(s.board).hexes[hex].corners[0]] = { owner: 1, type: 'settlement' };
     s.robber = hex;
     s.phase = { kind: 'roll' };
     setDice(s, s.board.hexes[hex].number!);
@@ -88,7 +88,7 @@ describe('Kartenbewegungen', () => {
 
   it('Baukosten fliegen zum Bauplatz', () => {
     const s = game();
-    const edge = getTopology(s.board.layout).vertices[0].edges[0];
+    const edge = getTopology(s.board).vertices[0].edges[0];
     s.buildings[0] = { owner: 0, type: 'settlement' };
     give(s, 0, { wood: 1, brick: 1 });
     const next = applyAction(s, 0, { type: 'buildRoad', edge });
@@ -135,7 +135,7 @@ describe('Kartenbewegungen', () => {
   it('der Räuber-Diebstahl ist verdeckt', () => {
     const s = game();
     const hex = producingHex(s);
-    s.buildings[getTopology(s.board.layout).hexes[hex].corners[0]] = { owner: 1, type: 'settlement' };
+    s.buildings[getTopology(s.board).hexes[hex].corners[0]] = { owner: 1, type: 'settlement' };
     give(s, 1, { sheep: 1 });
     s.phase = { kind: 'robber', returnTo: 'main' };
     const next = applyAction(s, 0, { type: 'moveRobber', hex, victim: 1 });

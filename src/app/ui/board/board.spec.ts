@@ -42,7 +42,7 @@ describe('Papierfiguren auf dem Brett', () => {
 
   it('zentriert und dreht jede Straße entlang ihrer tatsächlichen Brettkante', () => {
     const { element, game } = render();
-    const topology = getTopology(game.board.layout);
+    const topology = getTopology(game.board);
     const angles = new Set<number>();
     for (const road of element.querySelectorAll<SVGGElement>('.road')) {
       const edge = topology.edges[Number(road.dataset['edge'])];

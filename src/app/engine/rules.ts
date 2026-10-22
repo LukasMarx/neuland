@@ -1,4 +1,5 @@
-import { BANK_SIZE, generateBoard, getTopology, vertexHarbors } from './board';
+import { generateBoard, getTopology, vertexHarbors } from './board';
+import { mapById, mapFits } from './maps';
 import { randomInt, RngState, shuffle } from './rng';
 import {
   Action,
@@ -42,18 +43,19 @@ export interface NewPlayer {
 
 export function createGame(players: NewPlayer[], settings: GameSettings, seed: number): GameState {
   if (players.length < 2 || players.length > 6) fail('Es werden 2 bis 6 Spieler benötigt.');
+  const map = mapById(settings.map);
+  if (!mapFits(map, players.length)) fail(`${map.name} ist für ${map.players[0]}–${map.players[1]} Spieler.`);
   const rng: RngState = { rng: seed | 0 };
-  const layout = players.length > 4 ? 'ext' : 'base';
-  const { board, robber } = generateBoard(layout, rng);
-  const topo = getTopology(layout);
+  const { board, robber, bank: bankSize } = generateBoard(map.id, players.length, rng);
+  const topo = getTopology(board);
   const seated = shuffle(rng, players);
   const n = seated.length;
   const deck = shuffle(
     rng,
-    Object.entries(DEV_DECK[layout]).flatMap(([card, count]) => Array<DevCard>(count).fill(card as DevCard)),
+    Object.entries(DEV_DECK[n > 4 ? 'ext' : 'base']).flatMap(([card, count]) => Array<DevCard>(count).fill(card as DevCard)),
   );
   const bank = emptyResources();
-  for (const r of RESOURCES) bank[r] = BANK_SIZE[layout];
+  for (const r of RESOURCES) bank[r] = bankSize;
 
   const state: GameState = {
     version: 0,
@@ -125,7 +127,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     let text = `${name(s, seat)} setzt eine Siedlung.`;
     if (secondRound) {
       const gained = emptyResources();
-      for (const h of getTopology(s.board.layout).vertices[vertex].hexes) {
+      for (const h of getTopology(s.board).vertices[vertex].hexes) {
         const terrain = s.board.hexes[h].terrain;
         if (terrain !== 'desert' && s.bank[terrain] > 0) {
           s.bank[terrain]--;
@@ -145,7 +147,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     const phase = s.phase;
     if (phase.kind !== 'setup' || phase.step !== 'road') fail('Jetzt wird keine Straße gesetzt.');
     if (phase.order[phase.index] !== seat) fail('Du bist nicht dran.');
-    const e = getTopology(s.board.layout).edges[edge];
+    const e = getTopology(s.board).edges[edge];
     if (!e || s.roads[edge] !== null) fail('Hier ist kein Platz für eine Straße.');
     if (e.a !== phase.settlement && e.b !== phase.settlement) fail('Die Straße muss an deine neue Siedlung grenzen.');
     s.roads[edge] = seat;
@@ -476,17 +478,17 @@ export function victoryPoints(s: GameState, seat: number, includeHidden: boolean
 }
 
 export function isFreeForSettlement(s: GameState, vertex: number): boolean {
-  const v = getTopology(s.board.layout).vertices[vertex];
+  const v = getTopology(s.board).vertices[vertex];
   return !!v && s.buildings[vertex] === null && v.neighbors.every((n) => s.buildings[n] === null);
 }
 
 export function canBuildSettlement(s: GameState, seat: number, vertex: number): boolean {
   if (!isFreeForSettlement(s, vertex)) return false;
-  return getTopology(s.board.layout).vertices[vertex].edges.some((e) => s.roads[e] === seat);
+  return getTopology(s.board).vertices[vertex].edges.some((e) => s.roads[e] === seat);
 }
 
 export function canBuildRoad(s: GameState, seat: number, edge: number): boolean {
-  const topo = getTopology(s.board.layout);
+  const topo = getTopology(s.board);
   const e = topo.edges[edge];
   if (!e || s.roads[edge] !== null) return false;
   return [e.a, e.b].some((v) => {
@@ -498,21 +500,21 @@ export function canBuildRoad(s: GameState, seat: number, edge: number): boolean 
 }
 
 export function legalSetupVertices(s: GameState): number[] {
-  return getTopology(s.board.layout).vertices.filter((v) => isFreeForSettlement(s, v.id)).map((v) => v.id);
+  return getTopology(s.board).vertices.filter((v) => isFreeForSettlement(s, v.id)).map((v) => v.id);
 }
 
 export function legalSetupRoads(s: GameState): number[] {
   const phase = s.phase;
   if (phase.kind !== 'setup' || phase.settlement === null) return [];
-  return getTopology(s.board.layout).vertices[phase.settlement].edges.filter((e) => s.roads[e] === null);
+  return getTopology(s.board).vertices[phase.settlement].edges.filter((e) => s.roads[e] === null);
 }
 
 export function legalSettlementVertices(s: GameState, seat: number): number[] {
-  return getTopology(s.board.layout).vertices.filter((v) => canBuildSettlement(s, seat, v.id)).map((v) => v.id);
+  return getTopology(s.board).vertices.filter((v) => canBuildSettlement(s, seat, v.id)).map((v) => v.id);
 }
 
 export function legalRoadEdges(s: GameState, seat: number): number[] {
-  return getTopology(s.board.layout).edges.filter((e) => canBuildRoad(s, seat, e.id)).map((e) => e.id);
+  return getTopology(s.board).edges.filter((e) => canBuildRoad(s, seat, e.id)).map((e) => e.id);
 }
 
 export function legalCityVertices(s: GameState, seat: number): number[] {
@@ -521,7 +523,7 @@ export function legalCityVertices(s: GameState, seat: number): number[] {
 
 export function robberVictims(s: GameState, seat: number, hex: number): number[] {
   const victims = new Set<number>();
-  for (const v of getTopology(s.board.layout).hexes[hex].corners) {
+  for (const v of getTopology(s.board).hexes[hex].corners) {
     const b = s.buildings[v];
     if (b && b.owner !== seat && totalResources(s.players[b.owner].resources) > 0) victims.add(b.owner);
   }
@@ -640,7 +642,7 @@ function playDevCard(s: GameState, seat: number, card: DevCard): ReturnPhase {
 }
 
 function produce(s: GameState, sum: number): void {
-  const topo = getTopology(s.board.layout);
+  const topo = getTopology(s.board);
   const demand = RESOURCES.map(() => s.players.map(() => 0));
   const sources: { hex: number; seat: number; res: Resource; n: number }[] = [];
   s.board.hexes.forEach((hex, id) => {
@@ -738,7 +740,7 @@ function updateLongestRoad(s: GameState): void {
 }
 
 export function longestRoad(s: GameState, seat: number): number {
-  const topo = getTopology(s.board.layout);
+  const topo = getTopology(s.board);
   const visited = new Set<number>();
   let best = 0;
 

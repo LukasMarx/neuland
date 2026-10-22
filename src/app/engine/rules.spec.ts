@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BANK_SIZE, getTopology } from './board';
+import { bankSize, getTopology } from './board';
 import { randomInt } from './rng';
 import {
   actingSeats,
@@ -35,7 +35,7 @@ function res(partial: Partial<ResourceCounts> = {}): ResourceCounts {
 }
 
 function topo(s: GameState) {
-  return getTopology(s.board.layout);
+  return getTopology(s.board);
 }
 
 /** Überspringt die Aufbauphase: `seat` ist in der angegebenen Phase am Zug. */
@@ -51,7 +51,7 @@ function give(s: GameState, seat: number, r: Partial<ResourceCounts>): void {
   s.players[seat].resources = res(r);
   // Bank so anpassen, dass die Gesamtsumme der Rohstoffe stimmt
   for (const k of RESOURCES) {
-    s.bank[k] = BANK_SIZE[s.board.layout] - s.players.reduce((sum, p) => sum + p.resources[k], 0);
+    s.bank[k] = bankSize(getTopology(s.board).hexes.length) - s.players.reduce((sum, p) => sum + p.resources[k], 0);
   }
 }
 
@@ -858,7 +858,7 @@ describe('Handel mit der Bank', () => {
   it('3:1 und 2:1 über Häfen', () => {
     const s = toPhase(game(), 'main');
     const t = topo(s);
-    const [e1, e2] = t.harborEdges;
+    const [e1, e2] = s.board.harbors.map((h) => h.edge);
     s.board.harbors = [
       { type: 'any', edge: e1 },
       { type: 'wood', edge: e2 },
@@ -1253,7 +1253,7 @@ describe('Zufallsspiele', () => {
     let s = game(n, seed);
     const rnd = { rng: seed * 31 + 7 };
     const pick = <T>(items: T[]): T => items[randomInt(rnd, items.length)];
-    const bankSize = BANK_SIZE[s.board.layout];
+    const bankTotal = bankSize(getTopology(s.board).hexes.length);
     const deckSize = s.devDeck.length;
 
     for (let step = 0; step < maxSteps && s.phase.kind !== 'ended'; step++) {
@@ -1332,7 +1332,7 @@ describe('Zufallsspiele', () => {
       }
 
       for (const r of RESOURCES) {
-        expect(totalOf(s, r)).toBe(bankSize);
+        expect(totalOf(s, r)).toBe(bankTotal);
         expect(s.bank[r]).toBeGreaterThanOrEqual(0);
         for (const pl of s.players) expect(pl.resources[r]).toBeGreaterThanOrEqual(0);
       }

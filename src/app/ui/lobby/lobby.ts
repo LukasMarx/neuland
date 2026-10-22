@@ -1,11 +1,13 @@
 import { Component, computed, inject, output, signal } from '@angular/core';
+import { MapDef, mapById, mapFits, MAPS, mapShape } from '../../engine';
 import { MAX_PLAYERS, PLAYER_COLORS } from '../../net/protocol';
 import { LOCAL_MODE, RoomService } from '../../net/room.service';
 import { ChatBox } from '../shared/chat-box';
+import { MapThumb } from './map-thumb';
 
 @Component({
   selector: 'app-lobby',
-  imports: [ChatBox],
+  imports: [ChatBox, MapThumb],
   template: `
     @let r = room.room()!;
     <main>
@@ -88,19 +90,42 @@ import { ChatBox } from '../shared/chat-box';
               <strong>{{ r.settings.victoryPoints }}</strong>
             }
           </label>
+
+          <h3 class="mt">Karte</h3>
+          <div class="maps" role="radiogroup" aria-label="Karte">
+            @for (m of maps; track m.id) {
+              @let fits = fitsNow(m);
+              <button
+                type="button"
+                class="map"
+                role="radio"
+                [attr.aria-checked]="m.id === map().id"
+                [class.selected]="m.id === map().id"
+                [class.unfit]="!fits"
+                [disabled]="!room.isHost() && m.id !== map().id"
+                [title]="m.description"
+                (click)="room.isHost() && setMap(m)"
+              >
+                <app-map-thumb [map]="m" [players]="present()" />
+                <b>{{ m.name }}</b>
+                <small>{{ m.players[0] }}–{{ m.players[1] }} Spieler</small>
+              </button>
+            }
+          </div>
           <p class="muted small">
-            @if (r.players.length > 4) {
-              5–6 Spieler: großes Brett mit 30 Feldern und Sonderbauphase nach jedem Zug.
-            } @else {
-              Bis 4 Spieler: klassisches Brett mit 19 Feldern. Ab 5 Spielern wird automatisch das große Brett genutzt.
+            <b>{{ map().name }}</b> · {{ tiles() }} Felder · {{ map().description }}
+            @if (present() > 4) {
+              Mit 5–6 Spielern gibt es nach jedem Zug eine Sonderbauphase.
             }
           </p>
 
           <div class="start">
             @if (room.isHost()) {
               <button class="primary big" [disabled]="!canStart()" (click)="room.startGame()">Spiel starten</button>
-              @if (r.players.length < 2) {
+              @if (present() < 2) {
                 <p class="muted small">Mindestens 2 Spieler nötig. Schick den Link herum!</p>
+              } @else if (!fitsNow(map())) {
+                <p class="muted small">{{ map().name }} ist für {{ map().players[0] }}–{{ map().players[1] }} Spieler, gerade sind {{ present() }} da.</p>
               }
             } @else {
               <p class="muted">Warte darauf, dass der Gastgeber das Spiel startet …</p>
@@ -200,6 +225,44 @@ import { ChatBox } from '../shared/chat-box';
     .start {
       margin-top: 16px;
     }
+    .maps {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .map {
+      display: grid;
+      justify-items: center;
+      gap: 2px;
+      padding: 8px 6px;
+      border-radius: 10px;
+      text-align: center;
+      line-height: 1.2;
+
+      app-map-thumb {
+        width: 58px;
+        height: 58px;
+        margin-bottom: 4px;
+      }
+      b {
+        font-size: 13px;
+      }
+      small {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      &.selected {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px var(--accent);
+      }
+      &.unfit {
+        opacity: 0.45;
+      }
+      &:disabled {
+        cursor: default;
+      }
+    }
     .big {
       width: 100%;
       padding: 0.7em;
@@ -218,11 +281,26 @@ export class Lobby {
 
   protected readonly takenColors = computed(() => new Set(this.room.room()?.players.map((p) => p.color)));
   protected readonly spectatorNames = computed(() => this.room.room()?.spectators.map((p) => p.name).join(', '));
+  protected readonly maps = MAPS;
+  protected readonly map = computed(() => mapById(this.room.room()?.settings.map));
+  /** Verbundene Spieler; mit ihnen wird gestartet. */
+  protected readonly present = computed(() => this.room.room()?.players.filter((p) => p.peerId).length ?? 0);
+  protected readonly tiles = computed(() => mapShape(this.map(), Math.max(2, this.present()), { rng: 7 }).length);
   /** Gestartet wird mit allen, die verbunden sind; wer die Lobby verlassen hat, bleibt draußen. */
   protected readonly canStart = computed(() => {
-    const n = this.room.room()?.players.filter((p) => p.peerId).length ?? 0;
-    return n >= 2 && n <= MAX_PLAYERS;
+    const n = this.present();
+    return n >= 2 && n <= MAX_PLAYERS && this.fitsNow(this.map());
   });
+
+  protected fitsNow(map: MapDef): boolean {
+    return mapFits(map, Math.max(2, this.present()));
+  }
+
+  /** Karte wählen; das Siegziel folgt dem Vorschlag der Karte. */
+  protected setMap(map: MapDef): void {
+    const settings = this.room.room()!.settings;
+    this.room.updateSettings({ ...settings, map: map.id, victoryPoints: map.victoryPoints });
+  }
 
   protected setVp(value: string): void {
     const settings = this.room.room()!.settings;

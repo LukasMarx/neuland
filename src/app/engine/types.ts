@@ -6,7 +6,7 @@ export type ResourceCounts = Record<Resource, number>;
 export type DevCard = 'knight' | 'roadBuilding' | 'yearOfPlenty' | 'monopoly' | 'victoryPoint';
 export type HarborType = Resource | 'any';
 
-/** base = 3–4 Spieler (19 Felder), ext = 5–6-Erweiterung (30 Felder). */
+/** Klassisches Brett: base = bis 4 Spieler (19 Felder), ext = 5–6 Spieler (30 Felder). */
 export type Layout = 'base' | 'ext';
 
 export interface HexState {
@@ -20,7 +20,12 @@ export interface HarborState {
 }
 
 export interface BoardState {
-  layout: Layout;
+  /** Gewählte Karte (siehe maps.ts); fehlt bei alten Spielständen, dann klassisch. */
+  map?: string;
+  /** Felder in „doubled coordinates“, zeilenweise; daraus entsteht die Topologie. */
+  cells?: [number, number][];
+  /** Nur beim klassischen Brett, und bei alten Spielständen statt `cells`. */
+  layout?: Layout;
   hexes: HexState[];
   harbors: HarborState[];
 }
@@ -86,6 +91,8 @@ export interface Transfer {
 
 export interface GameSettings {
   victoryPoints: number;
+  /** Karte, Vorgabe „klassisch“. */
+  map?: string;
 }
 
 export interface LogEntry {

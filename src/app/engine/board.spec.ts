@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { generateBoard, getTopology, vertexHarbors } from './board';
+import { bankSize, generateBoard, getTopology, isConnected, Topology, vertexHarbors } from './board';
+import { MAPS, mapById, parseMask } from './maps';
 import { shuffle } from './rng';
 import { Layout, Terrain } from './types';
 
@@ -9,156 +10,200 @@ function count<T>(items: T[]): Map<T, number> {
   return m;
 }
 
-describe('Topologie', () => {
-  it('Basisbrett: 19 Felder, 54 Ecken, 72 Kanten, 30 Küstenkanten, 9 Häfen', () => {
-    const t = getTopology('base');
-    expect(t.hexes.length).toBe(19);
-    expect(t.vertices.length).toBe(54);
-    expect(t.edges.length).toBe(72);
-    expect(t.coast.length).toBe(30);
-    expect(t.harborEdges.length).toBe(9);
+/** Die frühere Topologie aus festen Reihen, als Referenz für die Ecken- und Kanten-IDs alter Spielstände. */
+function legacyTopology(rows: number[]) {
+  const hexes: { corners: number[]; edges: number[] }[] = [];
+  const vertices: { x: number; y: number }[] = [];
+  const edges: { a: number; b: number }[] = [];
+  const vByKey = new Map<string, number>();
+  const eByKey = new Map<string, number>();
+  const vertexAt = (x: number, y: number) => {
+    const k = `${Math.round(x * 1000)},${Math.round(y * 1000)}`;
+    if (!vByKey.has(k)) {
+      vByKey.set(k, vertices.length);
+      vertices.push({ x, y });
+    }
+    return vByKey.get(k)!;
+  };
+  const edgeBetween = (a: number, b: number) => {
+    const k = a < b ? `${a}-${b}` : `${b}-${a}`;
+    if (!eByKey.has(k)) {
+      eByKey.set(k, edges.length);
+      edges.push({ a: Math.min(a, b), b: Math.max(a, b) });
+    }
+    return eByKey.get(k)!;
+  };
+  rows.forEach((n, row) => {
+    for (let i = 0; i < n; i++) {
+      const x = (i - (n - 1) / 2) * Math.sqrt(3);
+      const y = row * 1.5;
+      const corners = Array.from({ length: 6 }, (_, k) => {
+        const angle = ((60 * k - 90) * Math.PI) / 180;
+        return vertexAt(x + Math.cos(angle), y + Math.sin(angle));
+      });
+      hexes.push({ corners, edges: corners.map((c, k) => edgeBetween(c, corners[(k + 1) % 6])) });
+    }
   });
+  return { hexes, vertices, edges };
+}
 
-  it('Erweiterungsbrett: 30 Felder, 11 Häfen', () => {
-    const t = getTopology('ext');
-    expect(t.hexes.length).toBe(30);
-    expect(t.harborEdges.length).toBe(11);
-    // 6 Ecken pro Feld, Euler: V - E + F = 1 (ohne Außenfläche)
-    expect(t.vertices.length - t.edges.length + t.hexes.length).toBe(1);
-  });
-
-  it('wird zwischengespeichert', () => {
-    expect(getTopology('base')).toBe(getTopology('base'));
-  });
-
-  for (const layout of ['base', 'ext'] as Layout[]) {
-    describe(layout, () => {
-      const t = getTopology(layout);
-
-      it('jedes Feld hat 6 verschiedene Ecken und Kanten', () => {
-        for (const h of t.hexes) {
-          expect(new Set(h.corners).size).toBe(6);
-          expect(new Set(h.edges).size).toBe(6);
-        }
-      });
-
-      it('Ecken haben 2–3 Kanten und 1–3 Felder, Nachbarschaft ist symmetrisch', () => {
-        for (const v of t.vertices) {
-          expect(v.edges.length).toBeGreaterThanOrEqual(2);
-          expect(v.edges.length).toBeLessThanOrEqual(3);
-          expect(v.hexes.length).toBeGreaterThanOrEqual(1);
-          expect(v.hexes.length).toBeLessThanOrEqual(3);
-          for (const n of v.neighbors) expect(t.vertices[n].neighbors).toContain(v.id);
-        }
-      });
-
-      it('Kanten verbinden zwei Ecken und liegen an 1–2 Feldern', () => {
-        for (const e of t.edges) {
-          expect(e.a).not.toBe(e.b);
-          expect(e.hexes.length).toBeGreaterThanOrEqual(1);
-          expect(e.hexes.length).toBeLessThanOrEqual(2);
-          expect(t.vertices[e.a].edges).toContain(e.id);
-          expect(t.vertices[e.b].edges).toContain(e.id);
-        }
-      });
-
-      it('Felder-Nachbarn sind symmetrisch, höchstens 6', () => {
-        for (const h of t.hexes) {
-          expect(h.neighbors.length).toBeLessThanOrEqual(6);
-          for (const n of h.neighbors) expect(t.hexes[n].neighbors).toContain(h.id);
-        }
-      });
-
-      it('Küste ist ein geschlossener Ring aus Kanten mit nur einem Feld', () => {
-        const coastCount = t.edges.filter((e) => e.hexes.length === 1).length;
-        expect(t.coast.length).toBe(coastCount);
-        expect(new Set(t.coast).size).toBe(t.coast.length);
-        for (let i = 0; i < t.coast.length; i++) {
-          const a = t.edges[t.coast[i]];
-          const b = t.edges[t.coast[(i + 1) % t.coast.length]];
-          const shared = [a.a, a.b].filter((v) => v === b.a || v === b.b);
-          expect(shared.length).toBe(1);
-        }
-      });
-
-      it('Häfen liegen an der Küste und teilen sich nie eine Ecke', () => {
-        const corners = t.harborEdges.flatMap((e) => [t.edges[e].a, t.edges[e].b]);
-        expect(new Set(corners).size).toBe(corners.length);
-        for (const e of t.harborEdges) expect(t.coast).toContain(e);
-      });
-    });
+function checkTopology(t: Topology): void {
+  for (const h of t.hexes) {
+    expect(new Set(h.corners).size).toBe(6);
+    expect(new Set(h.edges).size).toBe(6);
+    for (const n of h.neighbors) expect(t.hexes[n].neighbors).toContain(h.id);
   }
+  for (const v of t.vertices) {
+    expect(v.edges.length).toBeGreaterThanOrEqual(2);
+    expect(v.edges.length).toBeLessThanOrEqual(3);
+    for (const n of v.neighbors) expect(t.vertices[n].neighbors).toContain(v.id);
+  }
+  // Jede Küstenkante gehört zu genau einer geschlossenen Schleife.
+  const coast = t.edges.filter((e) => e.hexes.length === 1).map((e) => e.id);
+  const looped = t.coastLoops.flatMap((l) => l.edges);
+  expect([...looped].sort((a, b) => a - b)).toEqual(coast);
+  for (const loop of t.coastLoops) {
+    for (let i = 0; i < loop.edges.length; i++) {
+      const a = t.edges[loop.edges[i]];
+      const b = t.edges[loop.edges[(i + 1) % loop.edges.length]];
+      expect([a.a, a.b].filter((v) => v === b.a || v === b.b)).toHaveLength(1);
+    }
+  }
+}
+
+describe('Topologie', () => {
+  it('klassisch: 19 bzw. 30 Felder mit Euler-Charakteristik 1', () => {
+    for (const [layout, hexes, vertices, edges] of [
+      ['base', 19, 54, 72],
+      ['ext', 30, 80, 109],
+    ] as const) {
+      const t = getTopology(layout);
+      expect([t.hexes.length, t.vertices.length, t.edges.length]).toEqual([hexes, vertices, edges]);
+      expect(t.vertices.length - t.edges.length + t.hexes.length).toBe(1);
+      expect(t.coastLoops).toHaveLength(1);
+      checkTopology(t);
+    }
+  });
+
+  it('klassisch: Ecken und Kanten haben dieselben IDs wie früher, alte Spielstände bleiben gültig', () => {
+    for (const [layout, rows] of [
+      ['base', [3, 4, 5, 4, 3]],
+      ['ext', [3, 4, 5, 6, 5, 4, 3]],
+    ] as [Layout, number[]][]) {
+      const before = legacyTopology(rows);
+      const now = getTopology(layout);
+      expect(now.hexes.map((h) => h.corners)).toEqual(before.hexes.map((h) => h.corners));
+      expect(now.hexes.map((h) => h.edges)).toEqual(before.hexes.map((h) => h.edges));
+      expect(now.edges.map((e) => [e.a, e.b])).toEqual(before.edges.map((e) => [e.a, e.b]));
+    }
+  });
+
+  it('wird zwischengespeichert, auch über alte und neue Spielstände hinweg', () => {
+    const { board } = generateBoard('klassisch', 4, { rng: 1 });
+    expect(getTopology(board)).toBe(getTopology('base'));
+    expect(getTopology({ layout: 'base' })).toBe(getTopology('base'));
+  });
+
+  it('erkennt Binnenseen als eigene Küstenschleife', () => {
+    const krater = getTopology({ cells: parseMask(mapById('kratersee').mask as string[]).map((m) => [m.c, m.r]) });
+    expect(krater.coastLoops.filter((l) => l.lake).map((l) => l.edges.length)).toEqual([6]);
+    const atoll = getTopology({ cells: parseMask(mapById('atoll').mask as string[]).map((m) => [m.c, m.r]) });
+    expect(atoll.coastLoops.filter((l) => l.lake)).toHaveLength(1);
+    expect(getTopology('base').coastLoops.filter((l) => l.lake)).toHaveLength(0);
+  });
+
+  it('meldet verrutschte Masken', () => {
+    expect(() => parseMask([' . .', '. .', '. . '].map((l, i) => (i === 1 ? ' ' + l : l)))).toThrow(/Raster/);
+  });
 });
 
 describe('Brettgenerierung', () => {
-  const expected: Record<Layout, { terrains: Record<Terrain, number>; numbers: Record<number, number>; harbors: Record<string, number> }> = {
-    base: {
+  const expected: Record<number, { terrains: Record<Terrain, number>; numbers: Record<number, number>; harbors: Record<string, number> }> = {
+    4: {
       terrains: { wood: 4, sheep: 4, wheat: 4, brick: 3, ore: 3, desert: 1 },
       numbers: { 2: 1, 3: 2, 4: 2, 5: 2, 6: 2, 8: 2, 9: 2, 10: 2, 11: 2, 12: 1 },
       harbors: { any: 4, wood: 1, brick: 1, sheep: 1, wheat: 1, ore: 1 },
     },
-    ext: {
+    6: {
       terrains: { wood: 6, sheep: 6, wheat: 6, brick: 5, ore: 5, desert: 2 },
       numbers: { 2: 2, 3: 3, 4: 3, 5: 3, 6: 3, 8: 3, 9: 3, 10: 3, 11: 3, 12: 2 },
       harbors: { any: 5, wood: 1, brick: 1, sheep: 2, wheat: 1, ore: 1 },
     },
   };
 
-  for (const layout of ['base', 'ext'] as Layout[]) {
-    describe(layout, () => {
-      const t = getTopology(layout);
-      const seeds = Array.from({ length: 150 }, (_, i) => i * 7919 + 1);
-
-      it('Landschaften, Zahlen und Häfen stimmen für viele Seeds', () => {
-        for (const seed of seeds) {
-          const { board } = generateBoard(layout, { rng: seed });
-          expect(board.layout).toBe(layout);
-          expect(Object.fromEntries(count(board.hexes.map((h) => h.terrain)))).toEqual(expected[layout].terrains);
-          const nums = board.hexes.filter((h) => h.number !== null).map((h) => h.number!);
-          expect(Object.fromEntries(count(nums))).toEqual(expected[layout].numbers);
-          expect(Object.fromEntries(count(board.harbors.map((h) => h.type)))).toEqual(expected[layout].harbors);
-          expect(board.harbors.map((h) => h.edge)).toEqual(t.harborEdges);
-        }
-      });
-
-      it('Wüsten haben keine Zahl, alle anderen Felder schon', () => {
-        for (const seed of seeds) {
-          const { board } = generateBoard(layout, { rng: seed });
-          for (const h of board.hexes) {
-            if (h.terrain === 'desert') expect(h.number).toBeNull();
-            else expect(h.number).not.toBeNull();
-          }
-        }
-      });
-
-      it('6 und 8 liegen nie nebeneinander', () => {
-        const red = (n: number | null) => n === 6 || n === 8;
-        for (const seed of seeds) {
-          const { board } = generateBoard(layout, { rng: seed });
-          for (const h of t.hexes) {
-            if (!red(board.hexes[h.id].number)) continue;
-            for (const n of h.neighbors) expect(red(board.hexes[n].number), `Seed ${seed}, Feld ${h.id}/${n}`).toBe(false);
-          }
-        }
-      });
-
-      it('Räuber startet auf einer Wüste', () => {
-        for (const seed of seeds) {
-          const { board, robber } = generateBoard(layout, { rng: seed });
-          expect(board.hexes[robber].terrain).toBe('desert');
-        }
-      });
-
-      it('ist deterministisch je Seed', () => {
-        expect(generateBoard(layout, { rng: 42 })).toEqual(generateBoard(layout, { rng: 42 }));
-        expect(generateBoard(layout, { rng: 42 })).not.toEqual(generateBoard(layout, { rng: 43 }));
-      });
+  for (const players of [4, 6]) {
+    it(`klassisch mit ${players} Spielern: dieselben Vorräte und Hafenplätze wie früher`, () => {
+      const t = getTopology(players > 4 ? 'ext' : 'base');
+      const harbors = players > 4 ? 11 : 9;
+      const harborEdges = Array.from({ length: harbors }, (_, i) => t.coast[Math.round((i * t.coast.length) / harbors)]);
+      for (let seed = 1; seed < 60; seed++) {
+        const { board, bank } = generateBoard('klassisch', players, { rng: seed * 7919 });
+        expect(board.layout).toBe(players > 4 ? 'ext' : 'base');
+        expect(Object.fromEntries(count(board.hexes.map((h) => h.terrain)))).toEqual(expected[players].terrains);
+        const nums = board.hexes.filter((h) => h.number !== null).map((h) => h.number!);
+        expect(Object.fromEntries(count(nums))).toEqual(expected[players].numbers);
+        expect(Object.fromEntries(count(board.harbors.map((h) => h.type)))).toEqual(expected[players].harbors);
+        expect(board.harbors.map((h) => h.edge)).toEqual(harborEdges);
+        expect(bank).toBe(players > 4 ? 24 : 19);
+      }
     });
   }
 
+  for (const map of MAPS) {
+    it(`${map.name}: jedes Brett hält die Regeln ein, bei jeder Spielerzahl`, () => {
+      const red = (n: number | null) => n === 6 || n === 8;
+      for (let players = map.players[0]; players <= map.players[1]; players++) {
+        for (let seed = 1; seed <= 12; seed++) {
+          const { board, robber, bank } = generateBoard(map.id, players, { rng: seed * 104729 + players });
+          const t = getTopology(board);
+          checkTopology(t);
+          expect(isConnected(t)).toBe(true);
+          expect(board.hexes).toHaveLength(t.hexes.length);
+          expect(board.hexes[robber].terrain).toBe('desert');
+          expect(bank).toBe(bankSize(t.hexes.length));
+          for (const h of t.hexes) {
+            const hex = board.hexes[h.id];
+            expect(hex.number === null).toBe(hex.terrain === 'desert');
+            if (red(hex.number)) for (const n of h.neighbors) expect(red(board.hexes[n].number)).toBe(false);
+          }
+          // Häfen an der Küste, nie an derselben oder einer benachbarten Ecke.
+          const corners = board.harbors.flatMap((h) => [t.edges[h.edge].a, t.edges[h.edge].b]);
+          expect(new Set(corners).size).toBe(corners.length);
+          for (const h of board.harbors) expect(t.edges[h.edge].hexes).toHaveLength(1);
+          if (!map.evenHarbors) {
+            for (const v of corners) {
+              for (const w of t.vertices[v].neighbors) expect(corners.filter((c) => c === w).length).toBeLessThanOrEqual(1);
+            }
+          }
+        }
+      }
+    });
+  }
+
+  it('ist deterministisch je Seed', () => {
+    for (const id of ['klassisch', 'weltkarte', 'zufallskueste']) {
+      const players = mapById(id).players[1];
+      expect(generateBoard(id, players, { rng: 42 })).toEqual(generateBoard(id, players, { rng: 42 }));
+      expect(generateBoard(id, players, { rng: 42 })).not.toEqual(generateBoard(id, players, { rng: 43 }));
+    }
+  });
+
+  it('die Weltkarte legt ihre Wüsten auf die Wüstenplätze', () => {
+    const mask = mapById('weltkarte').mask as string[];
+    const spots = parseMask(mask)
+      .sort((p, q) => p.r - q.r || p.c - q.c)
+      .map((m, i) => (m.ch === 'x' ? i : -1))
+      .filter((i) => i >= 0);
+    for (let seed = 1; seed < 10; seed++) {
+      const { board } = generateBoard('weltkarte', 6, { rng: seed });
+      const deserts = board.hexes.map((h, i) => (h.terrain === 'desert' ? i : -1)).filter((i) => i >= 0);
+      expect(deserts).toEqual(spots);
+    }
+  });
+
   it('vertexHarbors markiert genau die beiden Ecken jedes Hafens', () => {
-    const { board } = generateBoard('base', { rng: 5 });
-    const t = getTopology('base');
+    const { board } = generateBoard('klassisch', 4, { rng: 5 });
+    const t = getTopology(board);
     const vh = vertexHarbors(board);
     expect(vh.filter((h) => h !== null).length).toBe(18);
     for (const h of board.harbors) {

@@ -1,6 +1,8 @@
 # Neuland – Ausgefallene Karten
 
-Stand: 21.10.2026. Klickbarer Prototyp mit allen Karten, echtem Generator und Prüfungen:
+Stand: 22.10.2026. **Umgesetzt:** alle Karten aus Abschnitt 3 einschließlich Zufallsküste, Generator mit Bewertung, Meer aus der Form, Kartenwahl in der Lobby (`src/app/engine/maps.ts`, `board.ts`, `src/app/ui/lobby/map-thumb.ts`). Entscheidungen zu den offenen Fragen: Klassisch behält die festen Hafenplätze und das gewohnte Meer, die Kartenwahl setzt das Siegziel auf den Vorschlag der Karte, Klimazonen bleiben weiche Vorlieben. Noch offen: Vorschau und Neuwürfeln in der Lobby, Startzonen, eigene Masken.
+
+Klickbarer Prototyp mit allen Karten, echtem Generator und Prüfungen:
 `output/designs/karten-2026-10-21/index.html` (lokal: http://localhost:4310/output/designs/karten-2026-10-21/index.html).
 Der Link merkt sich Karte, Spielerzahl und Seed, z. B. `#weltkarte/6/424242`.
 

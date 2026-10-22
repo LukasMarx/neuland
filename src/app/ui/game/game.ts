@@ -12,6 +12,7 @@ import {
   legalSettlementVertices,
   legalSetupRoads,
   legalSetupVertices,
+  mapById,
   piecesLeft,
   RESOURCE_NAMES,
   RESOURCES,
@@ -65,6 +66,7 @@ export class GameView {
   protected readonly pieceImage = pieceImage;
 
   protected readonly g = computed(() => this.room.game()!);
+  protected readonly mapName = computed(() => mapById(this.g().board.map).name);
 
   /** Sekundentakt für Wartezeiten (abwesende Spieler, Verbindungsanzeige). */
   private readonly now = signal(Date.now());

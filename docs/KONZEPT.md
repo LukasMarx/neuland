@@ -55,7 +55,7 @@ Der aktive Spieler stellt ein Angebot ein („gebe 2 Holz, will 1 Erz“). Alle 
 
 ### Brettaufbau
 
-Das Brett wird zufällig erzeugt: Landschaften mischen, Zahlenchips verteilen, Häfen gleichmäßig an der Küste verteilen. Dabei gilt die übliche Einschränkung, dass 6 und 8 nie nebeneinander liegen. Der Räuber startet in einer Wüste.
+Der Gastgeber wählt in der Lobby eine Karte: das klassische Sechseck (19 Felder bis 4 Spieler, 30 ab 5) oder eine der ausgefallenen Formen wie Weltkarte, Atoll oder Zufallsküste (Details in [KARTEN.md](KARTEN.md)). Die Form ist fest, Landschaften, Zahlen und Häfen werden zufällig verteilt. Dabei liegen 6 und 8 nie nebeneinander, gleiche Zahlen möglichst nicht, gleiche Landschaften klumpen kaum, und aus mehreren Varianten gewinnt die ausgeglichenste. Der Räuber startet in einer Wüste. Im Spielstand stehen Karte und Felder (`board.map`, `board.cells`); alte Stände ohne diese Angaben gelten als klassisch und behalten ihre Ecken und Kanten.
 
 ## Netzwerk-Architektur
 

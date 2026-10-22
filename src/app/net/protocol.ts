@@ -14,7 +14,7 @@ export interface LobbyPlayer {
  * Version des Protokolls. Peers mit anderer Version spielen nicht zusammen, weil sich
  * Spielstand oder Nachrichten unterscheiden können; sie bekommen einen Hinweis zum Neuladen.
  */
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 4;
 
 export interface RoomInfo {
   code: string;

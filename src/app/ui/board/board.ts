@@ -1,5 +1,5 @@
 import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, input, output, signal } from '@angular/core';
-import { GameState, getTopology, RESOURCE_NAMES, Terrain } from '../../engine';
+import { GameState, getTopology, mapById, NEIGHBOR_STEPS, RESOURCE_NAMES, Terrain, Topology } from '../../engine';
 import { harborLabel } from '../shared/labels';
 import { RESOURCE_ART } from '../shared/resource-art';
 import { TerrainDefs } from './terrain-defs';
@@ -9,8 +9,9 @@ import { pieceImage } from '../shared/piece-art';
 const S = 60;
 /** Größe der Gebäudegrafiken in Brett-Einheiten, gilt auch für die Bauvorschau. */
 const BUILDING_SIZE = { settlement: 32, city: 46 } as const;
-/** Auf dem großen Brett sind die Felder kleiner, Figuren und Marken werden dort größer gezeichnet. */
+/** Auf großen Brettern sind die Felder kleiner, Figuren und Marken werden dort größer gezeichnet. */
 const PIECE_SCALE = { base: 1, ext: 1.2 } as const;
+const MAX_PIECE_SCALE = 1.4;
 /** Wie weit Wasser und Häfen über die Küste hinausragen, in Feldradien. */
 const OCEAN_GROW = 0.8;
 const HARBOR_OFFSET = 0.55;
@@ -55,7 +56,16 @@ export class Board {
   readonly hexPick = output<number>();
 
   protected readonly S = S;
-  protected readonly k = computed(() => PIECE_SCALE[this.game().board.layout]);
+  protected readonly k = computed(() => {
+    const layout = this.game().board.layout;
+    if (layout) return PIECE_SCALE[layout];
+    // Andere Karten: nach der Ausdehnung, die im Querformat die Größe begrenzt (19 Felder = 1, 30 Felder = 1,2).
+    const hexes = this.topo().hexes;
+    const width = (Math.max(...hexes.map((h) => h.x)) - Math.min(...hexes.map((h) => h.x)) + Math.sqrt(3)) / 1.6;
+    const height = Math.max(...hexes.map((h) => h.y)) - Math.min(...hexes.map((h) => h.y)) + 2;
+    const extent = Math.max(width, height);
+    return Math.min(MAX_PIECE_SCALE, Math.max(1, 1 + ((extent - 8) * 0.2) / 3));
+  });
 
   /** Zoomstufe (1 = ganzes Brett) und Bildmitte in Brett-Einheiten, null = Brettmitte. */
   protected readonly zoom = signal(1);
@@ -90,14 +100,15 @@ export class Board {
   protected readonly ghostSize = computed(() => BUILDING_SIZE[this.ghost() ?? 'settlement'] * this.k());
   protected readonly ghostRoadImage = computed(() => pieceImage('road', this.ghostColor()));
 
-  protected readonly topo = computed(() => getTopology(this.game().board.layout));
+  protected readonly topo = computed(() => getTopology(this.game().board));
+  private readonly map = computed(() => mapById(this.game().board.map));
 
   /** Alles, was gezeichnet wird: Wasser und Häfen samt Schild, plus ein schmaler Rand. */
   private readonly bounds = computed((): Box => {
     const k = this.k();
     const xs: number[] = [];
     const ys: number[] = [];
-    for (const p of this.oceanPoints()) {
+    for (const p of this.ocean().points) {
       xs.push(p.x);
       ys.push(p.y);
     }
@@ -129,28 +140,36 @@ export class Board {
     return `${v.x} ${v.y} ${v.w} ${v.h}`;
   });
 
-  private readonly oceanPoints = computed(() => {
-    const { coast, edges } = this.topo();
-    const coastVertices = coast.map((id, i) => {
-      const e = edges[id];
-      const next = edges[coast[(i + 1) % coast.length]];
-      return e.a === next.a || e.a === next.b ? e.a : e.b;
-    });
-    const cx = avg(this.topo().hexes.map((h) => h.x));
-    const cy = avg(this.topo().hexes.map((h) => h.y));
-    return coastVertices.map((id) => {
-      const v = this.topo().vertices[id];
-      const dx = v.x - cx;
-      const dy = v.y - cy;
-      const len = Math.hypot(dx, dy);
-      return { x: (v.x + (dx / len) * OCEAN_GROW) * S, y: (v.y + (dy / len) * OCEAN_GROW) * S };
-    });
+  /**
+   * Meer: Beim klassischen Brett ein großes Sechseck wie gewohnt. Bei anderen Karten folgt es der Form
+   * (Land plus ein Feld Rand, Buchten und Seen gefüllt, weich gerundet) oder ist eine Seekarte als Rechteck.
+   */
+  private readonly ocean = computed((): { path: string; points: { x: number; y: number }[] } => {
+    const topo = this.topo();
+    if (this.game().board.layout || this.map().id === 'klassisch') {
+      const points = classicOcean(topo);
+      return { path: toPath(points), points };
+    }
+    const water = getTopology({ cells: waterCells(topo) });
+    const loops = water.coastLoops.filter((l) => !l.lake).map((l) => chaikin(loopPoints(water, l.edges), 3));
+    const all = loops.flat();
+    if (this.map().sea !== 'rect') return { path: loops.map(toPath).join(' '), points: all };
+    const pad = 10;
+    const x = Math.min(...all.map((p) => p.x)) - pad;
+    const y = Math.min(...all.map((p) => p.y)) - pad;
+    const X = Math.max(...all.map((p) => p.x)) + pad;
+    const Y = Math.max(...all.map((p) => p.y)) + pad;
+    const r = 40;
+    return {
+      path: `M${x + r},${y}H${X - r}Q${X},${y} ${X},${y + r}V${Y - r}Q${X},${Y} ${X - r},${Y}H${x + r}Q${x},${Y} ${x},${Y - r}V${y + r}Q${x},${y} ${x + r},${y}Z`,
+      points: [
+        { x, y },
+        { x: X, y: Y },
+      ],
+    };
   });
 
-  /** Ozean als großes Sechseck um das Brett herum. */
-  protected readonly oceanPath = computed(
-    () => this.oceanPoints().map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') + ' Z',
-  );
+  protected readonly oceanPath = computed(() => this.ocean().path);
 
   protected readonly hexes = computed(() => {
     const g = this.game();
@@ -385,6 +404,88 @@ function tileImage(terrain: Terrain, hexId: number): string | null {
 
 function scaleAround(x: number, y: number, k: number): string {
   return k === 1 ? '' : `translate(${x},${y}) scale(${k}) translate(${-x},${-y})`;
+}
+
+/** Klassisches Meer: jede Küstenecke vom Schwerpunkt aus ein Stück nach außen. */
+function classicOcean(topo: Topology): { x: number; y: number }[] {
+  const { coast, edges } = topo;
+  const cx = avg(topo.hexes.map((h) => h.x));
+  const cy = avg(topo.hexes.map((h) => h.y));
+  return coast.map((id, i) => {
+    const e = edges[id];
+    const next = edges[coast[(i + 1) % coast.length]];
+    const v = topo.vertices[e.a === next.a || e.a === next.b ? e.a : e.b];
+    const dx = v.x - cx;
+    const dy = v.y - cy;
+    const len = Math.hypot(dx, dy);
+    return { x: (v.x + (dx / len) * OCEAN_GROW) * S, y: (v.y + (dy / len) * OCEAN_GROW) * S };
+  });
+}
+
+/** Wasserfläche: Land plus ein Feld Rand und Seen; schmale Kerben und eingeschlossene Lücken gefüllt. */
+function waterCells(topo: Topology): [number, number][] {
+  const key = (c: number, r: number) => `${c},${r}`;
+  const area = new Set<string>();
+  for (const h of topo.hexes) {
+    area.add(key(h.c, h.r));
+    for (const [dc, dr] of NEIGHBOR_STEPS) area.add(key(h.c + dc, h.r + dr));
+  }
+  for (const k of topo.water.lake) area.add(k);
+  const cs = topo.hexes.map((h) => h.c);
+  const rs = topo.hexes.map((h) => h.r);
+  const minC = Math.min(...cs) - 6;
+  const maxC = Math.max(...cs) + 6;
+  const minR = Math.min(...rs) - 3;
+  const maxR = Math.max(...rs) + 3;
+  const parity = (topo.hexes[0].c + topo.hexes[0].r) & 1;
+  const grid: [number, number][] = [];
+  for (let r = minR; r <= maxR; r++) for (let c = minC; c <= maxC; c++) if (((c + r) & 1) === parity) grid.push([c, r]);
+  const around = (c: number, r: number) => NEIGHBOR_STEPS.filter(([dc, dr]) => area.has(key(c + dc, r + dr))).length;
+  for (let pass = 0; pass < 2; pass++) {
+    grid.filter(([c, r]) => !area.has(key(c, r)) && around(c, r) >= 4).forEach(([c, r]) => area.add(key(c, r)));
+  }
+  const outside = new Set([key(...grid[0])]);
+  const stack = [grid[0]];
+  const inBox = (c: number, r: number) => c >= minC && c <= maxC && r >= minR && r <= maxR;
+  while (stack.length) {
+    const [c, r] = stack.pop()!;
+    for (const [dc, dr] of NEIGHBOR_STEPS) {
+      const k = key(c + dc, r + dr);
+      if (!inBox(c + dc, r + dr) || outside.has(k) || area.has(k)) continue;
+      outside.add(k);
+      stack.push([c + dc, r + dr]);
+    }
+  }
+  for (const [c, r] of grid) if (!outside.has(key(c, r))) area.add(key(c, r));
+  return [...area].map((k) => k.split(',').map(Number) as [number, number]);
+}
+
+function loopPoints(topo: Topology, loop: number[]): { x: number; y: number }[] {
+  return loop.map((id, i) => {
+    const e = topo.edges[id];
+    const next = topo.edges[loop[(i + 1) % loop.length]];
+    const v = topo.vertices[e.a === next.a || e.a === next.b ? e.a : e.b];
+    return { x: v.x * S, y: v.y * S };
+  });
+}
+
+/** Ecken weich runden (Chaikin). */
+function chaikin(points: { x: number; y: number }[], rounds: number): { x: number; y: number }[] {
+  let p = points;
+  for (let k = 0; k < rounds; k++) {
+    const out: { x: number; y: number }[] = [];
+    for (let i = 0; i < p.length; i++) {
+      const a = p[i];
+      const b = p[(i + 1) % p.length];
+      out.push({ x: a.x * 0.75 + b.x * 0.25, y: a.y * 0.75 + b.y * 0.25 }, { x: a.x * 0.25 + b.x * 0.75, y: a.y * 0.25 + b.y * 0.75 });
+    }
+    p = out;
+  }
+  return p;
+}
+
+function toPath(points: { x: number; y: number }[]): string {
+  return points.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') + ' Z';
 }
 
 function avg(values: number[]): number {
