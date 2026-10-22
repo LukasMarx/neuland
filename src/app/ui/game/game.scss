@@ -711,11 +711,26 @@ kbd {
 }
 
 .go {
+  position: relative;
+  overflow: hidden;
   min-width: 170px;
   height: 50px;
   padding: 0 22px;
   border-radius: 10px;
   font-size: 1rem;
+
+  // Automatisch würfeln: Der Balken unten läuft in AUTO_ROLL_MS ab.
+  .roll-clock {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 4px;
+    background: currentColor;
+    opacity: 0.55;
+    transform-origin: left;
+    animation: roll-clock linear forwards;
+  }
 
   &:disabled {
     opacity: 1;
@@ -1252,5 +1267,14 @@ kbd {
     background: #c0281f;
     border-color: #c0281f;
     color: #fff4e2;
+  }
+}
+
+@keyframes roll-clock {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
   }
 }

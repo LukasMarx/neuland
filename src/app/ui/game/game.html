@@ -446,6 +446,12 @@
       }
       <button class="primary go" [disabled]="!primary().run" (click)="primary().run?.()">
         {{ primary().label }}
+        @if (rollDeadline(); as deadline) {
+          <!-- Uhr bis zum automatischen Wurf: ein Balken, der abläuft. -->
+          @for (d of [deadline]; track d) {
+            <span class="roll-clock" [style.animation-duration.ms]="autoRollMs" aria-hidden="true"></span>
+          }
+        }
         @if (primary().run) {
           <kbd>Leertaste</kbd>
         }

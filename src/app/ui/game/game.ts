@@ -145,6 +145,8 @@ const BOARD_TARGETS = ['city', 'settlement', 'guards', 'trader', 'numbers', 'roa
 
 const PLAYABLE: DevCard[] = ['knight', 'roadBuilding', 'yearOfPlenty', 'monopoly'];
 const HIGHLIGHT_MS = 2600;
+/** Wer am Zug ist und so lange nicht würfelt, für den würfelt sein eigener Client. */
+const AUTO_ROLL_MS = 5000;
 
 @Component({
   selector: 'app-game',
@@ -355,6 +357,14 @@ export class GameView {
   protected readonly offerView = computed(() => hasOfferView(this.g(), this.seat()));
   /** Vergrößert angesehene Entwicklungskarte samt Ausgangsposition in der Hand. */
   protected readonly inspect = signal<{ card: DevCard; origin: DOMRect } | null>(null);
+  /** Automatisch würfeln: Zeitpunkt, zu dem gewürfelt wird, und die verbleibenden Sekunden für die Anzeige. */
+  protected readonly rollDeadline = signal<number | null>(null);
+  private readonly rollTick = signal(Date.now());
+  protected readonly autoRollMs = AUTO_ROLL_MS;
+  protected readonly rollSeconds = computed(() => {
+    const deadline = this.rollDeadline();
+    return deadline === null ? null : Math.max(0, Math.ceil((deadline - this.rollTick()) / 1000));
+  });
   /** Geöffnete Punkte-Übersicht eines Spielers, verankert unter seinem Eintrag. */
   protected readonly info = signal<{ seat: number; left: number; top: number } | null>(null);
   protected readonly sideTab = signal<'log' | 'chat'>('log');
@@ -706,7 +716,10 @@ export class GameView {
     const g = this.g();
     const phase = g.phase.kind;
     if (this.seat() < 0) return { label: 'Zuschauer', run: null };
-    if (phase === 'roll' && this.isCurrent()) return { label: 'Würfeln', run: () => this.roll() };
+    if (phase === 'roll' && this.isCurrent()) {
+      const seconds = this.rollSeconds();
+      return { label: seconds === null ? 'Würfeln' : `Würfeln · ${seconds}`, run: () => this.roll() };
+    }
     if (phase === 'main' && this.isCurrent()) return { label: 'Zug beenden', run: () => this.endTurn() };
     if (phase === 'specialBuild' && this.myTurn()) return { label: 'Fertig mit Bauen', run: () => this.endTurn() };
     if (phase === 'ended') return { label: 'Spiel beendet', run: null };
@@ -726,6 +739,8 @@ export class GameView {
       return { label: hint[phase] ?? 'Du bist dran', run: null };
     }
     const waitingFor = actingSeats(g).map((s) => g.players[s].name);
+    const seconds = this.rollSeconds();
+    if (phase === 'roll' && seconds !== null) return { label: `${g.players[g.current].name} würfelt in ${seconds}`, run: null };
     return { label: `Warte auf ${waitingFor.join(', ')}`, run: null };
   });
 
@@ -890,6 +905,38 @@ export class GameView {
   constructor() {
     const clock = setInterval(() => this.now.set(Date.now()), 1000);
     inject(DestroyRef).onDestroy(() => clearInterval(clock));
+
+    // Automatisch würfeln: Steht der Wurf an, läuft eine Uhr (bei allen sichtbar). Ein offener Dialog hält sie
+    // an, danach beginnt sie von vorn. Würfeln tut nur der Client dessen, der am Zug ist.
+    let rollKey: string | null = null;
+    let rollTimer: ReturnType<typeof setTimeout> | undefined;
+    let rollTicker: ReturnType<typeof setInterval> | undefined;
+    const stopRollClock = () => {
+      clearTimeout(rollTimer);
+      clearInterval(rollTicker);
+    };
+    inject(DestroyRef).onDestroy(stopRollClock);
+    effect(() => {
+      const g = this.g();
+      const waiting = g.phase.kind === 'roll' && !this.dialog() && !this.inspect();
+      const key = waiting ? `${g.id}:${g.turn}:${g.current}` : null;
+      untracked(() => {
+        if (key === rollKey) return;
+        rollKey = key;
+        stopRollClock();
+        if (!key) {
+          this.rollDeadline.set(null);
+          return;
+        }
+        this.rollDeadline.set(Date.now() + AUTO_ROLL_MS);
+        this.rollTick.set(Date.now());
+        rollTicker = setInterval(() => this.rollTick.set(Date.now()), 200);
+        rollTimer = setTimeout(() => {
+          clearInterval(rollTicker);
+          if (this.isCurrent() && this.g().phase.kind === 'roll' && !this.dialog() && !this.inspect()) this.roll();
+        }, AUTO_ROLL_MS);
+      });
+    });
     effect(() => {
       const reconnecting = this.room.status() === 'reconnecting';
       untracked(() => this.reconnectingSince.set(reconnecting ? (this.reconnectingSince() ?? Date.now()) : null));
