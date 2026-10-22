@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actingSeats, handSize, isConsistent, Resource, ResourceCounts, totalResources } from '../engine';
+import { actingSeats, GameState, handSize, isConsistent, Resource, ResourceCounts, totalResources } from '../engine';
 import { AWAY_MS } from './room.service';
 import { bySeat, Clock, hostOf, Net, play, resetNet, seeded, setup, Sim } from './testing/fake-net';
 
@@ -122,7 +122,8 @@ describe('Mehrspieler: alte Stände', () => {
     clock.advance(13000);
     const A2 = A.reopen();
     A2.svc.join(code, 'A');
-    clock.advance(3000);
+    // Beide haben nur ihre Sicht: Von selbst eröffnet wird erst nach 30 Sekunden Suche.
+    clock.advance(20000);
     expect([B2.v, A2.v]).toEqual([newest, newest]);
     expect(JSON.parse(A2.storage.getItem(`neuland:save:${code}`)!).game.version).toBe(newest);
   });
@@ -488,5 +489,71 @@ describe('Mehrspieler: verdeckte Karten', () => {
       expect(mover.svc.pending()).toBe(0);
     }
     expect(versions([A, B]).size).toBe(1);
+  });
+});
+
+describe('Mehrspieler: Rückkehr mit 6 Spielern (Prüfung vom 22.10.2026)', () => {
+  const six = ['H', 'A', 'B', 'C', 'D', 'E'];
+  const devOf = (g: GameState) => g.players.map((p) => [...p.devCards, ...p.newDevCards].sort().join());
+
+  it('eine langsame Verbindung beim Wiedereinstieg macht keinen Mitspieler zum Host', () => {
+    const { sims, net, code, clock } = start(six);
+    const [H, A] = sims;
+    play(sims, 300, seeded(55));
+    const before = H.game;
+    A.close();
+    clock.advance(500);
+    const A2 = A.reopen();
+    net.joinDelay = 14000;
+    A2.svc.join(code, 'A');
+    net.joinDelay = 300;
+    clock.advance(20000);
+    const all = [A2, ...sims.slice(1).filter((s) => s !== A)];
+    expect(hosts([H, ...all])).toEqual([H]);
+    expect(devOf(H.game)).toEqual(devOf(before));
+    expect(A2.v).toBe(H.v);
+    expect(H.game.log.some((l) => l.text.includes('neu ausgeteilt'))).toBe(false);
+  });
+
+  it('ein Host, der die Seite neu lädt, bekommt seine Entwicklungskarten zurück', () => {
+    const { sims, code, clock } = start(six);
+    const [H] = sims;
+    const random = seeded(77);
+    // Spielen, bis der Host mindestens zwei Entwicklungskarten hat.
+    for (let i = 0; i < 3000; i++) {
+      const g = hostOf(sims)!.game;
+      const p = g.players.find((x) => x.id === H.svc.clientId)!;
+      if (p.devCards.length + p.newDevCards.length >= 2 && g.devDeck.length >= 4) break;
+      play(sims, 1, random);
+    }
+    const seat = H.seat;
+    const mine = H.game.players[seat];
+    expect(mine.devCards.length + mine.newDevCards.length).toBeGreaterThanOrEqual(2);
+    const cards = devOf(H.game)[seat];
+    H.close();
+    clock.advance(3000);
+    const H2 = H.reopen();
+    H2.svc.join(code, 'H');
+    clock.advance(3000);
+    const host = hostOf(sims.slice(1))!;
+    expect(host).toBeDefined();
+    expect(devOf(host.game)[seat]).toBe(cards);
+    expect(isConsistent(host.game)).toBe(true);
+    expect(H2.v).toBe(host.v);
+  });
+
+  it('ein Zuschauer in der Lobby rückt nach, wenn ein Platz frei wird', () => {
+    const { sims, net, code, clock } = setup(six);
+    const [H, , , , E] = sims;
+    E.close();
+    clock.advance(1000);
+    const X = new Sim('X', net);
+    X.svc.join(code, 'X');
+    clock.advance(1000);
+    expect(H.svc.room()!.spectators.map((p) => p.name)).toEqual(['X']);
+    H.svc.removePlayer(E.svc.clientId);
+    clock.advance(500);
+    expect(H.svc.room()!.players.map((p) => p.name)).toContain('X');
+    expect(H.svc.room()!.spectators).toEqual([]);
   });
 });

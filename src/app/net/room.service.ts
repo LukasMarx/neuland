@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, InjectionToken, isDevMode, signal } from '@angular/core';
 import * as engine from '../engine';
-import { Action, applyAction, autoAction, createGame, GameSettings, GameState, isView, mapById, rebuild, RuleError, Secret, secretOf, VARIANTS, viewFor } from '../engine';
+import { Action, applyAction, autoAction, createGame, GameSettings, GameState, isView, mapById, rebuild, restoreDevCards, RuleError, Secret, secretOf, VARIANTS, viewFor } from '../engine';
 import { LocalTransport } from './local-transport';
 import {
   compareRank,
@@ -55,6 +55,8 @@ export const NET_ENV = new InjectionToken<NetEnv>('NET_ENV');
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 /** So lange wartet ein Beitretender auf einen Host, bevor er gespeicherte Spiele selbst fortsetzt. */
 const SEARCH_TIMEOUT_MS = 12000;
+/** Ohne vollen Stand (nur die eigene Sicht) wird erst nach dieser Zeit von selbst wieder eröffnet. */
+const VIEW_SEARCH_TIMEOUT_MS = 30000;
 /** Ohne Host darf nach dieser Zeit auch wählen, wer nicht Kandidat ist. */
 const RE_ELECT_MS = 8000;
 /** Takt des Lebenszeichens vom Host und der Meldungen, wem man folgt. */
@@ -81,6 +83,8 @@ const DUPLICATE_MS = 1500;
 const DOUBLE_CLICK_MS = 400;
 /** So lange wartet ein neuer Host mit nur einer Sicht auf die Karten der Mitspieler. */
 const REBUILD_MS = 1500;
+/** So lange nach der Rückkehr darf ein Spieler dem Host seine Karten melden (siehe restoreReturning). */
+const SECRET_WINDOW_MS = 20000;
 const NO_QUORUM = 'Gerade ist nur ein Teil der Spieler verbunden. Weiter geht es, sobald die Mehrheit wieder da ist.';
 
 const params = new URLSearchParams(globalThis.location?.search ?? '');
@@ -146,6 +150,8 @@ export class RoomService {
   private lastFollowSent = 0;
   /** Peers mit anderer Protokollversion: deren Nachrichten werden nicht verarbeitet. */
   private readonly mismatched = new Set<string>();
+  /** Spieler, die gerade ins laufende Spiel zurückgekommen sind, und bis wann sie ihre Karten melden dürfen. */
+  private readonly secretWindow = new Map<string, number>();
   /** Wem die anderen gerade folgen; verhindert, dass bei einem einseitigen Abbruch ein zweiter Host entsteht. */
   private readonly follows = new Map<string, { hostId: string | null; rank: number[]; at: number }>();
   /**
@@ -259,7 +265,7 @@ export class RoomService {
 
   removePlayer(id: string): void {
     if (!this.isHost() || this.game()) return;
-    this.mutateRoom((r) => ({ ...r, players: r.players.filter((p) => p.id !== id) }));
+    this.mutateRoom((r) => promoteSpectators({ ...r, players: r.players.filter((p) => p.id !== id) }, null));
   }
 
   /** Startet mit allen, die gerade verbunden sind; wer die Lobby verlassen hat, würde sonst das Spiel blockieren. */
@@ -341,10 +347,13 @@ export class RoomService {
     this.connect(code);
     this.status.set('searching');
     this.later(4000, () => this.status() === 'searching' && this.searchSlow.set(true));
-    this.later(SEARCH_TIMEOUT_MS, () => {
-      // Ein beendetes Spiel wird nicht von selbst wieder eröffnet.
-      const saved = loadSaved(code, this.env.storage)?.game;
-      if (this.status() === 'searching' && saved && saved.phase.kind !== 'ended') this.openAsHost();
+    // Ein beendetes Spiel wird nicht von selbst wieder eröffnet. Wer nur seine Sicht hat (nicht Host war), wartet
+    // länger: Er würde allen anderen die Karten neu austeilen und mit dem höheren Rang den echten Host
+    // verdrängen, wenn der nur über eine langsame Verbindung zu erreichen ist.
+    const saved = loadSaved(code, this.env.storage)?.game;
+    this.later(saved && isView(saved) ? VIEW_SEARCH_TIMEOUT_MS : SEARCH_TIMEOUT_MS, () => {
+      const latest = loadSaved(code, this.env.storage)?.game;
+      if (this.status() === 'searching' && latest && latest.phase.kind !== 'ended') this.openAsHost();
     });
   }
 
@@ -541,6 +550,8 @@ export class RoomService {
           break;
         }
         this.peerClients.set(peer, msg.id);
+        // Ein Spieler kommt ins laufende Spiel zurück: Kurz darf er seine Karten melden (siehe onSecret).
+        if (this.isHost() && this.game()?.players.some((p) => p.id === msg.id)) this.secretWindow.set(msg.id, this.env.now() + SECRET_WINDOW_MS);
         if (this.isHost()) {
           this.mutateRoom((r) => this.withMember(r, this.game(), msg.id, msg.name, peer));
           this.updateHostStatus();
@@ -636,6 +647,13 @@ export class RoomService {
       this.transport?.send({ t: 'offer', game: saved }, peer);
     } else {
       save(this.env.storage, room, game);
+    }
+    // Zurück im laufenden Spiel: dem Host die eigenen Karten aus dem Speicherstand melden. Hat er sie nach
+    // einem Host-Wechsel neu ausgeteilt, kann er sie so zurückgeben.
+    if (saved && game && saved.id === game.id) {
+      const seat = game.players.findIndex((p) => p.id === this.clientId);
+      const secret = seat >= 0 ? secretOf(saved, seat) : null;
+      if (secret) this.transport?.send({ t: 'secret', gameId: game.id ?? '', version: saved.version, secret }, peer);
     }
     // Falls der Host uns noch nicht kennt (z. B. nach einem Host-Wechsel), melden wir uns an.
     const known = [...room.players, ...room.spectators].some((p) => p.id === this.clientId && p.peerId);
@@ -761,12 +779,29 @@ export class RoomService {
   private onSecret(gameId: string, version: number, secret: Secret, peer: string): void {
     const r = this.rebuilding;
     const id = this.peerClients.get(peer);
+    if (!r && id && this.isHost()) {
+      this.restoreReturning(id, gameId, secret);
+      return;
+    }
     if (!r || !id || gameId !== r.base.id) return;
     const seat = r.base.players.findIndex((p) => p.id === id);
     if (seat < 0) return;
     const had = r.secrets.get(seat);
     if (!had || version >= had.version) r.secrets.set(seat, { secret, version });
     if (this.everyoneReported()) this.finishRebuild();
+  }
+
+  /** Ein zurückgekehrter Spieler meldet seine Karten: Neu ausgeteilte Entwicklungskarten bekommt er zurück. */
+  private restoreReturning(id: string, gameId: string, secret: Secret): void {
+    const until = this.secretWindow.get(id);
+    this.secretWindow.delete(id);
+    const game = this.game();
+    if (until === undefined || this.env.now() > until || !game || isView(game) || game.id !== gameId) return;
+    const seat = game.players.findIndex((p) => p.id === id);
+    const next = seat >= 0 ? restoreDevCards(game, seat, secret) : null;
+    if (!next) return;
+    this.game.set(next);
+    this.broadcast();
   }
 
   /**
@@ -917,7 +952,7 @@ export class RoomService {
     // Im laufenden Spiel behält ein Platz seinen Namen, auch wenn ihn jemand mit anderem Namen übernommen hat.
     const reconnect = (p: LobbyPlayer) => (p.id === id ? { ...p, peerId: peer, awaySince: null } : p);
     if (room.players.some((p) => p.id === id)) return { ...room, players: room.players.map(game ? reconnect : update) };
-    if (room.spectators.some((p) => p.id === id)) return { ...room, spectators: room.spectators.map(update) };
+    if (room.spectators.some((p) => p.id === id)) return promoteSpectators({ ...room, spectators: room.spectators.map(update) }, game);
     const member: LobbyPlayer = { id, name: name || 'Gast', color: '', peerId: peer };
     if (game || room.players.length >= MAX_PLAYERS) {
       return { ...room, spectators: [...room.spectators, member] };
@@ -1099,3 +1134,19 @@ export function recentRooms(
   }
   return result.sort((a, b) => b.savedAt - a.savedAt).slice(0, 5);
 }
+
+/**
+ * Lobby: Wird ein Platz frei (jemand wurde entfernt, ein Zuschauer meldet sich wieder), rücken verbundene
+ * Zuschauer nach. Im laufenden Spiel bleiben sie Zuschauer.
+ */
+function promoteSpectators(room: RoomInfo, game: GameState | null): RoomInfo {
+  if (game) return room;
+  let next = room;
+  for (const s of room.spectators) {
+    if (next.players.length >= MAX_PLAYERS || !s.peerId) continue;
+    const color = PLAYER_COLORS.find((c) => !next.players.some((p) => p.color === c.hex))!.hex;
+    next = { ...next, players: [...next.players, { ...s, color }], spectators: next.spectators.filter((x) => x.id !== s.id) };
+  }
+  return next;
+}
+
