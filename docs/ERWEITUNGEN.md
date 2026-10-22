@@ -818,7 +818,7 @@ Bedarf nach Paket (Details in den Abschnitten 2.x):
 | Fernhandel II | Oase, Burg/Sonderstätten | Kamel, Kantenritter ×8, Plünderer, Wagen 3 Stufen ×8 | Waren (4), Aufträge | – |
 | Ferne Küsten | Schlupfwinkel, Fischgrund-Feld, Dorf, Inselrat | großes Schiff ×8, Siedlertrupp ×8, Matrose ×8, Hafenort ×8 | Gold, Fisch, Gewürz, Auftragsleisten | Land entdeckt, Schlupfwinkel |
 
-Stand 22.10.2026: Seewege komplett geliefert und eingebunden, Fischgründe, Duell und Hafenvogt ebenso; offen sind Flussläufe (Brücke, Münze, Abzeichen), Stadtwacht I und II, Symbole für die Knöpfe „Versetzen“, „Handeln“ und „Ausbau“ sowie optionale Motive. Konkrete Aufträge mit Dateinamen, Formaten und Einbindung: Seewege (mit Nebel und Inselbonus) in `output/designs/seewege-2026-10-22/grafik-auftrag.md`, Fischgründe, Duell, Flussläufe, Hafenvogt und Würfelstapel in `output/designs/fernhandel-2026-10-22/grafik-auftrag.md`, Stadtwacht I in `output/designs/stadtwacht-2026-10-22/grafik-auftrag.md`.
+Stand 22.10.2026: Seewege komplett geliefert und eingebunden, Fischgründe, Duell und Hafenvogt ebenso. Offen sind Flussläufe (Brücke, Münze, Abzeichen), die ganze Stadtwacht (Güter, Ausbau, Wächter, Flotte, Einflusskarten, Händler), Symbole für die Knöpfe „Versetzen“, „Handeln“ und „Ausbau“, Symbole für die Varianten in der Lobby sowie optionale Motive. Konkrete Aufträge mit Dateinamen, Formaten und Einbindung: Seewege (mit Nebel und Inselbonus) in `output/designs/seewege-2026-10-22/grafik-auftrag.md`, Fischgründe, Duell, Flussläufe, Hafenvogt und Würfelstapel in `output/designs/fernhandel-2026-10-22/grafik-auftrag.md`, Stadtwacht in `output/designs/stadtwacht-2026-10-22/grafik-auftrag.md`, Lobby in `output/designs/oberflaeche-2026-10-22/grafik-auftrag.md`.
 
 ---
 
