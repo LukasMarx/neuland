@@ -1,6 +1,7 @@
 import { Injector, runInInjectionContext } from '@angular/core';
 import { Action, actingSeats, applyAction, emptyResources, GameState, getTopology, legalCityVertices, legalRoadEdges } from '../../engine';
-import { autoAction, canImprove, CARDS, count, guardTargets, legalBridgeEdges, legalGuardVertices, legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, legalShipEdges, legalWallVertices, metropolisCandidates, movableShips, RESOURCES, robberVictims, setCount, TRACKS } from '../../engine';
+import { autoAction, canImprove, CARDS, count, guardTargets, legalBridgeEdges, legalGuardVertices, legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, legalShipEdges, legalWallVertices, metropolisCandidates, movableShips, PROGRESS, RESOURCES, robberVictims, setCount, TRACKS, COMMODITIES } from '../../engine';
+import type { Card } from '../../engine';
 import { NetMessage } from '../protocol';
 import { NET_ENV, NetEnv, RoomService } from '../room.service';
 import { TransportHandlers } from '../transport';
@@ -301,6 +302,7 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
     case 'neutral':
     case 'raid':
     case 'displace':
+    case 'progressPick':
       return { seat, action: autoAction(g, seat, random)! };
     case 'specialBuild':
       return { seat, action: { type: 'endTurn' } };
@@ -335,6 +337,15 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
               ]
             : [],
         ),
+        // Stadtwacht III: Einflusskarten mit passenden Zielen ausspielen.
+        ...(g.progress?.[seat] ?? []).map((progress) => () => {
+          const target = PROGRESS[progress].target;
+          const card: Card = target === 'commodity' ? pick([...COMMODITIES]) : target === 'card' ? pick([...CARDS]) : pick([...RESOURCES]);
+          const guards = (g.guards ?? []).flatMap((x, v) => (x?.owner === seat ? [v] : []));
+          const vertices =
+            target === 'city' ? [pick(legalWallVertices(g, seat))] : target === 'settlement' ? [pick(legalCityVertices(g, seat))] : target === 'guards' ? guards.slice(0, 2) : [];
+          return { type: 'playProgress', progress, card, vertices } as Action;
+        }),
         // Flussläufe: Brücken bauen und Münzen tauschen.
         ...legalBridgeEdges(g, seat).map((edge) => () => ({ type: 'buildBridge', edge }) as Action),
         ...(g.coins && g.coins[seat] >= 2 ? [() => ({ type: 'tradeCoins', resource: pick([...RESOURCES]) }) as Action] : []),

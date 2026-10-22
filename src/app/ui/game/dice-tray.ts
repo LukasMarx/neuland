@@ -35,7 +35,7 @@ export const ROLL_DURATION_MS = 1100;
       (click)="roll.emit()"
     >
       @for (die of rotations(); track $index) {
-        <div class="scene" [style.animation-delay]="$index * 60 + 'ms'">
+        <div class="scene" [class.red]="redSecond() && $index === 1" [style.animation-delay]="$index * 60 + 'ms'">
           <div class="die" [style.transform]="'rotateX(' + die[0] + 'deg) rotateY(' + die[1] + 'deg)'" [class.instant]="instant()">
             <!-- Innerer, etwas kleinerer Würfel: Hinter jeder Kante liegt so eine geschlossene Fläche. -->
             @for (face of faces; track face) {
@@ -68,6 +68,8 @@ export class DiceTray {
   readonly rollKey = input<string | null>(null);
   readonly canRoll = input(false);
   readonly sound = input(false);
+  /** Stadtwacht: Der zweite Würfel ist rot, er entscheidet bei einem Tor, wer Einflusskarten zieht. */
+  readonly redSecond = input(false);
   readonly roll = output<void>();
   readonly landed = output<number>();
 

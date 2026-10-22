@@ -2,7 +2,7 @@
 
 ## Stand (22.10.2026)
 
-**Alles offen.** Dieser Auftrag ist neuer als die letzte Lieferung. Zuletzt dazugekommen: Symbol für den Knopf „Ausbau“ und (optional) Symbole für die Wächter-Aktionen. Im Spiel stehen Platzhalter: Güterkarten und -symbole als schlichte SVGs, Prachtstadt als Abzeichen, Palisade als Ring, Wächter als runde Marken, Flotte und Ereigniswürfel als einfache Formen. Stadtwacht III (Einflusskarten) bekommt einen eigenen Abschnitt, sobald die Kartenliste steht.
+**Alles offen.** Dieser Auftrag ist neuer als die letzte Lieferung. Zuletzt dazugekommen: Symbol für den Knopf „Ausbau“ und (optional) Symbole für die Wächter-Aktionen. Im Spiel stehen Platzhalter: Güterkarten und -symbole als schlichte SVGs, Prachtstadt als Abzeichen, Palisade als Ring, Wächter als runde Marken, Flotte und Ereigniswürfel als einfache Formen. Neu dazu: Abschnitt Stadtwacht III (Einflusskarten). Im Spiel stehen dafür schlichte farbige Karten mit Namen.
 
 ## Worum es geht
 
@@ -63,6 +63,32 @@ In Prompts nur die Neuland-Begriffe verwenden (Schriften, Stoff, Silber, Markt, 
 | `public/icons/city/honor.png` | **Ehrenschild:** kleiner Schild mit Lorbeer | 256 × 256, transparent | Punkteübersicht und Spielerleiste |
 | `public/banner/papiercollage/raiders.png` | **Banner-Motiv Angriff:** Langschiff vor einer Stadtmauer | 1024 × 1024, transparent, Motiv ca. 85 % | für „Flotte abgewehrt“ und „Die Flotte plündert“; heute ersatzweise Schild und Schwerter |
 
+### Stadtwacht III: Einflusskarten
+
+Die Karten tragen ihren Namen und Text als echten Text im Spiel. Gebraucht werden Rückseiten und Motive ohne Schrift. Motive dürfen schlicht sein; sie sitzen im oberen Teil einer kleinen Karte (78 × 108 Pixel in der Hand, größer im Dialog).
+
+| Datei | Motiv | Format | Hinweise |
+|---|---|---|---|
+| `public/cards/progress/back-market.png`, `back-council.png`, `back-scholars.png` | **Rückseiten** in Gelb, Blau, Grün mit dem Richtungssymbol (Marktstand, Ratshaus, Studierstube) | wie die Rohstoffkarten | für die Stapel neben der Bank und die Hände der Mitspieler |
+| `public/cards/progress/bulkBuy.png` | **Großeinkauf:** Händler mit vollen Säcken auf einem Karren | 512 × 384, transparent oder Pergamentgrund | Gelb |
+| `public/cards/progress/guildRight.png` | **Zunftrecht:** gesiegelte Urkunde mit Zunftzeichen | wie oben | Gelb |
+| `public/cards/progress/tradingPost.png` | **Frachtkontor:** Lagerhaus am Kai mit Kränen und Kisten | wie oben | Gelb |
+| `public/cards/progress/charter.png` | **Stadtrecht:** Pergament mit großem Siegel und Stadtwappen | wie oben | Blau, Punktkarte |
+| `public/cards/progress/alarmBell.png` | **Alarmglocke:** Glocke im Turm, Wächter laufen herbei | wie oben | Blau |
+| `public/cards/progress/agitator.png` | **Unruhestifter:** Redner auf einer Kiste vor aufgebrachter Menge | wie oben | Blau |
+| `public/cards/progress/banquet.png` | **Festbankett:** gedeckte Tafel mit Pokalen | wie oben | Blau |
+| `public/cards/progress/taxCollector.png` | **Steuereintreiber:** Mann mit Geldbeutel und Schreibbrett | wie oben | Blau |
+| `public/cards/progress/pulley.png` | **Flaschenzug:** Seilrollen heben einen Steinblock | wie oben | Grün |
+| `public/cards/progress/pileDriver.png` | **Pfahlramme:** Holzgerüst rammt Pfähle ein | wie oben | Grün |
+| `public/cards/progress/waterwheel.png` | **Wasserrad:** Mühlrad am Bach, Getreidefeld dahinter | wie oben | Grün |
+| `public/cards/progress/gallery.png` | **Stollen:** Mineneingang mit Lore voller Erz | wie oben | Grün |
+| `public/cards/progress/lodge.png` | **Bauhütte:** Steinmetze an einem halbfertigen Stadttor | wie oben | Grün |
+| `public/cards/progress/observatory.png` | **Sternwarte:** Kuppel mit Fernrohr unter Sternen | wie oben | Grün, Punktkarte |
+| `public/cards/progress/surveyor.png` | **Landvermesser:** Mann mit Messlatte an einem abgesteckten Weg | wie oben | Grün |
+| `public/cards/progress/armory.png` | **Waffenkammer:** Wand mit Speeren, Schilden, Helmen | wie oben | Grün |
+
+Später (Stadtwacht III-b) kommen etwa acht weitere Motive dazu; die Liste folgt mit den Karten.
+
 ### Bedienelemente
 
 | Datei | Motiv | Format | Hinweise |
@@ -84,6 +110,7 @@ In Prompts nur die Neuland-Begriffe verwenden (Schriften, Stoff, Silber, Markt, 
 - **Wächter:** in `board.html` die Marke `.guard` durch `pieceImage('guard' + Stufe, Farbe)` ersetzen (neue `PieceKind`), den Bauknopf „Wächter“ in `game.html` ebenso.
 - **Flotte, Ereigniswürfel, Ehrenschild:** `.raiders` und `.event-die` in `game.html`, Banner-Fall `raid` in `event-banner.ts`.
 - **Bedienelemente:** Knopf „Ausbau“ in `game.html` (heute ▲), Wächter-Dialog `@case ('guard')`.
+- **Einflusskarten:** in `game.html` die Karten `.pcard` (Hand), `.pstack` (Stapel neben der Bank) und der Dialog `@case ('progress')`; Motive über eine Tabelle je `ProgressCard` wie `CARD_ART`.
 
 ## Abnahme
 

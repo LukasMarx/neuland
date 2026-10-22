@@ -1,6 +1,6 @@
 import { generateBoard, getTopology, placeFishingGrounds, placeRivers, vertexHarbors } from './board';
 import { mapById, mapFits } from './maps';
-import { BRIDGE_COINS, DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, GOODS_SUPPLY, GUARDS_PER_LEVEL, HARBOR_MASTER_POINTS, LAKE_NUMBERS, MAX_WALLS, METROPOLIS_POINTS, NEUTRALS, RAIDER_TRACK, RIVER_COINS, VariantId } from './variants';
+import { BRIDGE_COINS, DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, GOODS_SUPPLY, GUARDS_PER_LEVEL, HARBOR_MASTER_POINTS, LAKE_NUMBERS, MAX_WALLS, METROPOLIS_POINTS, NEUTRALS, PROGRESS_LIMIT, RAIDER_TRACK, RIVER_COINS, VariantId } from './variants';
 import { randomInt, RngState, shuffle } from './rng';
 import {
   Action,
@@ -18,6 +18,9 @@ import {
   hasResources,
   PIECE_LIMITS,
   PlayerState,
+  PROGRESS,
+  PROGRESS_CARDS,
+  ProgressCard,
   RESOURCE_NAMES,
   RESOURCES,
   Resource,
@@ -140,8 +143,12 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
     state.raiders = { position: 0, attacked: false };
     state.honors = state.players.map(() => 0);
     state.event = null;
-    // Keine Entwicklungskarten; die Einflusskarten kommen später.
+    // Keine Entwicklungskarten, dafür Einflusskarten.
     state.devDeck = [];
+    state.progress = state.players.map(() => []);
+    state.progressDeck = progressDecks();
+    state.progressPlayed = [];
+    state.progressPoints = state.players.map(() => 0);
   }
   if (hasVariant(state, 'wuerfelstapel')) state.diceDeck = { ...DICE_DECK };
   if (hasVariant(state, 'fischgruende')) setUpFishing(state);
@@ -242,6 +249,8 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     const event = s.raiders ? ` · ${s.event === 'ship' ? 'Schiff' : `Tor ${TRACK_NAMES[s.event as Track]}`}` : '';
     log(s, seat, `${name(s, seat)} würfelt ${sum} (${dice[0]} + ${dice[1]})${event}.`);
     if (s.raiders && s.event === 'ship' && advanceRaiders(s, sum)) return;
+    // Ein Tor: Einflusskarten für alle, deren Ausbau in dieser Farbe zum roten Würfel passt.
+    if (s.progress && s.event && s.event !== 'ship') drawOnGate(s, s.event, dice[1]);
     afterRoll(s, sum);
   },
 
@@ -281,11 +290,23 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     const player = s.players[seat];
     if (!hasResources(player.resources, resources)) fail('So viele Karten hast du nicht.');
     takeFrom(player.resources, resources);
-    addTo(s.bank, resources);
-    transferAll(s, seatPoint(seat), BANK, resources);
+    if (phase.to === undefined) {
+      addTo(s.bank, resources);
+      transferAll(s, seatPoint(seat), BANK, resources);
+      log(s, seat, `${name(s, seat)} wirft ${due} Karten ab.`);
+    } else {
+      // Festbankett: Welche Karten es sind, sehen nur Geber und Nehmer.
+      addTo(s.players[phase.to].resources, resources);
+      for (const k of CARDS) {
+        if (count(resources, k)) s.transfers.push({ from: seatPoint(seat), to: seatPoint(phase.to), card: k, count: count(resources, k), hidden: true });
+      }
+      log(s, seat, `${name(s, seat)} schenkt ${name(s, phase.to)} ${due === 1 ? 'eine Karte' : `${due} Karten`}.`);
+    }
     phase.pending[seat] = 0;
-    log(s, seat, `${name(s, seat)} wirft ${due} Karten ab.`);
-    if (phase.pending.every((n) => n === 0)) robberOrOn(s);
+    if (phase.pending.every((n) => n === 0)) {
+      if (phase.then === 'main') s.phase = { kind: 'main' };
+      else robberOrOn(s);
+    }
   },
 
   moveRobber(s, seat, { hex, victim }) {
@@ -299,15 +320,22 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (hex === (pirate ? s.pirate : s.robber)) fail(pirate ? 'Das Kaperschiff muss auf ein anderes Feld.' : 'Der Räuber muss auf ein anderes Feld.');
     if (!legalRobberHexes(s).includes(hex)) fail('Milder Räuber: Dort stehen Spieler mit höchstens 2 Siegpunkten.');
     const candidates = robberVictims(s, seat, hex);
+    if (phase.all && pirate) fail('Der Steuereintreiber geht nur an Land.');
     if (pirate) s.pirate = hex;
     else s.robber = hex;
-    if (candidates.length > 0) {
+    if (phase.all) {
+      // Steuereintreiber: eine Karte von jedem am Feld.
+      for (const v of candidates) steal(s, seat, v);
+      log(
+        s,
+        seat,
+        candidates.length
+          ? `${name(s, seat)} versetzt den Räuber und zieht bei ${candidates.map((v) => name(s, v)).join(', ')} je eine Karte.`
+          : `${name(s, seat)} versetzt den Räuber.`,
+      );
+    } else if (candidates.length > 0) {
       if (victim === null || !candidates.includes(victim)) fail('Wähle einen Spieler, bei dem du ziehst.');
-      const pool = cardList(s.players[victim].resources);
-      const stolen = pool[randomInt(s, pool.length)];
-      addCard(s.players[victim].resources, stolen, -1);
-      addCard(s.players[seat].resources, stolen, 1);
-      s.transfers.push({ from: seatPoint(victim), to: seatPoint(seat), card: stolen, count: 1, hidden: true });
+      steal(s, seat, victim);
       log(s, seat, `${name(s, seat)} versetzt ${pirate ? 'das Kaperschiff' : 'den Räuber'} und zieht eine Karte bei ${name(s, victim)}.`);
     } else {
       log(s, seat, `${name(s, seat)} versetzt ${pirate ? 'das Kaperschiff' : 'den Räuber'}.`);
@@ -719,9 +747,10 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (!cities.length) fail('Für den Ausbau brauchst du eine Stadt.');
     const next = level + 1;
     const cost = emptyResources();
-    setCount(cost, TRACK_GOODS[track], next);
+    setCount(cost, TRACK_GOODS[track], improveCost(s, seat, next));
     const target = metropolisGain(s, seat, track, next) ? metropolisCity(s, seat, cities, vertex) : null;
     pay(s, seat, cost);
+    if (s.boost?.pulley && s.current === seat) delete s.boost.pulley;
     s.improvements[seat][track] = next;
     log(s, seat, `${name(s, seat)} baut ${TRACK_NAMES[track]} auf Stufe ${next} aus.`);
     if (target !== null) {
@@ -741,10 +770,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
   buildWall(s, seat, { vertex }) {
     if (!s.walls) fail('Palisaden gibt es nur mit Stadtwacht.');
     requireBuilder(s, seat);
-    const b = s.buildings[vertex];
-    if (b?.owner !== seat || b.type !== 'city') fail('Eine Palisade kommt nur unter eine eigene Stadt.');
-    if (s.walls.includes(vertex)) fail('Diese Stadt hat schon eine Palisade.');
-    if (wallsOf(s, seat) >= MAX_WALLS) fail(`Mehr als ${MAX_WALLS} Palisaden gibt es nicht.`);
+    checkWall(s, seat, vertex);
     pay(s, seat, COSTS.wall, { kind: 'vertex', id: vertex });
     s.walls.push(vertex);
     log(s, seat, `${name(s, seat)} baut eine Palisade (Handkartenlimit ${handLimit(s, seat)}).`);
@@ -764,10 +790,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
   upgradeGuard(s, seat, { vertex }) {
     requireBuilder(s, seat);
     const g = ownGuard(s, seat, vertex);
-    if (g.level >= 3) fail('Dieser Wächter hat schon die höchste Stufe.');
-    if (g.level === 2 && s.improvements![seat].council < 3) fail('Mächtige Wächter gibt es erst mit dem Rat auf Stufe 3.');
-    const next = (g.level + 1) as 2 | 3;
-    if (guardCount(s, seat, next) >= GUARDS_PER_LEVEL) fail(`Du hast schon ${GUARDS_PER_LEVEL} Wächter der Stufe ${next}.`);
+    const next = nextGuardLevel(s, seat, g);
     pay(s, seat, COSTS.guard, { kind: 'vertex', id: vertex });
     g.level = next;
     log(s, seat, `${name(s, seat)} wertet einen Wächter auf Stufe ${next} auf.`);
@@ -826,6 +849,29 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     log(s, seat, `${name(s, seat)} vertreibt mit einem Wächter den Räuber.`);
   },
 
+  playProgress(s, seat, { progress, card, vertices }) {
+    if (!s.progress) fail('Einflusskarten gibt es nur mit Stadtwacht.');
+    requireTurn(s, seat, 'main');
+    if (!Object.hasOwn(PROGRESS, progress)) fail('Unbekannte Einflusskarte.');
+    const hand = s.progress[seat];
+    const index = hand.indexOf(progress);
+    if (index < 0) fail(`Du hast keine Karte „${PROGRESS[progress].name}“.`);
+    hand.splice(index, 1);
+    s.progressPlayed!.push(progress);
+    PLAY[progress](s, seat, { card, vertices: Array.isArray(vertices) ? vertices : [] });
+  },
+
+  pickProgress(s, seat, { track }) {
+    const phase = s.phase;
+    if (phase.kind !== 'progressPick') fail('Gerade wird keine Einflusskarte gezogen.');
+    if (!phase.pending[seat]) fail('Du ziehst gerade keine Einflusskarte.');
+    if (!TRACKS.includes(track)) fail('Unbekannte Farbe.');
+    if (!progressStackSize(s, track)) fail(`Der Stapel ${TRACK_NAMES[track]} ist leer.`);
+    drawProgress(s, seat, track);
+    phase.pending[seat] = 0;
+    if (phase.pending.every((n) => n === 0)) afterRoll(s, phase.sum);
+  },
+
   endTurn(s, seat) {
     const phase = s.phase;
     if (phase.kind === 'specialBuild') {
@@ -835,6 +881,8 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     }
     requireTurn(s, seat, 'main');
     s.offers = [];
+    // Einflusskarten wirken nur im eigenen Zug, nicht in der Sonderbauphase der anderen.
+    delete s.boost;
     if (humanCount(s) > 4) {
       const n = humanCount(s);
       const queue = Array.from({ length: n - 1 }, (_, i) => (s.current + 1 + i) % n);
@@ -859,6 +907,7 @@ export function actingSeats(s: GameState): number[] {
     case 'specialBuild':
       return [phase.queue[0]];
     case 'raid':
+    case 'progressPick':
       return phase.pending.flatMap((n, i) => (n > 0 ? [i] : []));
     case 'displace':
       return [phase.seat];
@@ -878,6 +927,7 @@ export function victoryPoints(s: GameState, seat: number, includeHidden: boolean
   vp += s.islandBonus?.[seat] ?? 0;
   vp += coinPoints(s, seat);
   vp += s.honors?.[seat] ?? 0;
+  vp += s.progressPoints?.[seat] ?? 0;
   if (s.metropolis) vp += TRACKS.filter((t) => s.metropolis![t] !== null && s.buildings[s.metropolis![t]!]?.owner === seat).length * METROPOLIS_POINTS;
   if (includeHidden) {
     const p = s.players[seat];
@@ -1037,8 +1087,9 @@ export function hasVariant(s: Pick<GameState, 'settings'>, id: VariantId): boole
  */
 export function legalRobberHexes(s: GameState): number[] {
   const sea = (id: number) => s.board.hexes[id].terrain === 'sea';
-  // Seewege: Statt des Räubers darf man das Kaperschiff auf ein anderes Meerfeld setzen.
-  const pirateHexes = s.pirate !== undefined ? s.board.hexes.map((_, id) => id).filter((id) => sea(id) && id !== s.pirate) : [];
+  // Seewege: Statt des Räubers darf man das Kaperschiff auf ein anderes Meerfeld setzen (nicht der Steuereintreiber).
+  const tax = s.phase.kind === 'robber' && s.phase.all;
+  const pirateHexes = s.pirate !== undefined && !tax ? s.board.hexes.map((_, id) => id).filter((id) => sea(id) && id !== s.pirate) : [];
   return [...landRobberHexes(s), ...pirateHexes];
 }
 
@@ -1101,6 +1152,8 @@ export function tradeRate(s: GameState, seat: number, give: Card): number {
     if (harbors[v] === give) rate = Math.min(rate, 2);
     else if (harbors[v] === 'any') rate = Math.min(rate, 3);
   });
+  // Frachtkontor (Einflusskarte): diese Kartenart 2:1 bis zum Ende des Zuges.
+  if (s.boost?.tradingPost === give && s.current === seat) rate = Math.min(rate, 2);
   return rate;
 }
 
@@ -1353,6 +1406,7 @@ function advanceRaiders(s: GameState, sum: number): boolean {
   const defense = humans.reduce((n, i) => n + contrib[i], 0);
   log(s, null, `Die Plündererflotte greift an: Stärke ${strength} gegen Verteidigung ${defense}.`);
   const pending = s.players.map(() => 0);
+  const picks = s.players.map(() => 0);
   if (strength > defense) {
     // Wer am wenigsten beigetragen hat und eine gewöhnliche Stadt besitzt, verliert eine.
     const exposed = humans.filter((i) => vulnerableCities(s, i).length > 0);
@@ -1369,6 +1423,10 @@ function advanceRaiders(s: GameState, sum: number): boolean {
     if (most > 0 && leaders.length === 1) {
       s.honors![leaders[0]]++;
       log(s, leaders[0], `${name(s, leaders[0])} hat am meisten verteidigt und bekommt einen Ehrenschild (1 Siegpunkt).`);
+    } else if (most > 0 && s.progress) {
+      // Gleichstand: Jeder der Besten zieht eine Einflusskarte, die Farbe wählt er selbst.
+      log(s, null, 'Die Flotte ist abgewehrt. Mehrere haben gleich viel verteidigt; jeder von ihnen zieht eine Einflusskarte.');
+      for (const i of leaders) if (s.progress[i].length < PROGRESS_LIMIT && TRACKS.some((t) => progressStackSize(s, t) > 0)) picks[i] = 1;
     } else {
       log(s, null, 'Die Flotte ist abgewehrt. Mehrere haben gleich viel verteidigt, einen Ehrenschild gibt es diesmal nicht.');
     }
@@ -1377,6 +1435,10 @@ function advanceRaiders(s: GameState, sum: number): boolean {
   for (const g of s.guards ?? []) if (g) g.active = false;
   if (pending.some((n) => n > 0)) {
     s.phase = { kind: 'raid', pending, sum };
+    return true;
+  }
+  if (picks.some((n) => n > 0)) {
+    s.phase = { kind: 'progressPick', pending: picks, sum };
     return true;
   }
   return false;
@@ -1458,7 +1520,7 @@ export function handLimit(s: GameState, seat: number): number {
 export function canImprove(s: GameState, seat: number, track: Track): boolean {
   if (!s.improvements) return false;
   const next = s.improvements[seat][track] + 1;
-  if (next > 5 || count(s.players[seat].resources, TRACK_GOODS[track]) < next) return false;
+  if (next > 5 || count(s.players[seat].resources, TRACK_GOODS[track]) < improveCost(s, seat, next)) return false;
   const cities = s.buildings.some((b) => b?.owner === seat && b.type === 'city');
   if (!cities) return false;
   return !metropolisGain(s, seat, track, next) || metropolisCandidates(s, seat).length > 0;
@@ -1640,6 +1702,244 @@ export function canBuildAnything(s: GameState, seat: number): boolean {
   if (s.guards && hasResources(res, COSTS.guard) && legalGuardVertices(s, seat).length > 0) return true;
   return hasResources(res, COSTS.road) && piecesLeft(s, seat, 'road') > 0 && legalRoadEdges(s, seat).length > 0;
 }
+
+// ---------------------------------------------------------------------------
+// Stadtwacht III: Einflusskarten
+
+/** Die drei Stapel zu Spielbeginn, als Zählwerk je Farbe. */
+export function progressDecks(): Record<Track, Partial<Record<ProgressCard, number>>> {
+  const decks: Record<Track, Partial<Record<ProgressCard, number>>> = { market: {}, council: {}, scholars: {} };
+  for (const c of PROGRESS_CARDS) decks[PROGRESS[c].track][c] = PROGRESS[c].copies;
+  return decks;
+}
+
+/** Karten in einem Stapel, auch in einer Sicht ohne Stapelinhalt. */
+export function progressStackSize(s: GameState, track: Track): number {
+  if (s.hiddenProgressDeck) return s.hiddenProgressDeck[track];
+  return Object.values(s.progressDeck?.[track] ?? {}).reduce((a: number, n) => a + (n ?? 0), 0);
+}
+
+/** Einflusskarten eines Spielers auf der Hand, auch verdeckt. */
+export function progressCount(s: GameState, seat: number): number {
+  const hidden = s.players[seat]?.hidden?.progress;
+  return hidden ? TRACKS.reduce((n, t) => n + hidden[t], 0) : (s.progress?.[seat]?.length ?? 0);
+}
+
+/** Zieht ein Spieler bei diesem Tor? Ausbaustufe s zieht bei einem roten Würfel bis s+1. */
+export function drawsOnGate(s: GameState, seat: number, track: Track, red: number): boolean {
+  const level = s.improvements?.[seat]?.[track] ?? 0;
+  return level >= 1 && red <= level + 1;
+}
+
+/** Ein Tor auf dem Ereigniswürfel: Ziehen in Zugreihenfolge, beginnend beim aktiven Spieler. */
+function drawOnGate(s: GameState, track: Track, red: number): void {
+  const n = humanCount(s);
+  const seats = Array.from({ length: n }, (_, k) => (s.current + k) % n).filter((i) => drawsOnGate(s, i, track, red));
+  if (!seats.length) return;
+  for (const seat of seats) {
+    if (!progressStackSize(s, track)) {
+      log(s, null, `Der Stapel ${TRACK_NAMES[track]} ist leer.`);
+      return;
+    }
+    drawProgress(s, seat, track);
+  }
+}
+
+/** Eine Einflusskarte ziehen; Punktkarten liegen sofort offen aus, eine volle Hand zieht nicht. */
+function drawProgress(s: GameState, seat: number, track: Track): void {
+  if (s.progress![seat].length >= PROGRESS_LIMIT) {
+    log(s, seat, `${name(s, seat)} hat schon ${PROGRESS_LIMIT} Einflusskarten und zieht keine.`);
+    return;
+  }
+  const card = drawFrom(s, s.progressDeck![track]);
+  if (!card) return;
+  if (PROGRESS[card].point) {
+    s.progressPoints![seat]++;
+    s.progressPlayed!.push(card);
+    log(s, seat, `${name(s, seat)} zieht ${PROGRESS[card].name} und legt sie aus (1 Siegpunkt).`);
+  } else {
+    s.progress![seat].push(card);
+    log(s, seat, `${name(s, seat)} zieht eine Einflusskarte (${TRACK_NAMES[track]}).`);
+  }
+}
+
+/** Güter für die nächste Ausbaustufe; der Flaschenzug spart eines. */
+export function improveCost(s: GameState, seat: number, level: number): number {
+  return Math.max(0, level - (s.boost?.pulley && s.current === seat ? 1 : 0));
+}
+
+function checkWall(s: GameState, seat: number, vertex: number): void {
+  const b = s.buildings[vertex];
+  if (b?.owner !== seat || b.type !== 'city') fail('Eine Palisade kommt nur unter eine eigene Stadt.');
+  if (s.walls!.includes(vertex)) fail('Diese Stadt hat schon eine Palisade.');
+  if (wallsOf(s, seat) >= MAX_WALLS) fail(`Mehr als ${MAX_WALLS} Palisaden gibt es nicht.`);
+}
+
+function nextGuardLevel(s: GameState, seat: number, g: Guard): 2 | 3 {
+  if (g.level >= 3) fail('Dieser Wächter hat schon die höchste Stufe.');
+  if (g.level === 2 && s.improvements![seat].council < 3) fail('Mächtige Wächter gibt es erst mit dem Rat auf Stufe 3.');
+  const next = (g.level + 1) as 2 | 3;
+  if (guardCount(s, seat, next) >= GUARDS_PER_LEVEL) fail(`Du hast schon ${GUARDS_PER_LEVEL} Wächter der Stufe ${next}.`);
+  return next;
+}
+
+/** Kann dieser Wächter jetzt eine Stufe aufsteigen (ohne die Kosten)? */
+export function canRaiseGuard(s: GameState, seat: number, vertex: number): boolean {
+  const g = s.guards?.[vertex];
+  if (!g || g.owner !== seat) return false;
+  try {
+    nextGuardLevel(s, seat, g);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function steal(s: GameState, seat: number, victim: number): void {
+  const pool = cardList(s.players[victim].resources);
+  if (!pool.length) return;
+  const stolen = pool[randomInt(s, pool.length)];
+  addCard(s.players[victim].resources, stolen, -1);
+  addCard(s.players[seat].resources, stolen, 1);
+  s.transfers.push({ from: seatPoint(victim), to: seatPoint(seat), card: stolen, count: 1, hidden: true });
+}
+
+/** Großeinkauf und Zunftrecht: Jeder Mitspieler gibt bis zu `max` Karten dieser Art. */
+function collect(s: GameState, seat: number, card: Card, max: number): number {
+  let total = 0;
+  s.players.forEach((p, i) => {
+    if (i === seat || p.neutral) return;
+    const n = Math.min(max, count(p.resources, card));
+    if (!n) return;
+    addCard(p.resources, card, -n);
+    total += n;
+    transfer(s, seatPoint(i), seatPoint(seat), card, n);
+  });
+  addCard(s.players[seat].resources, card, total);
+  return total;
+}
+
+/** Wasserrad und Stollen: 2 Karten je passendem Feld an eigenen Orten, so weit die Bank reicht. */
+function harvest(s: GameState, seat: number, r: Resource, card: string): void {
+  const topo = getTopology(s.board);
+  const hexes = new Set<number>();
+  s.buildings.forEach((b, v) => {
+    if (b?.owner === seat) for (const h of topo.vertices[v].hexes) if (s.board.hexes[h].terrain === r) hexes.add(h);
+  });
+  if (!hexes.size) fail(`An deinen Orten liegt kein Feld mit ${RESOURCE_NAMES[r]}.`);
+  if (!s.bank[r]) fail(`Die Bank hat kein ${RESOURCE_NAMES[r]} mehr.`);
+  let got = 0;
+  for (const h of hexes) {
+    const n = Math.min(2, s.bank[r]);
+    s.bank[r] -= n;
+    got += n;
+    transfer(s, { kind: 'hex', id: h }, seatPoint(seat), r, n);
+  }
+  s.players[seat].resources[r] += got;
+  log(s, seat, `${name(s, seat)} spielt ${card} und bekommt ${got} ${RESOURCE_NAMES[r]}.`);
+}
+
+type ProgressArgs = { card?: Card; vertices: number[] };
+
+const PLAY: Record<ProgressCard, (s: GameState, seat: number, a: ProgressArgs) => void> = {
+  bulkBuy(s, seat, { card }) {
+    if (!card || !isResource(card)) fail('Nenne einen Rohstoff.');
+    const got = collect(s, seat, card, 2);
+    log(s, seat, `${name(s, seat)} spielt Großeinkauf auf ${RESOURCE_NAMES[card]} und bekommt ${got} Karten.`);
+  },
+  guildRight(s, seat, { card }) {
+    if (!card || !isCommodity(card)) fail('Nenne ein Gut.');
+    const got = collect(s, seat, card, 1);
+    log(s, seat, `${name(s, seat)} spielt Zunftrecht auf ${CARD_NAMES[card]} und bekommt ${got} Karten.`);
+  },
+  tradingPost(s, seat, { card }) {
+    if (!card || !CARDS.includes(card)) fail('Wähle eine Kartenart.');
+    s.boost = { ...s.boost, tradingPost: card };
+    log(s, seat, `${name(s, seat)} spielt Frachtkontor: ${CARD_NAMES[card]} tauscht sie in diesem Zug 2:1.`);
+  },
+  charter() {
+    fail('Punktkarten liegen schon aus.');
+  },
+  observatory() {
+    fail('Punktkarten liegen schon aus.');
+  },
+  alarmBell(s, seat) {
+    const sleeping = (s.guards ?? []).filter((g): g is Guard => !!g && g.owner === seat && !g.active);
+    if (!sleeping.length) fail('Du hast keinen ruhenden Wächter.');
+    for (const g of sleeping) {
+      g.active = true;
+      g.ready = s.turn + 1;
+    }
+    log(s, seat, `${name(s, seat)} spielt Alarmglocke: ${sleeping.length === 1 ? 'ein Wächter wird' : `${sleeping.length} Wächter werden`} einsatzbereit.`);
+  },
+  agitator(s, seat) {
+    const mine = victoryPoints(s, seat, false);
+    const pending = s.players.map((p, i) =>
+      i !== seat && !p.neutral && victoryPoints(s, i, false) >= mine ? Math.floor(totalResources(p.resources) / 2) : 0,
+    );
+    log(s, seat, `${name(s, seat)} spielt Unruhestifter.`);
+    if (pending.some((n) => n > 0)) {
+      s.phase = { kind: 'discard', pending, then: 'main' };
+      const who = pending.flatMap((n, i) => (n > 0 ? [`${name(s, i)} (${n})`] : []));
+      log(s, null, `Karten abwerfen müssen: ${who.join(', ')}.`);
+    }
+  },
+  banquet(s, seat) {
+    const mine = victoryPoints(s, seat, false);
+    const pending = s.players.map((p, i) =>
+      i !== seat && !p.neutral && victoryPoints(s, i, false) > mine ? Math.min(2, totalResources(p.resources)) : 0,
+    );
+    log(s, seat, `${name(s, seat)} spielt Festbankett.`);
+    if (pending.some((n) => n > 0)) s.phase = { kind: 'discard', pending, to: seat, then: 'main' };
+  },
+  taxCollector(s, seat) {
+    if (!robberActive(s)) fail('Der Räuber ist noch nicht im Spiel.');
+    log(s, seat, `${name(s, seat)} spielt Steuereintreiber.`);
+    s.phase = { kind: 'robber', returnTo: 'main', all: true };
+  },
+  pulley(s, seat) {
+    if (s.boost?.pulley) fail('Der Flaschenzug wirkt schon.');
+    s.boost = { ...s.boost, pulley: true };
+    log(s, seat, `${name(s, seat)} spielt Flaschenzug: Der nächste Ausbau kostet ein Gut weniger.`);
+  },
+  pileDriver(s, seat, { vertices }) {
+    const vertex = vertices[0];
+    checkWall(s, seat, vertex);
+    s.walls!.push(vertex);
+    log(s, seat, `${name(s, seat)} spielt Pfahlramme und baut eine Palisade (Handkartenlimit ${handLimit(s, seat)}).`);
+  },
+  waterwheel(s, seat) {
+    harvest(s, seat, 'wheat', 'Wasserrad');
+  },
+  gallery(s, seat) {
+    harvest(s, seat, 'ore', 'Stollen');
+  },
+  lodge(s, seat, { vertices }) {
+    const vertex = vertices[0];
+    const b = s.buildings[vertex];
+    if (!b || b.owner !== seat || b.type !== 'settlement') fail('Wähle eine eigene Siedlung.');
+    if (piecesLeft(s, seat, 'city') <= 0) fail('Du hast keine Städte mehr.');
+    pay(s, seat, COSTS.lodge, { kind: 'vertex', id: vertex });
+    b.type = 'city';
+    log(s, seat, `${name(s, seat)} spielt Bauhütte und baut eine Stadt.`);
+    updateHarborMaster(s);
+  },
+  surveyor(s, seat) {
+    const remaining = Math.min(2, piecesLeft(s, seat, 'road') + (s.ships ? piecesLeft(s, seat, 'ship') : 0));
+    if (remaining === 0 || !canLayFreePiece(s, seat)) fail('Du kannst gerade keine Straße bauen.');
+    log(s, seat, `${name(s, seat)} spielt Landvermesser.`);
+    s.phase = { kind: 'roadBuilding', remaining, returnTo: 'main' };
+  },
+  armory(s, seat, { vertices }) {
+    const targets = [...new Set(vertices)];
+    if (!targets.length || targets.length > 2) fail('Wähle einen oder zwei deiner Wächter.');
+    for (const v of targets) {
+      const g = ownGuard(s, seat, v);
+      g.level = nextGuardLevel(s, seat, g);
+    }
+    log(s, seat, `${name(s, seat)} spielt Waffenkammer und wertet ${targets.length === 1 ? 'einen Wächter' : 'zwei Wächter'} auf.`);
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Interne Hilfsfunktionen
@@ -1854,6 +2154,7 @@ function continueSpecialBuild(s: GameState, queue: number[]): void {
 }
 
 function nextTurn(s: GameState): void {
+  delete s.boost;
   for (const p of s.players) {
     p.devCards.push(...p.newDevCards);
     p.newDevCards = [];

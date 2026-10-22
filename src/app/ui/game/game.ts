@@ -59,6 +59,13 @@ import {
   totalResources,
   victoryPoints,
   victoryTarget,
+  canRaiseGuard,
+  COMMODITIES,
+  PROGRESS,
+  PROGRESS_LIMIT,
+  ProgressCard,
+  progressCount,
+  progressStackSize,
 } from '../../engine';
 import { AWAY_MS, RoomService } from '../../net/room.service';
 import { Board } from '../board/board';
@@ -77,7 +84,7 @@ import { hasOfferView, offerFor, OfferPanel } from './offer-panel';
 import { TradeTable, withdrawOffers } from './trade-table';
 import { CityPanel } from './city-panel';
 
-type BuildMode = 'road' | 'settlement' | 'city' | 'ship' | 'moveShip' | 'bridge' | 'wall' | 'metropolis' | 'guards' | 'guardMove';
+type BuildMode = 'road' | 'settlement' | 'city' | 'ship' | 'moveShip' | 'bridge' | 'wall' | 'metropolis' | 'guards' | 'guardMove' | 'progress';
 type Dialog =
   | { kind: 'yearOfPlenty' }
   | { kind: 'monopoly' }
@@ -85,7 +92,8 @@ type Dialog =
   | { kind: 'fish'; step: 'menu' | 'steal' | 'bank' }
   | { kind: 'tokens'; step: 'menu' | 'trade' }
   | { kind: 'coins' }
-  | { kind: 'guard'; vertex: number };
+  | { kind: 'guard'; vertex: number }
+  | { kind: 'progress'; card: ProgressCard };
 
 const FISH_EFFECTS: { effect: FishEffect; label: string }[] = [
   { effect: 'robber', label: 'Räuber vom Brett nehmen' },
@@ -95,6 +103,26 @@ const FISH_EFFECTS: { effect: FishEffect; label: string }[] = [
   { effect: 'devCard', label: 'Eine Entwicklungskarte kostenlos ziehen' },
 ];
 type PrimaryAction = { label: string; run: (() => void) | null };
+
+/** Trennstellen für die schmalen Einflusskarten in der Hand. */
+const PROGRESS_BREAKS: Record<ProgressCard, string> = {
+  bulkBuy: 'Groß\u00adeinkauf',
+  guildRight: 'Zunft\u00adrecht',
+  tradingPost: 'Fracht\u00adkontor',
+  charter: 'Stadt\u00adrecht',
+  alarmBell: 'Alarm\u00adglocke',
+  agitator: 'Unruhe\u00adstifter',
+  banquet: 'Fest\u00adbankett',
+  taxCollector: 'Steuer\u00adeintreiber',
+  pulley: 'Flaschen\u00adzug',
+  pileDriver: 'Pfahl\u00adramme',
+  waterwheel: 'Wasser\u00adrad',
+  gallery: 'Stollen',
+  lodge: 'Bau\u00adhütte',
+  observatory: 'Stern\u00adwarte',
+  surveyor: 'Land\u00advermesser',
+  armory: 'Waffen\u00adkammer',
+};
 
 const PLAYABLE: DevCard[] = ['knight', 'roadBuilding', 'yearOfPlenty', 'monopoly'];
 const HIGHLIGHT_MS = 2600;
@@ -185,6 +213,44 @@ export class GameView {
   protected readonly cityOpen = signal(false);
   protected readonly metroTrack = signal<Track | null>(null);
   protected readonly cityWatch = computed(() => !!this.g().improvements);
+  /** Stadtwacht III: Einflusskarte, für die gerade Ziele auf dem Brett gewählt werden, und gewählte Wächter. */
+  protected readonly progressCard = signal<ProgressCard | null>(null);
+  protected readonly progressGuards = signal<number[]>([]);
+  protected readonly progressDefs = PROGRESS;
+  protected readonly trackNames = TRACK_NAMES;
+  protected readonly progressLimit = PROGRESS_LIMIT;
+  /** Eigene Einflusskarten, nach Farbe sortiert. */
+  protected readonly myProgress = computed(() => {
+    const g = this.g();
+    const cards = g.progress?.[this.seat()] ?? [];
+    const order = (c: ProgressCard) => TRACKS.indexOf(PROGRESS[c].track);
+    return [...cards].sort((a, b) => order(a) - order(b) || a.localeCompare(b)).map((card) => ({ card, ...PROGRESS[card], short: PROGRESS_BREAKS[card] }));
+  });
+  protected readonly canPlayProgress = computed(() => this.isCurrent() && this.g().phase.kind === 'main');
+  /** Die drei Stapel mit ihrer Größe, für die Bankleiste und die Farbwahl. */
+  protected readonly progressStacks = computed(() => {
+    const g = this.g();
+    if (!g.progress) return null;
+    return TRACKS.map((track) => ({ track, name: TRACK_NAMES[track], size: progressStackSize(g, track) }));
+  });
+  /** Gleichstand bei der Abwehr: Ich wähle die Farbe meiner Einflusskarte. */
+  protected readonly progressPickDue = computed(() => {
+    const phase = this.g().phase;
+    return phase.kind === 'progressPick' && !!phase.pending[this.seat()];
+  });
+  /** Inhalt des Karten-Dialogs: Text, Ziele und ob die Karte jetzt geht. */
+  protected readonly progressDialog = computed(() => {
+    const d = this.dialog();
+    if (d?.kind !== 'progress') return null;
+    const def = PROGRESS[d.card];
+    const g = this.g();
+    const options: Card[] = def.target === 'resource' ? [...RESOURCES] : def.target === 'commodity' ? [...COMMODITIES] : def.target === 'card' ? [...this.handCards()] : [];
+    const board = def.target === 'city' || def.target === 'settlement' || def.target === 'guards';
+    let reason: string | null = null;
+    if (!this.isCurrent()) reason = 'Spielbar in deinem Zug nach dem Würfeln.';
+    else if (g.phase.kind !== 'main') reason = g.phase.kind === 'roll' ? 'Erst würfeln, dann spielen.' : 'Gerade nicht spielbar.';
+    return { card: d.card, ...def, options, board, reason };
+  });
   /** Stadtwacht II: Wächter, von dem aus gerade ein Ziel gewählt wird. */
   protected readonly guardFrom = signal<number | null>(null);
   /** Plündererflotte: Stand der Leiste, Stärke gegen Verteidigung, ob der Räuber schon da ist. */
@@ -203,7 +269,11 @@ export class GameView {
   protected readonly eventFace = computed(() => {
     const e = this.g().event;
     if (!e) return null;
-    return e === 'ship' ? { cls: 'ship', label: '⛵', title: 'Ereigniswürfel: Schiff' } : { cls: e, label: TRACK_NAMES[e][0], title: `Ereigniswürfel: Tor ${TRACK_NAMES[e]}` };
+    if (e === 'ship') return { cls: 'ship', label: '⛵', title: 'Ereigniswürfel: Schiff' };
+    // Stufe s zieht bei einem roten Würfel bis s+1.
+    const red = this.g().dice?.[1] ?? 1;
+    const from = Math.max(1, red - 1);
+    return { cls: e, label: TRACK_NAMES[e][0], title: `Ereigniswürfel: Tor ${TRACK_NAMES[e]}. Roter Würfel ${red}: Einflusskarten für alle mit ${TRACK_NAMES[e]} ab Stufe ${from}.` };
   });
   /** Was ein eigener Wächter gerade tun kann (für den Dialog). */
   protected readonly guardOptions = computed(() => {
@@ -395,6 +465,15 @@ export class GameView {
         return `Wähle die Stadt, die Prachtstadt ${TRACK_NAMES[this.metroTrack() ?? 'market']} wird`;
       case 'moveShip':
         return this.moveFrom() === null ? 'Wähle das Schiff, das du versetzt' : 'Wähle, wohin das Schiff fährt';
+      case 'progress': {
+        const card = this.progressCard();
+        if (!card) return '';
+        const target = PROGRESS[card].target;
+        const name = PROGRESS[card].name;
+        if (target === 'city') return `${name}: Wähle die Stadt für die Palisade`;
+        if (target === 'settlement') return `${name}: Wähle die Siedlung, die Stadt wird`;
+        return `${name}: Wähle bis zu zwei Wächter (${this.progressGuards().length} gewählt)`;
+      }
       default:
         return '';
     }
@@ -467,6 +546,14 @@ export class GameView {
         return { ...none, vertices: legalSettlementVertices(g, seat) };
       case 'city':
         return { ...none, vertices: legalCityVertices(g, seat) };
+      case 'progress': {
+        const target = PROGRESS[this.progressCard() ?? 'pulley'].target;
+        if (target === 'city') return { ...none, vertices: legalWallVertices(g, seat) };
+        if (target === 'settlement') return { ...none, vertices: legalCityVertices(g, seat) };
+        const chosen = this.progressGuards();
+        const own = (g.guards ?? []).flatMap((x, v) => (x?.owner === seat && (chosen.includes(v) || canRaiseGuard(g, seat, v)) ? [v] : []));
+        return { ...none, vertices: chosen.length >= 2 ? chosen : own };
+      }
     }
     return none;
   });
@@ -498,7 +585,14 @@ export class GameView {
         return mine ? 'Du bist dran: Würfeln!' : `${name(g.current)} würfelt …`;
       case 'discard': {
         const waiting = phase.pending.flatMap((n, i) => (n > 0 ? [name(i)] : []));
-        return mine ? `Räuber! Wirf ${phase.pending[this.seat()]} Karten ab` : `Räuber! Warte auf ${waiting.join(', ')}`;
+        const due = phase.pending[this.seat()];
+        if (phase.to !== undefined) return mine ? `Festbankett: Schenke ${name(phase.to)} ${due} Karten` : `Festbankett: Warte auf ${waiting.join(', ')}`;
+        const why = phase.then === 'main' ? 'Unruhe!' : 'Räuber!';
+        return mine ? `${why} Wirf ${due} Karten ab` : `${why} Warte auf ${waiting.join(', ')}`;
+      }
+      case 'progressPick': {
+        const waiting = phase.pending.flatMap((n, i) => (n > 0 ? [name(i)] : []));
+        return phase.pending[this.seat()] ? 'Gleichstand bei der Abwehr: Wähle die Farbe deiner Einflusskarte' : `Einflusskarten: Warte auf ${waiting.join(', ')}`;
       }
       case 'gold': {
         const waiting = phase.pending.flatMap((n, i) => (n > 0 ? [name(i)] : []));
@@ -506,6 +600,9 @@ export class GameView {
         return mine ? `Gold! Wähle ${due} Rohstoff${due > 1 ? 'e' : ''}` : `Gold: Warte auf ${waiting.join(', ')}`;
       }
       case 'robber':
+        if (phase.all) {
+          return this.isCurrent() ? 'Steuereintreiber: Versetze den Räuber, du ziehst bei jedem am Feld' : `${name(g.current)} treibt Steuern ein`;
+        }
         if (g.pirate !== undefined) {
           return this.isCurrent()
             ? 'Versetze Räuber (Land) oder Kaperschiff (Meer): Klicke auf ein Feld'
@@ -560,7 +657,8 @@ export class GameView {
         neutral: 'Neutrales Teil setzen',
         raid: 'Stadt auf dem Brett wählen',
         displace: 'Neuen Platz wählen',
-        discard: 'Karten abwerfen',
+        discard: g.phase.kind === 'discard' && g.phase.to !== undefined ? 'Karten verschenken' : 'Karten abwerfen',
+        progressPick: 'Farbe wählen',
       };
       return { label: hint[phase] ?? 'Du bist dran', run: null };
     }
@@ -586,6 +684,7 @@ export class GameView {
       anchor: g.anchor === seat,
       neutral: !!p.neutral,
       tokens: g.tokens?.[seat] ?? null,
+      progress: g.progress ? progressCount(g, seat) : null,
       coinRank: coinPoints(g, seat),
       active: actingSeats(g).includes(seat),
       online: !!members.find((m) => m.id === p.id)?.peerId,
@@ -661,6 +760,8 @@ export class GameView {
       improvements: g.improvements?.[i.seat] ?? null,
       defense: g.guards ? defenseOf(g, i.seat) : null,
       honors: g.honors?.[i.seat] ?? 0,
+      progressPoints: g.progressPoints?.[i.seat] ?? 0,
+      progressCards: g.progress ? progressCount(g, i.seat) : null,
       metropolises: g.metropolis ? TRACKS.filter((t) => g.metropolis![t] !== null && g.buildings[g.metropolis![t]!]?.owner === i.seat).length : 0,
       coinPoints: coinPoints(g, i.seat),
       anchor: g.anchor === i.seat,
@@ -972,6 +1073,10 @@ export class GameView {
       this.room.act({ type: 'placeDisplaced', vertex });
       return;
     }
+    if (this.buildMode() === 'progress') {
+      this.progressVertex(vertex);
+      return;
+    }
     if (this.buildMode() === 'guards' && g.guards?.[vertex]?.owner === this.seat()) {
       this.dialog.set({ kind: 'guard', vertex });
       return;
@@ -1026,6 +1131,12 @@ export class GameView {
   }
 
   protected onHex(hex: number): void {
+    const phase = this.g().phase;
+    // Steuereintreiber: Gezogen wird bei allen am Feld, keine Wahl.
+    if (phase.kind === 'robber' && phase.all) {
+      this.room.act({ type: 'moveRobber', hex, victim: null });
+      return;
+    }
     const victims = robberVictims(this.g(), this.seat(), hex);
     if (victims.length > 1) this.dialog.set({ kind: 'victim', hex, victims });
     else this.room.act({ type: 'moveRobber', hex, victim: victims[0] ?? null });
@@ -1083,6 +1194,54 @@ export class GameView {
       this.guardFrom.set(o.vertex);
       this.buildMode.set('guardMove');
     }
+  }
+
+  protected openProgress(card: ProgressCard): void {
+    this.dialog.set({ kind: 'progress', card });
+  }
+
+  /** Einflusskarte ausspielen: ohne Ziel sofort, mit Kartenart aus dem Dialog, mit Brettzielen über die Hinweisleiste. */
+  protected playProgress(card: ProgressCard, choice: Card | null = null): void {
+    const target = PROGRESS[card].target;
+    this.dialog.set(null);
+    if (target === 'city' || target === 'settlement' || target === 'guards') {
+      this.progressCard.set(card);
+      this.progressGuards.set([]);
+      this.cityOpen.set(false);
+      this.buildMode.set('progress');
+      return;
+    }
+    this.room.act(choice ? { type: 'playProgress', progress: card, card: choice } : { type: 'playProgress', progress: card });
+  }
+
+  private progressVertex(vertex: number): void {
+    const card = this.progressCard();
+    if (!card) return;
+    if (PROGRESS[card].target === 'guards') {
+      // Wächter sammeln; mit zweien geht es gleich los, mit einem über „Aufwerten“ in der Hinweisleiste.
+      const chosen = this.progressGuards();
+      const next = chosen.includes(vertex) ? chosen.filter((v) => v !== vertex) : [...chosen, vertex];
+      this.progressGuards.set(next);
+      if (next.length === 2) this.confirmProgressGuards();
+      return;
+    }
+    this.room.act({ type: 'playProgress', progress: card, vertices: [vertex] });
+    this.progressCard.set(null);
+    this.buildMode.set(null);
+  }
+
+  protected confirmProgressGuards(): void {
+    const card = this.progressCard();
+    const vertices = this.progressGuards();
+    if (!card || !vertices.length) return;
+    this.room.act({ type: 'playProgress', progress: card, vertices });
+    this.progressCard.set(null);
+    this.progressGuards.set([]);
+    this.buildMode.set(null);
+  }
+
+  protected pickProgress(track: Track): void {
+    this.room.act({ type: 'pickProgress', track });
   }
 
   /** Prachtstadt: Die Ausbau-Tafel schließt, die Wahl der Stadt passiert auf dem Brett. */

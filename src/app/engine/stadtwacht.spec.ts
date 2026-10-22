@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { botStep, seeded } from '../net/testing/fake-net';
 import { getTopology } from './board';
-import { applyAction, canImprove, createGame, defenseOf, guardTargets, handLimit, isMetropolis, legalGuardVertices, legalRoadEdges, legalSetupRoads, legalSetupVertices, longestRoad, raiderStrength, tradeRate, victoryPoints } from './rules';
+import { applyAction, canImprove, createGame, defenseOf, drawsOnGate, guardTargets, handLimit, isLand, isMetropolis, legalGuardVertices, legalRoadEdges, legalSetupRoads, legalSetupVertices, longestRoad, progressCount, progressStackSize, raiderStrength, tradeRate, victoryPoints } from './rules';
 import { isConsistent, rebuild, Secret, secretOf, viewFor } from './secrets';
-import { COMMODITIES, count, emptyResources, GameState, ResourceCounts, totalResources } from './types';
+import { Card, COMMODITIES, count, emptyResources, GameState, PROGRESS, PROGRESS_CARDS, ProgressCard, ResourceCounts, totalResources, TRACKS } from './types';
 
 function players(n: number) {
   return Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: `S${i}`, color: `c${i}` }));
@@ -201,7 +201,7 @@ describe('Stadtwacht I: im Spiel', () => {
   });
 
   for (const n of [3, 4, 6]) {
-    it(`${n} Spieler: 3000 Züge ohne Regelfehler, es wird ausgebaut`, { timeout: 120000 }, () => {
+    it(`${n} Spieler: 3000 Züge ohne Regelfehler, es wird ausgebaut und gespielt`, { timeout: 120000 }, () => {
       const random = seeded(n * 41);
       let s = createGame(players(n), { victoryPoints: 13, variants: ['stadtwacht'] }, 11);
       let best = 0;
@@ -217,6 +217,8 @@ describe('Stadtwacht I: im Spiel', () => {
       expect(best).toBeGreaterThan(0);
       expect(guards).toBeGreaterThan(0);
       expect(s.raiders!.attacked).toBe(true);
+      // Stadtwacht III: Es werden Einflusskarten gezogen und ausgespielt.
+      expect(s.progressPlayed!.length).toBeGreaterThan(0);
     });
   }
 });
@@ -355,5 +357,247 @@ describe('Stadtwacht II: Wächter', () => {
     const chased = applyAction(r, 0, { type: 'chaseRobber', vertex: start });
     expect(chased.phase).toEqual({ kind: 'robber', returnTo: 'main' });
     expect(chased.guards![start]!.active).toBe(false);
+  });
+});
+
+describe('Stadtwacht III: Einflusskarten', () => {
+  /** Würfelt so lange, bis Ereignis und roter Würfel passen (Summe egal, aber keine 7). */
+  function rollGate(s: GameState, event: string, red: number): GameState {
+    const t = structuredClone(s);
+    t.phase = { kind: 'roll' };
+    for (let seed = 1; ; seed++) {
+      const n = applyAction({ ...t, rng: seed }, t.current, { type: 'roll' });
+      if (n.event === event && n.dice![1] === red && n.dice![0] + n.dice![1] !== 7) return n;
+    }
+  }
+  const play = (s: GameState, seat: number, progress: ProgressCard, extra: Partial<{ card: Card; vertices: number[] }> = {}) => {
+    const t = structuredClone(s);
+    t.progress![seat].push(progress);
+    return applyAction(t, seat, { type: 'playProgress', progress, ...extra });
+  };
+
+  it('drei Stapel in den Ausbaufarben, alle Hände leer', () => {
+    const s = game();
+    expect(s.progress).toEqual([[], [], []]);
+    for (const t of TRACKS) expect(progressStackSize(s, t)).toBeGreaterThan(0);
+    for (const c of PROGRESS_CARDS) expect(s.progressDeck![PROGRESS[c].track][c]).toBe(PROGRESS[c].copies);
+  });
+
+  it('ein Tor: wer in der Farbe Stufe s hat, zieht bei einem roten Würfel bis s+1', () => {
+    const s = game();
+    s.improvements![0].market = 1;
+    s.improvements![1].market = 3;
+    expect(drawsOnGate(s, 0, 'market', 2)).toBe(true);
+    expect(drawsOnGate(s, 0, 'market', 3)).toBe(false);
+    expect(drawsOnGate(s, 2, 'market', 1)).toBe(false);
+    const n = rollGate(s, 'market', 3);
+    expect(n.progress![0]).toHaveLength(0);
+    expect(n.progress![1]).toHaveLength(1);
+    expect(PROGRESS[n.progress![1][0]].track).toBe('market');
+    expect(progressStackSize(n, 'market')).toBe(progressStackSize(s, 'market') - 1);
+    // Ein Schiff oder ein anderes Tor bringt nichts.
+    expect(rollGate(s, 'council', 1).progress![1]).toHaveLength(0);
+  });
+
+  it('höchstens 4 auf der Hand; Punktkarten liegen sofort offen aus und zählen', () => {
+    const s = game();
+    s.improvements![0].council = 5;
+    s.progress![0] = ['alarmBell', 'alarmBell', 'agitator', 'agitator'];
+    expect(rollGate(s, 'council', 2).progress![0]).toHaveLength(4);
+    s.progress![0] = [];
+    s.progressDeck!.council = { charter: 1 };
+    const n = rollGate(s, 'council', 2);
+    expect(n.progress![0]).toEqual([]);
+    expect(n.progressPoints).toEqual([1, 0, 0]);
+    expect(victoryPoints(n, 0, false) - victoryPoints(s, 0, false)).toBe(1);
+    expect(n.progressPlayed).toEqual(['charter']);
+  });
+
+  it('Gleichstand bei der Abwehr: jeder Gleichstehende zieht eine Karte in einer Farbe seiner Wahl', () => {
+    const s = game();
+    s.raiders!.position = 6;
+    const [a] = legalGuardVertices(s, 0);
+    const [b] = legalGuardVertices(s, 1);
+    s.guards![a] = { owner: 0, level: 2, active: true };
+    s.guards![b] = { owner: 1, level: 2, active: true };
+    s.progressDeck!.council = { agitator: 2 };
+    const t = structuredClone(s);
+    t.phase = { kind: 'roll' };
+    let n = t;
+    for (let seed = 1; ; seed++) {
+      n = applyAction({ ...t, rng: seed }, 0, { type: 'roll' });
+      if (n.event === 'ship' && n.dice![0] + n.dice![1] !== 7) break;
+    }
+    expect(n.phase).toMatchObject({ kind: 'progressPick', pending: [1, 1, 0] });
+    expect(n.honors).toEqual([0, 0, 0]);
+    n = applyAction(n, 1, { type: 'pickProgress', track: 'council' });
+    expect(n.progress![1]).toEqual(['agitator']);
+    expect(n.phase.kind).toBe('progressPick');
+    n = applyAction(n, 0, { type: 'pickProgress', track: 'scholars' });
+    expect(n.progress![0]).toHaveLength(1);
+    expect(['main', 'gold']).toContain(n.phase.kind);
+  });
+
+  it('nur im eigenen Zug nach dem Würfeln, nur Karten auf der Hand', () => {
+    const s = game();
+    expect(() => applyAction(s, 0, { type: 'playProgress', progress: 'waterwheel' })).toThrow(/keine Karte/);
+    const r = structuredClone(s);
+    r.phase = { kind: 'roll' };
+    r.progress![0].push('waterwheel');
+    expect(() => applyAction(r, 0, { type: 'playProgress', progress: 'waterwheel' })).toThrow();
+    expect(() => play(s, 1, 'waterwheel')).toThrow(/nicht dran/);
+  });
+
+  it('Großeinkauf, Zunftrecht, Frachtkontor', () => {
+    const s = game();
+    s.players[1].resources = hand({ wheat: 3, cloth: 2 });
+    s.players[2].resources = hand({ wheat: 1 });
+    let n = play(s, 0, 'bulkBuy', { card: 'wheat' });
+    expect(count(n.players[0].resources, 'wheat') - count(s.players[0].resources, 'wheat')).toBe(3);
+    expect(n.players[1].resources.wheat).toBe(1);
+    expect(n.progressPlayed).toEqual(['bulkBuy']);
+    expect(() => play(s, 0, 'bulkBuy', { card: 'cloth' })).toThrow(/Rohstoff/);
+    n = play(s, 0, 'guildRight', { card: 'cloth' });
+    expect(count(n.players[1].resources, 'cloth')).toBe(1);
+    n = play(s, 0, 'tradingPost', { card: 'brick' });
+    expect(tradeRate(n, 0, 'brick')).toBe(2);
+    expect(tradeRate(n, 1, 'brick')).toBe(tradeRate(s, 1, 'brick'));
+    n.players[0].resources = hand({});
+    expect(tradeRate(applyAction(n, 0, { type: 'endTurn' }), 0, 'brick')).toBe(tradeRate(s, 0, 'brick'));
+  });
+
+  it('Unruhestifter: wer mindestens so viele Punkte hat, wirft die Hälfte ab; danach kein Räuber', () => {
+    const s = game();
+    s.players[1].resources = hand({ wood: 5 });
+    s.players[2].resources = hand({ brick: 3 });
+    s.honors![2] = 0;
+    s.progressPoints![0] = 1;
+    let n = play(s, 0, 'agitator');
+    // Spieler 0 hat einen Punkt mehr, also muss niemand abwerfen.
+    expect(n.phase.kind).toBe('main');
+    s.progressPoints![0] = 0;
+    n = play(s, 0, 'agitator');
+    expect(n.phase).toMatchObject({ kind: 'discard', pending: [0, 2, 1], then: 'main' });
+    n = applyAction(n, 1, { type: 'discard', resources: hand({ wood: 2 }) });
+    n = applyAction(n, 2, { type: 'discard', resources: hand({ brick: 1 }) });
+    expect(n.phase.kind).toBe('main');
+  });
+
+  it('Festbankett: wer mehr Punkte hat, schenkt zwei Karten seiner Wahl', () => {
+    const s = game();
+    s.players[1].resources = hand({ wood: 2, ore: 1 });
+    s.honors![1] = 1;
+    let n = play(s, 0, 'banquet');
+    expect(n.phase).toMatchObject({ kind: 'discard', pending: [0, 2, 0], to: 0 });
+    n = applyAction(n, 1, { type: 'discard', resources: hand({ wood: 1, ore: 1 }) });
+    expect(n.phase.kind).toBe('main');
+    expect(n.players[0].resources.ore - s.players[0].resources.ore).toBe(1);
+    expect(n.transfers.every((t) => t.hidden)).toBe(true);
+  });
+
+  it('Steuereintreiber: Räuber versetzen, bei jedem am Feld eine Karte; erst nach dem ersten Angriff', () => {
+    const s = game();
+    expect(() => play(s, 0, 'taxCollector')).toThrow(/noch nicht im Spiel/);
+    s.raiders!.attacked = true;
+    const t = getTopology(s.board);
+    const hex = t.hexes.find((h) => isLand(s.board.hexes[h.id].terrain) && h.id !== s.robber)!;
+    s.buildings = s.buildings.map(() => null);
+    s.buildings[hex.corners[0]] = { owner: 1, type: 'settlement' };
+    s.buildings[hex.corners[3]] = { owner: 2, type: 'settlement' };
+    s.players[1].resources = hand({ wood: 1 });
+    s.players[2].resources = hand({ ore: 1 });
+    let n = play(s, 0, 'taxCollector');
+    expect(n.phase).toMatchObject({ kind: 'robber', all: true });
+    n = applyAction(n, 0, { type: 'moveRobber', hex: hex.id, victim: null });
+    expect(totalResources(n.players[1].resources) + totalResources(n.players[2].resources)).toBe(0);
+    expect(n.phase.kind).toBe('main');
+  });
+
+  it('Alarmglocke, Waffenkammer: Wächter kostenlos bereit und aufgewertet', () => {
+    const s = game();
+    const [a, b] = legalGuardVertices(s, 0);
+    s.guards![a] = { owner: 0, level: 1, active: false };
+    s.guards![b] = { owner: 0, level: 2, active: false };
+    const before = totalResources(s.players[0].resources);
+    let n = play(s, 0, 'alarmBell');
+    expect(n.guards![a]!.active && n.guards![b]!.active).toBe(true);
+    expect(totalResources(n.players[0].resources)).toBe(before);
+    expect(() => play(n, 0, 'alarmBell')).toThrow(/ruhenden/);
+    // Stufe 3 erst mit dem Rat auf Stufe 3.
+    expect(() => play(s, 0, 'armory', { vertices: [a, b] })).toThrow(/Rat/);
+    n = play(s, 0, 'armory', { vertices: [a] });
+    expect(n.guards![a]!.level).toBe(2);
+    s.improvements![0].council = 3;
+    n = play(s, 0, 'armory', { vertices: [a, b] });
+    expect([n.guards![a]!.level, n.guards![b]!.level]).toEqual([2, 3]);
+  });
+
+  it('Flaschenzug, Pfahlramme, Bauhütte, Landvermesser', () => {
+    const s = game();
+    s.players[0].resources = hand({ cloth: 1 });
+    expect(canImprove(s, 0, 'market')).toBe(true);
+    s.players[0].resources = hand({ cloth: 1 });
+    s.improvements![0].market = 1;
+    expect(canImprove(s, 0, 'market')).toBe(false);
+    let n = play(s, 0, 'pulley');
+    expect(canImprove(n, 0, 'market')).toBe(true);
+    n = applyAction(n, 0, { type: 'improveCity', track: 'market' });
+    expect(n.improvements![0].market).toBe(2);
+    expect(count(n.players[0].resources, 'cloth')).toBe(0);
+    expect(n.boost?.pulley).toBeFalsy();
+
+    n = play(s, 0, 'pileDriver', { vertices: [cityOf(s, 0)] });
+    expect(n.walls).toEqual([cityOf(s, 0)]);
+    expect(() => play(s, 0, 'pileDriver', { vertices: [cityOf(s, 1)] })).toThrow(/eigene Stadt/);
+
+    const village = s.buildings.findIndex((b) => b?.owner === 0 && b.type === 'settlement');
+    s.players[0].resources = hand({ ore: 2, wheat: 1 });
+    n = play(s, 0, 'lodge', { vertices: [village] });
+    expect(n.buildings[village]?.type).toBe('city');
+    expect(totalResources(n.players[0].resources)).toBe(0);
+
+    n = play(s, 0, 'surveyor');
+    expect(n.phase).toMatchObject({ kind: 'roadBuilding', remaining: 2, returnTo: 'main' });
+    n = applyAction(n, 0, { type: 'buildRoad', edge: legalRoadEdges(n, 0)[0] });
+    n = applyAction(n, 0, { type: 'buildRoad', edge: legalRoadEdges(n, 0)[0] });
+    expect(n.phase.kind).toBe('main');
+  });
+
+  it('Wasserrad und Stollen: 2 je passendem Feld an eigenen Orten', () => {
+    const s = game();
+    const t = getTopology(s.board);
+    s.buildings = s.buildings.map(() => null);
+    const field = t.hexes.find((h) => s.board.hexes[h.id].terrain === 'wheat')!;
+    s.buildings[field.corners[0]] = { owner: 0, type: 'settlement' };
+    const wheat = t.vertices[field.corners[0]].hexes.filter((h) => s.board.hexes[h].terrain === 'wheat').length;
+    const n = play(s, 0, 'waterwheel');
+    expect(n.players[0].resources.wheat - s.players[0].resources.wheat).toBe(2 * wheat);
+    const hasOre = t.vertices[field.corners[0]].hexes.some((h) => s.board.hexes[h].terrain === 'ore');
+    if (!hasOre) expect(() => play(s, 0, 'gallery')).toThrow(/kein Feld/);
+  });
+
+  it('verdeckt: fremde Einflusskarten nur als Anzahl je Farbe, Stapel nur als Größe; Wiederaufbau geht auf', () => {
+    const s = game();
+    s.progress![1] = ['bulkBuy', 'pulley'];
+    s.progressDeck!.market.bulkBuy! -= 1;
+    s.progressDeck!.scholars.pulley! -= 1;
+    s.progress![0] = ['alarmBell'];
+    s.progressDeck!.council.alarmBell! -= 1;
+    expect(isConsistent(s)).toBe(true);
+    const v = viewFor(s, 0);
+    expect(v.progress![1]).toEqual([]);
+    expect(v.players[1].hidden!.progress).toEqual({ market: 1, council: 0, scholars: 1 });
+    expect(v.progress![0]).toEqual(['alarmBell']);
+    expect(v.progressDeck).toEqual({ market: {}, council: {}, scholars: {} });
+    expect(progressStackSize(v, 'market')).toBe(progressStackSize(s, 'market'));
+    expect(progressCount(v, 1)).toBe(2);
+    const { state } = rebuild(v, new Map<number, Secret>([[0, secretOf(s, 0)!]]), { rng: 5 });
+    expect(isConsistent(state)).toBe(true);
+    expect(state.progress![1].map((c) => PROGRESS[c].track).sort()).toEqual(['market', 'scholars']);
+    expect(state.progress![0]).toEqual(['alarmBell']);
+    // Ein gemeldetes Geheimnis mit falschen Farben zählt nicht.
+    const wrong = { ...secretOf(s, 1)!, progress: ['charter', 'pulley'] as ProgressCard[] };
+    const again = rebuild(v, new Map<number, Secret>([[1, wrong]]), { rng: 5 });
+    expect(again.dealt).toContain(1);
   });
 });

@@ -1,5 +1,5 @@
-import { actingSeats, applyAction, guardSpots, legalRobberHexes, legalRoadEdges, legalSetupRoads, legalSetupVertices, legalShipEdges, neutralSpots, robberVictims, vulnerableCities } from './rules';
-import { Action, CARDS, count, emptyResources, GameState, RESOURCES, setCount } from './types';
+import { actingSeats, applyAction, guardSpots, progressStackSize, legalRobberHexes, legalRoadEdges, legalSetupRoads, legalSetupVertices, legalShipEdges, neutralSpots, robberVictims, vulnerableCities } from './rules';
+import { Action, CARDS, count, emptyResources, GameState, RESOURCES, setCount, TRACKS } from './types';
 
 /**
  * Ein zurückhaltender, legaler Zug für einen Sitz, dessen Spieler nicht verbunden ist.
@@ -71,6 +71,11 @@ export function autoAction(s: GameState, seat: number, random: () => number = Ma
     }
     case 'displace':
       return { type: 'placeDisplaced', vertex: pick(guardSpots(s, seat)) ?? null };
+    case 'progressPick': {
+      // Stadtwacht III: aus dem größten Stapel ziehen.
+      const track = [...TRACKS].sort((a, b) => progressStackSize(s, b) - progressStackSize(s, a))[0];
+      return { type: 'pickProgress', track };
+    }
     case 'main':
     case 'specialBuild':
       return { type: 'endTurn' };

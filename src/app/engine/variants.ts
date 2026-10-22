@@ -56,7 +56,7 @@ export const VARIANTS: VariantDef[] = [
     name: 'Stadtwacht (in Arbeit)',
     victoryPoints: 3,
     description:
-      'Städte auf Wald, Weide und Gebirge liefern Güter (Schriften, Stoff, Silber). Damit baut man die Stadt in drei Richtungen aus; wer zuerst Stufe 4 erreicht, bekommt eine Prachtstadt (+2). Palisaden erhöhen das Handkartenlimit. Eine Plündererflotte greift die Städte an; Wächter verteidigen. Der Räuber kommt erst nach dem ersten Angriff. Zweite Startfigur ist eine Stadt, keine Entwicklungskarten. Einflusskarten folgen.',
+      'Städte auf Wald, Weide und Gebirge liefern Güter (Schriften, Stoff, Silber). Damit baut man die Stadt in drei Richtungen aus; wer zuerst Stufe 4 erreicht, bekommt eine Prachtstadt (+2). Palisaden erhöhen das Handkartenlimit. Eine Plündererflotte greift die Städte an; Wächter verteidigen. Der Räuber kommt erst nach dem ersten Angriff. Zeigt der Ereigniswürfel ein Tor, gibt es Einflusskarten für alle, deren Ausbau in dieser Farbe zum roten Würfel passt. Zweite Startfigur ist eine Stadt, keine Entwicklungskarten.',
   },
 ];
 
@@ -67,6 +67,8 @@ export const METROPOLIS_POINTS = 2;
 /** Stadtwacht II: Felder der Plündererleiste bis zum Angriff, Wächter je Stufe und Spieler. */
 export const RAIDER_TRACK = 7;
 export const GUARDS_PER_LEVEL = 2;
+/** Stadtwacht III: Einflusskarten auf der Hand, Punktkarten nicht mitgezählt. */
+export const PROGRESS_LIMIT = 4;
 
 /** Flussläufe: Münzen für eine Brücke und für Straße oder Siedlung am Fluss. */
 export const BRIDGE_COINS = 3;

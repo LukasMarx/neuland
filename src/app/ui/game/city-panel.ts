@@ -4,6 +4,7 @@ import {
   CARD_NAMES,
   count,
   GameState,
+  improveCost,
   metropolisCandidates,
   metropolisGain,
   Track,
@@ -51,7 +52,7 @@ const ABILITY: Record<Track, string> = {
           </p>
           @if (t.level < 5) {
             <button class="primary" [disabled]="!t.can" [title]="t.reason ?? ''" (click)="improve(t.track, t.gain)">
-              Stufe {{ t.level + 1 }} für {{ t.level + 1 }} {{ t.goodName }}
+              Stufe {{ t.level + 1 }} für {{ t.cost }} {{ t.goodName }}
               @if (t.gain) {
                 <small>· Prachtstadt</small>
               }
@@ -174,17 +175,20 @@ export class CityPanel {
       const at = g.metropolis?.[track] ?? null;
       const holderSeat = at === null ? null : (g.buildings[at]?.owner ?? null);
       const can = canImprove(g, seat, track) && this.myTurn();
+      // Flaschenzug (Einflusskarte): ein Gut weniger.
+      const cost = improveCost(g, seat, level + 1);
       let reason: string | null = null;
       if (!can) {
         if (!this.myTurn()) reason = 'Ausbauen kannst du in deinem Zug nach dem Würfeln.';
         else if (!cities) reason = 'Für den Ausbau brauchst du eine Stadt.';
-        else if (!hand || count(hand, good) < level + 1) reason = `Dafür brauchst du ${level + 1} ${CARD_NAMES[good]}.`;
+        else if (!hand || count(hand, good) < cost) reason = `Dafür brauchst du ${cost} ${CARD_NAMES[good]}.`;
         else reason = 'Für die Prachtstadt fehlt dir eine Stadt, die noch keine ist.';
       }
       return {
         track,
         good,
         level,
+        cost,
         can,
         reason,
         name: TRACK_NAMES[track],

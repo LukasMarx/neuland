@@ -236,6 +236,29 @@ Referenz (nur zur Orientierung): „Städte & Ritter“.
 >
 > **Umgesetzt am 22.10.2026 (Stadtwacht II):** Ereigniswürfel bei jedem Wurf (drei Schiffe, drei Tore; die Tore wirken erst mit den Einflusskarten). Plündererflotte auf einer Leiste mit 7 Feldern, Angriff vor dem Ertrag: Stärke = alle Städte, Verteidigung = Stufen aller bereiten Wächter. Ist die Flotte stärker, verliert, wer am wenigsten beigetragen hat und eine gewöhnliche Stadt besitzt, eine Stadt (Phase `raid`, bei mehreren Städten mit Wahl; Palisade geht mit). Sonst bekommt der alleinige stärkste Verteidiger einen Ehrenschild (+1); bei Gleichstand gibt es diesmal nichts (Einflusskarten folgen). Danach ruhen alle Wächter. Der Räuber kommt erst nach dem ersten Angriff ins Spiel. Wächter (`guards` je Ecke): aufstellen 1 Wolle + 1 Erz an der eigenen Straße, aufwerten ebenso (Stufe 3 erst mit Rat 3), bereit machen 1 Getreide (handelt ab dem nächsten Zug), einmal ziehen über eigene Straßen, schwächere fremde Wächter verdrängen (Phase `displace`), Räuber vom angrenzenden Feld vertreiben; je zwei pro Stufe. Wächter blockieren die Ecke und unterbrechen fremde Straßen. Grafik-Auftrag: `output/designs/stadtwacht-2026-10-22/grafik-auftrag.md`.
 
+> **Umgesetzt am 22.10.2026 (Stadtwacht III-a, Einflusskarten):** Drei Stapel als Zählwerk (`progressDeck`), Hände je Sitz (`progress`), ausgespielte Karten offen (`progressPlayed`), Punktkarten je Sitz (`progressPoints`). Zeigt der Ereigniswürfel ein Tor, zieht in Zugreihenfolge jeder mit Ausbaustufe s in dieser Farbe, wenn der rote Würfel (zweiter Würfel) höchstens s+1 zeigt. Eigene Vereinfachung: Wer schon 4 Einflusskarten hält, zieht nicht (kein Abwerfen). Punktkarten liegen sofort offen aus. Gespielt wird im eigenen Zug nach dem Würfeln, beliebig viele. Gleichstand bei der Abwehr: Jeder der Besten zieht eine Karte aus einem Stapel seiner Wahl (Phase `progressPick`). Verdeckt: fremde Hände nur als Anzahl je Farbe, Stapel nur als Größe; der Wiederaufbau kennt die Karten. 16 Karten mit eigenen Namen:
+>
+> | Farbe | Karte | Anzahl | Wirkung |
+> |---|---|---|---|
+> | Gelb (Markt) | Großeinkauf | 4 | Rohstoff nennen, jeder gibt bis zu 2 |
+> | | Zunftrecht | 2 | Gut nennen, jeder gibt 1 |
+> | | Frachtkontor | 2 | eine Kartenart 2:1 bis Zugende |
+> | Blau (Rat) | Stadtrecht | 1 | 1 Siegpunkt |
+> | | Alarmglocke | 2 | alle ruhenden Wächter kostenlos bereit |
+> | | Unruhestifter | 2 | wer mindestens gleich viele Punkte hat, wirft die Hälfte ab |
+> | | Festbankett | 2 | wer mehr Punkte hat, schenkt 2 Karten seiner Wahl |
+> | | Steuereintreiber | 2 | Räuber versetzen, bei jedem am Feld 1 Karte (erst nach dem ersten Angriff) |
+> | Grün (Gelehrte) | Flaschenzug | 2 | nächster Ausbau im Zug ein Gut billiger |
+> | | Pfahlramme | 1 | Palisade kostenlos |
+> | | Wasserrad | 2 | 2 Getreide je Getreidefeld an eigenen Orten |
+> | | Stollen | 2 | 2 Erz je Gebirge an eigenen Orten |
+> | | Bauhütte | 2 | Stadt für 2 Erz + 1 Getreide |
+> | | Sternwarte | 1 | 1 Siegpunkt |
+> | | Landvermesser | 2 | 2 Straßen kostenlos |
+> | | Waffenkammer | 2 | bis zu 2 Wächter kostenlos aufwerten |
+>
+> Noch offen (Stadtwacht III-b): die Karten mit Zielen auf dem Brett oder in fremden Händen: Würfel selbst bestimmen, Zahlenchips tauschen, Händlerfigur, fremde Wächter übernehmen oder versetzen, fremde Straße entfernen, Einflusskarten anschauen und nehmen, Rohstoff gegen Gut mit jedem tauschen, Karten bei Führenden ziehen. Bis dahin enthalten die Stapel nur die Karten oben (Gelb 8, Blau 9, Grün 14).
+
 #### Regeln in Kürze
 
 - **Drei Würfel:** zwei Zahlenwürfel (einer davon farbig markiert) und ein Ereigniswürfel. Der Ereigniswürfel zeigt auf drei Seiten ein Schiff, auf den anderen je ein Stadttor in Gelb, Blau oder Grün.

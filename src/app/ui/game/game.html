@@ -56,6 +56,9 @@
               @if (p.anchor) {
                 · <img class="tag-icon" src="web/icons/fishing/anchor.png" alt="" />Anker
               }
+              @if (p.progress) {
+                · {{ p.progress }} Einfluss
+              }
               @if (p.coinRank > 0) {
                 · Reichster
               } @else if (p.coinRank < 0) {
@@ -132,6 +135,13 @@
           }
         </span>
       }
+      @if (progressStacks(); as stacks) {
+        @for (st of stacks; track st.track) {
+          <span class="pstack" [attr.data-track]="st.track" [title]="'Einflusskarten ' + st.name + ': ' + st.size + ' im Stapel'">
+            <i aria-hidden="true"></i><b>{{ st.size }}</b>
+          </span>
+        }
+      }
       @if (!cityWatch()) {
         <span class="bstack" data-bank="dev" title="Entwicklungskarten im Stapel">
           <img class="deck" [src]="cardArt.back" alt="" /> <b>{{ deckSize(game) }}</b>
@@ -169,6 +179,9 @@
     @if (buildMode(); as mode) {
       <div class="board-hint">
         {{ buildHint() }}
+        @if (mode === 'progress' && progressGuards().length) {
+          <button class="small primary" (click)="confirmProgressGuards()">Aufwerten</button>
+        }
         <button class="small" (click)="buildMode.set(null); moveFrom.set(null)">Abbrechen <kbd>Esc</kbd></button>
       </div>
     }
@@ -218,7 +231,7 @@
     }
   </aside>
 
-  <section class="dock" [class.trading]="showTable() || offerView()">
+  <section class="dock" [class.trading]="showTable() || offerView()" [class.wide]="cityWatch()">
     @if (showTable()) {
       <app-trade-table [game]="game" [seat]="seat()" [prefill]="tradePrefill()" (close)="closeTrade()" />
     } @else if (offerView()) {
@@ -242,6 +255,20 @@
               }
             }
           </div>
+        }
+        @if (game.progress) {
+          <span class="divider" title="Einflusskarten"></span>
+          @for (c of myProgress(); track $index) {
+            <button class="pcard" [attr.data-track]="c.track" [class.ready]="canPlayProgress()" [title]="c.text" (click)="openProgress(c.card)">
+              <small>{{ trackNames[c.track] }}</small>
+              <b>{{ c.short }}</b>
+            </button>
+          } @empty {
+            <span class="pcard empty" title="Einflusskarten gibt es, wenn der Ereigniswürfel ein Tor zeigt und dein Ausbau in dieser Farbe zum roten Würfel passt.">
+              <small>Einfluss</small>
+              <b>keine</b>
+            </span>
+          }
         }
         @if (myDevCards().length) {
           <span class="divider"></span>
@@ -387,6 +414,7 @@
         [rollKey]="rollKey()"
         [canRoll]="isCurrent() && game.phase.kind === 'roll'"
         [sound]="sound()"
+        [redSecond]="cityWatch()"
         (roll)="roll()"
         (landed)="onLanded($event)"
       />
@@ -475,6 +503,10 @@
         <dt>Prachtstädte</dt>
         <dd><span class="muted">{{ d.metropolises }} × 2</span><b [class.none]="!d.metropolises">{{ d.metropolises * 2 || '–' }}</b></dd>
       }
+      @if (d.progressCards !== null) {
+        <dt>Punktkarten</dt>
+        <dd><span class="muted">{{ d.progressCards }} Einflusskarten auf der Hand</span><b [class.none]="!d.progressPoints">{{ d.progressPoints || '–' }}</b></dd>
+      }
       @if (d.coins !== null) {
         <dt>Münzen</dt>
         <dd>
@@ -528,18 +560,69 @@
 @if (discardDue() > 0 && me(); as self) {
   <div class="modal-backdrop">
     <div class="modal">
-      <h3>Räuber! Wirf {{ discardDue() }} Karten ab</h3>
-      <p class="muted">Du hast {{ total(self.resources) }} Karten und musst die Hälfte abgeben.</p>
+      @if ($any(game.phase).to !== undefined) {
+        <h3>Festbankett: Schenke {{ game.players[$any(game.phase).to].name }} {{ discardDue() }} Karten</h3>
+        <p class="muted">Du hast mehr Siegpunkte. Welche Karten du verschenkst, wählst du selbst.</p>
+      } @else if ($any(game.phase).then === 'main') {
+        <h3>Unruhestifter! Wirf {{ discardDue() }} Karten ab</h3>
+        <p class="muted">Du hast mindestens so viele Siegpunkte und musst die Hälfte deiner {{ total(self.resources) }} Karten abgeben.</p>
+      } @else {
+        <h3>Räuber! Wirf {{ discardDue() }} Karten ab</h3>
+        <p class="muted">Du hast {{ total(self.resources) }} Karten und musst die Hälfte abgeben.</p>
+      }
       <app-resource-picker [(value)]="discardPick" [max]="self.resources" [total]="discardDue()" [cards]="handCards()" />
       <div class="row end mt">
         <span class="muted">{{ total(discardPick()) }} / {{ discardDue() }}</span>
-        <button class="primary" [disabled]="total(discardPick()) !== discardDue()" (click)="discard()">Abwerfen</button>
+        <button class="primary" [disabled]="total(discardPick()) !== discardDue()" (click)="discard()">{{ $any(game.phase).to !== undefined ? 'Schenken' : 'Abwerfen' }}</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (progressPickDue() && progressStacks(); as stacks) {
+  <div class="modal-backdrop">
+    <div class="modal">
+      <h3>Gleichstand bei der Abwehr</h3>
+      <p class="muted">Du hast so viel verteidigt wie die Besten. Dafür ziehst du eine Einflusskarte. Aus welchem Stapel?</p>
+      <div class="choice-list">
+        @for (st of stacks; track st.track) {
+          <button class="ptrack" [attr.data-track]="st.track" [disabled]="!st.size" (click)="pickProgress(st.track)">
+            <i aria-hidden="true"></i> {{ st.name }} <span class="muted">({{ st.size }} Karten)</span>
+          </button>
+        }
       </div>
     </div>
   </div>
 }
 
 @switch (dialog()?.kind) {
+  @case ('progress') {
+    <div class="modal-backdrop" (click)="dialog.set(null)">
+      @if (progressDialog(); as pd) {
+        <div class="modal pmodal" [attr.data-track]="pd.track" (click)="$event.stopPropagation()">
+          <small class="ptag">Einflusskarte · {{ trackNames[pd.track] }}</small>
+          <h3>{{ pd.name }}</h3>
+          <p>{{ pd.text }}</p>
+          @if (pd.reason) {
+            <p class="muted">{{ pd.reason }}</p>
+          }
+          @if (pd.options.length) {
+            <div class="choice-list">
+              @for (r of pd.options; track r) {
+                <button [disabled]="!!pd.reason" (click)="playProgress(pd.card, r)"><img class="choice-icon" [src]="resourceArt[r]" alt="" /> {{ resourceNames[r] }}</button>
+              }
+            </div>
+          }
+          <div class="row end mt">
+            <button (click)="dialog.set(null)">Schließen</button>
+            @if (!pd.options.length) {
+              <button class="primary" [disabled]="!!pd.reason" (click)="playProgress(pd.card)">{{ pd.board ? 'Auf dem Brett wählen' : 'Ausspielen' }}</button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
   @case ('victim') {
     <div class="modal-backdrop" (click)="dialog.set(null)">
       <div class="modal" (click)="$event.stopPropagation()">

@@ -93,6 +93,8 @@ export interface HiddenCounts {
   cards: number;
   dev: number;
   fish: number;
+  /** Stadtwacht: Einflusskarten je Farbe; die Rückseiten sieht jeder. */
+  progress?: Record<Track, number>;
 }
 
 export interface TradeOffer {
@@ -113,9 +115,13 @@ export type Phase =
   /** `owners[index]`: für wen gesetzt wird, falls nicht für sich selbst (Duell: Teile der Neutralen). */
   | { kind: 'setup'; order: number[]; index: number; step: 'settlement' | 'road'; settlement: number | null; owners?: number[] }
   | { kind: 'roll' }
-  /** pending[seat] = Anzahl Karten, die dieser Spieler noch abwerfen muss. */
-  | { kind: 'discard'; pending: number[] }
-  | { kind: 'robber'; returnTo: ReturnPhase }
+  /**
+   * pending[seat] = Anzahl Karten, die dieser Spieler noch abwerfen muss. Einflusskarten nutzen die Phase
+   * auch: `to` bekommt die Karten statt der Bank, und mit `then` geht es danach ohne Räuber weiter.
+   */
+  | { kind: 'discard'; pending: number[]; to?: number; then?: 'main' }
+  /** `all`: Steuereintreiber, zieht bei jedem am Feld eine Karte. */
+  | { kind: 'robber'; returnTo: ReturnPhase; all?: boolean }
   | { kind: 'main' }
   | { kind: 'roadBuilding'; remaining: number; returnTo: ReturnPhase }
   /** Sonderbauphase (5–6 Spieler): queue[0] ist gerade dran. */
@@ -131,6 +137,11 @@ export type Phase =
   | { kind: 'raid'; pending: number[]; sum: number }
   /** Stadtwacht: Ein verdrängter Wächter sucht einen neuen Platz an den Straßen seines Besitzers. */
   | { kind: 'displace'; seat: number; guard: Guard }
+  /**
+   * Stadtwacht III: Gleichstand bei der Abwehr; pending[seat] = 1, wer noch die Farbe seiner Einflusskarte
+   * wählt. Danach geht der Wurf `sum` weiter.
+   */
+  | { kind: 'progressPick'; pending: number[]; sum: number }
   | { kind: 'ended' };
 
 /** Wo eine Karte herkommt oder hingeht, für die Flug-Animation. */
@@ -241,6 +252,18 @@ export interface GameState {
   raiders?: { position: number; attacked: boolean };
   honors?: number[];
   event?: EventFace | null;
+  /**
+   * Stadtwacht III: Einflusskarten auf der Hand je Sitz, die drei Stapel als Zählwerk, ausgespielte und
+   * ausgelegte Karten (offen) und Punkte aus Punktkarten je Sitz.
+   */
+  progress?: ProgressCard[][];
+  progressDeck?: Record<Track, Partial<Record<ProgressCard, number>>>;
+  progressPlayed?: ProgressCard[];
+  progressPoints?: number[];
+  /** In einer Sicht: Größe der Einflussstapel, deren Inhalt fehlt. */
+  hiddenProgressDeck?: Record<Track, number>;
+  /** Was ausgespielte Einflusskarten für den laufenden Zug bewirken. */
+  boost?: { pulley?: boolean; tradingPost?: Card };
 }
 
 /** Stadtwacht: Wächter auf einer Ecke. `ready` = Zug, ab dem er nach dem Aktivieren handeln darf. */
@@ -260,6 +283,61 @@ export const TRACKS: readonly Track[] = ['market', 'council', 'scholars'];
 export type Improvements = Record<Track, number>;
 export const TRACK_GOODS: Record<Track, Commodity> = { market: 'cloth', council: 'coin', scholars: 'paper' };
 export const TRACK_NAMES: Record<Track, string> = { market: 'Markt', council: 'Rat', scholars: 'Gelehrte' };
+
+/**
+ * Stadtwacht III: Einflusskarten, eigene Fassung. Gelb (Markt) handelt, Blau (Rat) regiert, Grün
+ * (Gelehrte) baut und forscht. Weitere Karten mit Zielen auf dem Brett kommen später dazu.
+ */
+export type ProgressCard =
+  | 'bulkBuy'
+  | 'guildRight'
+  | 'tradingPost'
+  | 'charter'
+  | 'alarmBell'
+  | 'agitator'
+  | 'banquet'
+  | 'taxCollector'
+  | 'pulley'
+  | 'pileDriver'
+  | 'waterwheel'
+  | 'gallery'
+  | 'lodge'
+  | 'observatory'
+  | 'surveyor'
+  | 'armory';
+
+export interface ProgressDef {
+  name: string;
+  track: Track;
+  /** Wie oft die Karte im Stapel liegt. */
+  copies: number;
+  text: string;
+  /** Punktkarte: wird sofort ausgelegt. */
+  point?: boolean;
+  /** Was beim Ausspielen gewählt wird. */
+  target?: 'resource' | 'commodity' | 'card' | 'city' | 'settlement' | 'guards';
+}
+
+export const PROGRESS: Record<ProgressCard, ProgressDef> = {
+  bulkBuy: { name: 'Großeinkauf', track: 'market', copies: 4, target: 'resource', text: 'Nenne einen Rohstoff. Jeder Mitspieler gibt dir bis zu 2 Karten davon.' },
+  guildRight: { name: 'Zunftrecht', track: 'market', copies: 2, target: 'commodity', text: 'Nenne ein Gut. Jeder Mitspieler gibt dir 1 Karte davon, wenn er eine hat.' },
+  tradingPost: { name: 'Frachtkontor', track: 'market', copies: 2, target: 'card', text: 'Wähle eine Kartenart. Bis zum Ende deines Zuges tauschst du sie 2:1 mit der Bank.' },
+  charter: { name: 'Stadtrecht', track: 'council', copies: 1, point: true, text: '1 Siegpunkt. Wird sofort offen ausgelegt.' },
+  alarmBell: { name: 'Alarmglocke', track: 'council', copies: 2, text: 'Alle deine ruhenden Wächter werden kostenlos einsatzbereit.' },
+  agitator: { name: 'Unruhestifter', track: 'council', copies: 2, text: 'Wer mindestens so viele Siegpunkte hat wie du, wirft die Hälfte seiner Handkarten ab.' },
+  banquet: { name: 'Festbankett', track: 'council', copies: 2, text: 'Wer mehr Siegpunkte hat als du, schenkt dir 2 Handkarten seiner Wahl.' },
+  taxCollector: { name: 'Steuereintreiber', track: 'council', copies: 2, text: 'Versetze den Räuber und ziehe bei jedem, der an das Feld grenzt, eine Karte.' },
+  pulley: { name: 'Flaschenzug', track: 'scholars', copies: 2, text: 'Dein nächster Stadtausbau in diesem Zug kostet ein Gut weniger.' },
+  pileDriver: { name: 'Pfahlramme', track: 'scholars', copies: 1, target: 'city', text: 'Baue kostenlos eine Palisade unter eine deiner Städte.' },
+  waterwheel: { name: 'Wasserrad', track: 'scholars', copies: 2, text: 'Je Getreidefeld an deinen Siedlungen und Städten bekommst du 2 Getreide.' },
+  gallery: { name: 'Stollen', track: 'scholars', copies: 2, text: 'Je Gebirge an deinen Siedlungen und Städten bekommst du 2 Erz.' },
+  lodge: { name: 'Bauhütte', track: 'scholars', copies: 2, target: 'settlement', text: 'Mache eine Siedlung für 2 Erz und 1 Getreide zur Stadt.' },
+  observatory: { name: 'Sternwarte', track: 'scholars', copies: 1, point: true, text: '1 Siegpunkt. Wird sofort offen ausgelegt.' },
+  surveyor: { name: 'Landvermesser', track: 'scholars', copies: 2, text: 'Baue 2 Straßen kostenlos.' },
+  armory: { name: 'Waffenkammer', track: 'scholars', copies: 2, target: 'guards', text: 'Werte bis zu 2 deiner Wächter kostenlos auf.' },
+};
+
+export const PROGRESS_CARDS = Object.keys(PROGRESS) as ProgressCard[];
 
 /** Duell: wofür man Handelsmarken ausgibt. */
 export type TokenEffect = 'trade' | 'robber';
@@ -321,7 +399,10 @@ export type Action =
   | { type: 'moveGuard'; from: number; to: number }
   | { type: 'chaseRobber'; vertex: number }
   | { type: 'loseCity'; vertex: number }
-  | { type: 'placeDisplaced'; vertex: number | null };
+  | { type: 'placeDisplaced'; vertex: number | null }
+  /** Stadtwacht III: Einflusskarte ausspielen; `card` = gewählte Kartenart, `vertices` = Ziele auf dem Brett. */
+  | { type: 'playProgress'; progress: ProgressCard; card?: Card; vertices?: number[] }
+  | { type: 'pickProgress'; track: Track };
 
 export const RESOURCE_NAMES: Record<Resource, string> = {
   wood: 'Holz',
@@ -349,6 +430,7 @@ export const COSTS = {
   wall: { wood: 0, brick: 2, sheep: 0, wheat: 0, ore: 0 },
   guard: { wood: 0, brick: 0, sheep: 1, wheat: 0, ore: 1 },
   activate: { wood: 0, brick: 0, sheep: 0, wheat: 1, ore: 0 },
+  lodge: { wood: 0, brick: 0, sheep: 0, wheat: 1, ore: 2 },
 } satisfies Record<string, ResourceCounts>;
 
 export const PIECE_LIMITS = { road: 15, settlement: 5, city: 4, ship: 15, bridge: 3 };
