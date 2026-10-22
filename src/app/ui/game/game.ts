@@ -60,6 +60,13 @@ import {
   victoryPoints,
   victoryTarget,
   canRaiseGuard,
+  intrigueTargets,
+  openRoads,
+  reformHexes,
+  richerPlayers,
+  scoutTargets,
+  traderHexes,
+  turncoatTargets,
   COMMODITIES,
   PROGRESS,
   PROGRESS_LIMIT,
@@ -122,7 +129,19 @@ const PROGRESS_BREAKS: Record<ProgressCard, string> = {
   observatory: 'Stern\u00adwarte',
   surveyor: 'Land\u00advermesser',
   armory: 'Waffen\u00adkammer',
+  peddler: 'Wander\u00adhändler',
+  bond: 'Schuld\u00adschein',
+  fair: 'Jahr\u00admarkt',
+  turncoat: 'Über\u00adläufer',
+  envoy: 'Gesandter',
+  intrigue: 'Ränke\u00adspiel',
+  scout: 'Kund\u00adschafter',
+  fortune: 'Los\u00adbuch',
+  landReform: 'Flur\u00adbereinigung',
 };
+
+/** Einflusskarten, deren Ziel auf dem Brett gewählt wird. */
+const BOARD_TARGETS = ['city', 'settlement', 'guards', 'trader', 'numbers', 'road', 'enemyGuard', 'turncoat'];
 
 const PLAYABLE: DevCard[] = ['knight', 'roadBuilding', 'yearOfPlenty', 'monopoly'];
 const HIGHLIGHT_MS = 2600;
@@ -215,7 +234,7 @@ export class GameView {
   protected readonly cityWatch = computed(() => !!this.g().improvements);
   /** Stadtwacht III: Einflusskarte, für die gerade Ziele auf dem Brett gewählt werden, und gewählte Wächter. */
   protected readonly progressCard = signal<ProgressCard | null>(null);
-  protected readonly progressGuards = signal<number[]>([]);
+  protected readonly progressPicks = signal<number[]>([]);
   protected readonly progressDefs = PROGRESS;
   protected readonly trackNames = TRACK_NAMES;
   protected readonly progressLimit = PROGRESS_LIMIT;
@@ -226,7 +245,25 @@ export class GameView {
     const order = (c: ProgressCard) => TRACKS.indexOf(PROGRESS[c].track);
     return [...cards].sort((a, b) => order(a) - order(b) || a.localeCompare(b)).map((card) => ({ card, ...PROGRESS[card], short: PROGRESS_BREAKS[card] }));
   });
-  protected readonly canPlayProgress = computed(() => this.isCurrent() && this.g().phase.kind === 'main');
+  protected readonly canPlayProgress = computed(() => this.isCurrent() && (this.g().phase.kind === 'main' || this.g().phase.kind === 'roll'));
+  /** Losbuch: die beiden Zahlenwürfel, die der Spieler festlegt. */
+  protected readonly fortuneDice = signal<[number, number]>([3, 4]);
+  protected readonly dieFaces = [1, 2, 3, 4, 5, 6];
+  /** Was das Brett bei Feldzielen als Vorschau zeigt. */
+  protected readonly hexGhost = computed(() => {
+    if (this.buildMode() !== 'progress') return 'robber';
+    return this.progressCard() === 'peddler' ? 'trader' : null;
+  });
+  /** Schuldschein und Kundschafter: was ich beim anderen sehe und nehmen darf. */
+  protected readonly peek = computed(() => {
+    const g = this.g();
+    const phase = g.phase;
+    if (phase.kind !== 'peek' || phase.seat !== this.seat()) return null;
+    const target = g.players[phase.target];
+    const cards = (g.progress?.[phase.target] ?? []).map((card) => ({ card, ...PROGRESS[card] }));
+    return { ...phase, name: target.name, resources: target.resources, cards };
+  });
+  protected readonly peekPick = signal<ResourceCounts>(emptyResources());
   /** Die drei Stapel mit ihrer Größe, für die Bankleiste und die Farbwahl. */
   protected readonly progressStacks = computed(() => {
     const g = this.g();
@@ -245,11 +282,15 @@ export class GameView {
     const def = PROGRESS[d.card];
     const g = this.g();
     const options: Card[] = def.target === 'resource' ? [...RESOURCES] : def.target === 'commodity' ? [...COMMODITIES] : def.target === 'card' ? [...this.handCards()] : [];
-    const board = def.target === 'city' || def.target === 'settlement' || def.target === 'guards';
+    const board = BOARD_TARGETS.includes(def.target ?? '');
+    const seat = this.seat();
+    const players = def.target === 'richer' ? richerPlayers(g, seat) : def.target === 'player' ? scoutTargets(g, seat) : null;
     let reason: string | null = null;
-    if (!this.isCurrent()) reason = 'Spielbar in deinem Zug nach dem Würfeln.';
-    else if (g.phase.kind !== 'main') reason = g.phase.kind === 'roll' ? 'Erst würfeln, dann spielen.' : 'Gerade nicht spielbar.';
-    return { card: d.card, ...def, options, board, reason };
+    if (!this.isCurrent()) reason = def.beforeRoll ? 'Spielbar in deinem Zug statt zu würfeln.' : 'Spielbar in deinem Zug nach dem Würfeln.';
+    else if (def.beforeRoll && g.phase.kind !== 'roll') reason = 'Das Losbuch spielst du statt zu würfeln.';
+    else if (!def.beforeRoll && g.phase.kind !== 'main') reason = g.phase.kind === 'roll' ? 'Erst würfeln, dann spielen.' : 'Gerade nicht spielbar.';
+    else if (players && !players.length) reason = def.target === 'richer' ? 'Niemand hat mehr Siegpunkte als du und Karten.' : 'Kein Mitspieler hat Einflusskarten.';
+    return { card: d.card, ...def, options, board, reason, players: players?.map((i) => ({ seat: i, name: g.players[i].name, color: g.players[i].color })) ?? null };
   });
   /** Stadtwacht II: Wächter, von dem aus gerade ein Ziel gewählt wird. */
   protected readonly guardFrom = signal<number | null>(null);
@@ -472,7 +513,12 @@ export class GameView {
         const name = PROGRESS[card].name;
         if (target === 'city') return `${name}: Wähle die Stadt für die Palisade`;
         if (target === 'settlement') return `${name}: Wähle die Siedlung, die Stadt wird`;
-        return `${name}: Wähle bis zu zwei Wächter (${this.progressGuards().length} gewählt)`;
+        if (target === 'trader') return `${name}: Wähle ein Feld an deiner Siedlung oder Stadt`;
+        if (target === 'numbers') return `${name}: Wähle zwei Zahlenfelder (${this.progressPicks().length} gewählt)`;
+        if (target === 'road') return `${name}: Wähle eine offene Straße`;
+        if (target === 'enemyGuard') return `${name}: Wähle einen fremden Wächter an deiner Straße`;
+        if (target === 'turncoat') return this.progressPicks().length ? `${name}: Wähle den Platz für deinen Wächter` : `${name}: Wähle den fremden Wächter`;
+        return `${name}: Wähle bis zu zwei Wächter (${this.progressPicks().length} gewählt)`;
       }
       default:
         return '';
@@ -490,6 +536,7 @@ export class GameView {
   /** Vorschau an Kanten: Schiff beim Schiffsbau und Versetzen, sonst Straße. */
   protected readonly edgeGhost = computed(() => {
     const mode = this.buildMode();
+    if (mode === 'progress') return 'none';
     return mode === 'ship' || mode === 'moveShip' ? 'ship' : 'road';
   });
 
@@ -548,9 +595,20 @@ export class GameView {
         return { ...none, vertices: legalCityVertices(g, seat) };
       case 'progress': {
         const target = PROGRESS[this.progressCard() ?? 'pulley'].target;
+        const picks = this.progressPicks();
         if (target === 'city') return { ...none, vertices: legalWallVertices(g, seat) };
         if (target === 'settlement') return { ...none, vertices: legalCityVertices(g, seat) };
-        const chosen = this.progressGuards();
+        if (target === 'trader') return { ...none, hexes: traderHexes(g, seat) };
+        if (target === 'numbers') return { ...none, hexes: reformHexes(g).filter((h) => !picks.includes(h)) };
+        if (target === 'road') return { ...none, edges: openRoads(g) };
+        if (target === 'enemyGuard') return { ...none, vertices: intrigueTargets(g, seat) };
+        if (target === 'turncoat') {
+          if (!picks.length) return { ...none, vertices: turncoatTargets(g, seat) };
+          // Der übergelaufene Wächter macht seine Ecke frei.
+          const without = { ...g, guards: g.guards!.map((x, v) => (v === picks[0] ? null : x)) };
+          return { ...none, vertices: guardSpots(without, seat) };
+        }
+        const chosen = this.progressPicks();
         const own = (g.guards ?? []).flatMap((x, v) => (x?.owner === seat && (chosen.includes(v) || canRaiseGuard(g, seat, v)) ? [v] : []));
         return { ...none, vertices: chosen.length >= 2 ? chosen : own };
       }
@@ -590,6 +648,10 @@ export class GameView {
         const why = phase.then === 'main' ? 'Unruhe!' : 'Räuber!';
         return mine ? `${why} Wirf ${due} Karten ab` : `${why} Warte auf ${waiting.join(', ')}`;
       }
+      case 'peek':
+        return phase.seat === this.seat()
+          ? `Nimm dir ${phase.take === 1 ? 'eine Karte' : `${phase.take} Karten`} von ${name(phase.target)}`
+          : `${name(phase.seat)} sieht sich die ${phase.what === 'cards' ? 'Hand' : 'Einflusskarten'} von ${name(phase.target)} an`;
       case 'progressPick': {
         const waiting = phase.pending.flatMap((n, i) => (n > 0 ? [name(i)] : []));
         return phase.pending[this.seat()] ? 'Gleichstand bei der Abwehr: Wähle die Farbe deiner Einflusskarte' : `Einflusskarten: Warte auf ${waiting.join(', ')}`;
@@ -659,6 +721,7 @@ export class GameView {
         displace: 'Neuen Platz wählen',
         discard: g.phase.kind === 'discard' && g.phase.to !== undefined ? 'Karten verschenken' : 'Karten abwerfen',
         progressPick: 'Farbe wählen',
+        peek: 'Karten nehmen',
       };
       return { label: hint[phase] ?? 'Du bist dran', run: null };
     }
@@ -685,6 +748,7 @@ export class GameView {
       neutral: !!p.neutral,
       tokens: g.tokens?.[seat] ?? null,
       progress: g.progress ? progressCount(g, seat) : null,
+      trader: g.trader?.owner === seat,
       coinRank: coinPoints(g, seat),
       active: actingSeats(g).includes(seat),
       online: !!members.find((m) => m.id === p.id)?.peerId,
@@ -761,6 +825,7 @@ export class GameView {
       defense: g.guards ? defenseOf(g, i.seat) : null,
       honors: g.honors?.[i.seat] ?? 0,
       progressPoints: g.progressPoints?.[i.seat] ?? 0,
+      trader: g.trader?.owner === i.seat,
       progressCards: g.progress ? progressCount(g, i.seat) : null,
       metropolises: g.metropolis ? TRACKS.filter((t) => g.metropolis![t] !== null && g.buildings[g.metropolis![t]!]?.owner === i.seat).length : 0,
       coinPoints: coinPoints(g, i.seat),
@@ -1103,6 +1168,10 @@ export class GameView {
   protected onEdge(edge: number): void {
     const g = this.g();
     const mode = this.buildMode();
+    if (mode === 'progress') {
+      this.finishProgress({ edge });
+      return;
+    }
     if (mode === 'moveShip') {
       const from = this.moveFrom();
       if (from === null) {
@@ -1132,6 +1201,14 @@ export class GameView {
 
   protected onHex(hex: number): void {
     const phase = this.g().phase;
+    const card = this.progressCard();
+    if (this.buildMode() === 'progress' && card) {
+      if (card === 'peddler') return this.finishProgress({ hexes: [hex] });
+      const picks = [...this.progressPicks(), hex];
+      if (picks.length < 2) this.progressPicks.set(picks);
+      else this.finishProgress({ hexes: picks });
+      return;
+    }
     // Steuereintreiber: Gezogen wird bei allen am Feld, keine Wahl.
     if (phase.kind === 'robber' && phase.all) {
       this.room.act({ type: 'moveRobber', hex, victim: null });
@@ -1204,9 +1281,9 @@ export class GameView {
   protected playProgress(card: ProgressCard, choice: Card | null = null): void {
     const target = PROGRESS[card].target;
     this.dialog.set(null);
-    if (target === 'city' || target === 'settlement' || target === 'guards') {
+    if (BOARD_TARGETS.includes(target ?? '')) {
       this.progressCard.set(card);
-      this.progressGuards.set([]);
+      this.progressPicks.set([]);
       this.cityOpen.set(false);
       this.buildMode.set('progress');
       return;
@@ -1217,11 +1294,17 @@ export class GameView {
   private progressVertex(vertex: number): void {
     const card = this.progressCard();
     if (!card) return;
+    if (PROGRESS[card].target === 'turncoat') {
+      const picks = [...this.progressPicks(), vertex];
+      if (picks.length < 2) this.progressPicks.set(picks);
+      else this.finishProgress({ vertices: picks });
+      return;
+    }
     if (PROGRESS[card].target === 'guards') {
       // Wächter sammeln; mit zweien geht es gleich los, mit einem über „Aufwerten“ in der Hinweisleiste.
-      const chosen = this.progressGuards();
+      const chosen = this.progressPicks();
       const next = chosen.includes(vertex) ? chosen.filter((v) => v !== vertex) : [...chosen, vertex];
-      this.progressGuards.set(next);
+      this.progressPicks.set(next);
       if (next.length === 2) this.confirmProgressGuards();
       return;
     }
@@ -1232,12 +1315,45 @@ export class GameView {
 
   protected confirmProgressGuards(): void {
     const card = this.progressCard();
-    const vertices = this.progressGuards();
+    const vertices = this.progressPicks();
     if (!card || !vertices.length) return;
     this.room.act({ type: 'playProgress', progress: card, vertices });
     this.progressCard.set(null);
-    this.progressGuards.set([]);
+    this.progressPicks.set([]);
     this.buildMode.set(null);
+  }
+
+  /** Brettziel gewählt: Karte mit diesen Zielen spielen und den Modus verlassen. */
+  private finishProgress(args: { vertices?: number[]; hexes?: number[]; edge?: number }): void {
+    const card = this.progressCard();
+    if (card) this.room.act({ type: 'playProgress', progress: card, ...args });
+    this.progressCard.set(null);
+    this.progressPicks.set([]);
+    this.buildMode.set(null);
+  }
+
+  protected playOnPlayer(card: ProgressCard, target: number): void {
+    this.dialog.set(null);
+    this.peekPick.set(emptyResources());
+    this.room.act({ type: 'playProgress', progress: card, target });
+  }
+
+  protected playFortune(): void {
+    this.dialog.set(null);
+    this.room.act({ type: 'playProgress', progress: 'fortune', dice: this.fortuneDice() });
+  }
+
+  protected setDie(index: 0 | 1, value: number): void {
+    this.fortuneDice.update((d) => (index === 0 ? [value, d[1]] : [d[0], value]));
+  }
+
+  protected takePeekCards(): void {
+    this.room.act({ type: 'takePeek', cards: this.peekPick() });
+    this.peekPick.set(emptyResources());
+  }
+
+  protected takePeekProgress(progress: ProgressCard): void {
+    this.room.act({ type: 'takePeek', progress });
   }
 
   protected pickProgress(track: Track): void {

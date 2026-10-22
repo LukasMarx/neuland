@@ -241,17 +241,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
 
   roll(s, seat) {
     requireTurn(s, seat, 'roll');
-    const dice = s.diceDeck ? drawDiceCard(s) : ([randomInt(s, 6) + 1, randomInt(s, 6) + 1] as [number, number]);
-    s.dice = dice;
-    const sum = dice[0] + dice[1];
-    // Stadtwacht: Zuerst der Ereigniswürfel; ein Schiff bringt die Plündererflotte näher.
-    if (s.raiders) s.event = EVENT_FACES[randomInt(s, 6)];
-    const event = s.raiders ? ` · ${s.event === 'ship' ? 'Schiff' : `Tor ${TRACK_NAMES[s.event as Track]}`}` : '';
-    log(s, seat, `${name(s, seat)} würfelt ${sum} (${dice[0]} + ${dice[1]})${event}.`);
-    if (s.raiders && s.event === 'ship' && advanceRaiders(s, sum)) return;
-    // Ein Tor: Einflusskarten für alle, deren Ausbau in dieser Farbe zum roten Würfel passt.
-    if (s.progress && s.event && s.event !== 'ship') drawOnGate(s, s.event, dice[1]);
-    afterRoll(s, sum);
+    rollDice(s, seat, s.diceDeck ? drawDiceCard(s) : ([randomInt(s, 6) + 1, randomInt(s, 6) + 1] as [number, number]));
   },
 
   loseCity(s, seat, { vertex }) {
@@ -849,16 +839,51 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     log(s, seat, `${name(s, seat)} vertreibt mit einem Wächter den Räuber.`);
   },
 
-  playProgress(s, seat, { progress, card, vertices }) {
+  playProgress(s, seat, { progress, card, vertices, hexes, edge, target, dice }) {
     if (!s.progress) fail('Einflusskarten gibt es nur mit Stadtwacht.');
-    requireTurn(s, seat, 'main');
     if (!Object.hasOwn(PROGRESS, progress)) fail('Unbekannte Einflusskarte.');
+    // Das Losbuch ersetzt den Wurf, alle anderen kommen nach dem Würfeln.
+    requireTurn(s, seat, PROGRESS[progress].beforeRoll ? 'roll' : 'main');
     const hand = s.progress[seat];
     const index = hand.indexOf(progress);
     if (index < 0) fail(`Du hast keine Karte „${PROGRESS[progress].name}“.`);
     hand.splice(index, 1);
     s.progressPlayed!.push(progress);
-    PLAY[progress](s, seat, { card, vertices: Array.isArray(vertices) ? vertices : [] });
+    PLAY[progress](s, seat, {
+      card,
+      vertices: Array.isArray(vertices) ? vertices : [],
+      hexes: Array.isArray(hexes) ? hexes : [],
+      edge,
+      target,
+      dice,
+    });
+  },
+
+  takePeek(s, seat, { cards, progress }) {
+    const phase = s.phase;
+    if (phase.kind !== 'peek' || phase.seat !== seat) fail('Du darfst gerade keine Karten nehmen.');
+    const victim = s.players[phase.target];
+    if (phase.what === 'cards') {
+      if (!cards) fail('Wähle die Karten.');
+      validateCounts(cards);
+      if (totalResources(cards) !== phase.take) fail(`Nimm genau ${phase.take} Karten.`);
+      if (!hasResources(victim.resources, cards)) fail('So viele Karten hat er nicht.');
+      takeFrom(victim.resources, cards);
+      addTo(s.players[seat].resources, cards);
+      for (const k of CARDS) {
+        if (count(cards, k)) s.transfers.push({ from: seatPoint(phase.target), to: seatPoint(seat), card: k, count: count(cards, k), hidden: true });
+      }
+      log(s, seat, `${name(s, seat)} nimmt sich ${phase.take === 1 ? 'eine Karte' : `${phase.take} Karten`} von ${name(s, phase.target)}.`);
+    } else {
+      const hand = s.progress![phase.target];
+      const index = progress ? hand.indexOf(progress) : -1;
+      if (index < 0) fail('Wähle eine seiner Einflusskarten.');
+      if (s.progress![seat].length >= PROGRESS_LIMIT) fail(`Du hast schon ${PROGRESS_LIMIT} Einflusskarten.`);
+      hand.splice(index, 1);
+      s.progress![seat].push(progress!);
+      log(s, seat, `${name(s, seat)} nimmt sich eine Einflusskarte von ${name(s, phase.target)}.`);
+    }
+    s.phase = { kind: 'main' };
   },
 
   pickProgress(s, seat, { track }) {
@@ -910,6 +935,7 @@ export function actingSeats(s: GameState): number[] {
     case 'progressPick':
       return phase.pending.flatMap((n, i) => (n > 0 ? [i] : []));
     case 'displace':
+    case 'peek':
       return [phase.seat];
     case 'ended':
       return [];
@@ -928,6 +954,7 @@ export function victoryPoints(s: GameState, seat: number, includeHidden: boolean
   vp += coinPoints(s, seat);
   vp += s.honors?.[seat] ?? 0;
   vp += s.progressPoints?.[seat] ?? 0;
+  if (s.trader?.owner === seat) vp++;
   if (s.metropolis) vp += TRACKS.filter((t) => s.metropolis![t] !== null && s.buildings[s.metropolis![t]!]?.owner === seat).length * METROPOLIS_POINTS;
   if (includeHidden) {
     const p = s.players[seat];
@@ -1152,6 +1179,8 @@ export function tradeRate(s: GameState, seat: number, give: Card): number {
     if (harbors[v] === give) rate = Math.min(rate, 2);
     else if (harbors[v] === 'any') rate = Math.min(rate, 3);
   });
+  // Wanderhändler: der Rohstoff seines Feldes 2:1.
+  if (s.trader?.owner === seat && s.board.hexes[s.trader.hex]?.terrain === give) rate = Math.min(rate, 2);
   // Frachtkontor (Einflusskarte): diese Kartenart 2:1 bis zum Ende des Zuges.
   if (s.boost?.tradingPost === give && s.current === seat) rate = Math.min(rate, 2);
   return rate;
@@ -1345,6 +1374,20 @@ export function coinPoints(s: GameState, seat: number): number {
   const min = Math.min(...counts);
   if (max === min) return 0;
   return s.coins[seat] === max ? 1 : s.coins[seat] === min ? -2 : 0;
+}
+
+/** Der Rest eines Wurfs mit festen Zahlenwürfeln (auch für das Losbuch): Ereigniswürfel, Flotte, Ertrag. */
+function rollDice(s: GameState, seat: number, dice: [number, number]): void {
+  s.dice = dice;
+  const sum = dice[0] + dice[1];
+  // Stadtwacht: Zuerst der Ereigniswürfel; ein Schiff bringt die Plündererflotte näher.
+  if (s.raiders) s.event = EVENT_FACES[randomInt(s, 6)];
+  const event = s.raiders ? ` · ${s.event === 'ship' ? 'Schiff' : `Tor ${TRACK_NAMES[s.event as Track]}`}` : '';
+  log(s, seat, `${name(s, seat)} würfelt ${sum} (${dice[0]} + ${dice[1]})${event}.`);
+  if (s.raiders && s.event === 'ship' && advanceRaiders(s, sum)) return;
+  // Ein Tor: Einflusskarten für alle, deren Ausbau in dieser Farbe zum roten Würfel passt.
+  if (s.progress && s.event && s.event !== 'ship') drawOnGate(s, s.event, dice[1]);
+  afterRoll(s, sum);
 }
 
 /** Ereigniswürfel: drei Seiten Schiff, je eine Seite ein Tor. */
@@ -1839,7 +1882,70 @@ function harvest(s: GameState, seat: number, r: Resource, card: string): void {
   log(s, seat, `${name(s, seat)} spielt ${card} und bekommt ${got} ${RESOURCE_NAMES[r]}.`);
 }
 
-type ProgressArgs = { card?: Card; vertices: number[] };
+type ProgressArgs = { card?: Card; vertices: number[]; hexes: number[]; edge?: number; target?: number; dice?: [number, number] };
+
+/** Wanderhändler: Felder mit Rohstoff an eigenen Siedlungen und Städten. */
+export function traderHexes(s: GameState, seat: number): number[] {
+  const topo = getTopology(s.board);
+  return topo.hexes
+    .filter((h) => isResource(s.board.hexes[h.id].terrain) && h.corners.some((v) => s.buildings[v]?.owner === seat))
+    .map((h) => h.id)
+    .filter((h) => !(s.trader?.hex === h && s.trader.owner === seat));
+}
+
+/** Schuldschein: Mitspieler mit mehr Siegpunkten und mindestens einer Karte. */
+export function richerPlayers(s: GameState, seat: number): number[] {
+  const mine = victoryPoints(s, seat, false);
+  return s.players.flatMap((p, i) => (i !== seat && !p.neutral && victoryPoints(s, i, false) > mine && handSize(p) > 0 ? [i] : []));
+}
+
+/** Kundschafter: Mitspieler mit Einflusskarten. */
+export function scoutTargets(s: GameState, seat: number): number[] {
+  return s.players.flatMap((p, i) => (i !== seat && !p.neutral && progressCount(s, i) > 0 ? [i] : []));
+}
+
+/** Flurbereinigung: Zahlenfelder an Land außer 2, 12, 6 und 8. */
+export function reformHexes(s: GameState): number[] {
+  return s.board.hexes.flatMap((h, id) => (h.number != null && isLand(h.terrain) && ![2, 12, 6, 8].includes(h.number) ? [id] : []));
+}
+
+/**
+ * Gesandter: offene Straßen. Mindestens ein Ende stößt an nichts Eigenes (keine Siedlung, Stadt, Wächter
+ * oder weitere Straße des Besitzers). Brücken und Straßen der Neutralen bleiben liegen.
+ */
+export function openRoads(s: GameState): number[] {
+  const topo = getTopology(s.board);
+  return s.roads.flatMap((owner, e) => {
+    if (owner === null || s.players[owner].neutral || isRiverEdge(s, e)) return [];
+    const edge = topo.edges[e];
+    const loose = [edge.a, edge.b].some(
+      (v) =>
+        s.buildings[v]?.owner !== owner &&
+        s.guards?.[v]?.owner !== owner &&
+        !topo.vertices[v].edges.some((o) => o !== e && s.roads[o] === owner),
+    );
+    return loose ? [e] : [];
+  });
+}
+
+/** Überläufer: fremde Wächter, deren Stufe der Spieler noch aufstellen darf. */
+export function turncoatTargets(s: GameState, seat: number): number[] {
+  return (s.guards ?? []).flatMap((g, v) => (g && g.owner !== seat && guardCount(s, seat, g.level) < GUARDS_PER_LEVEL ? [v] : []));
+}
+
+/** Ränkespiel: fremde Wächter an einer eigenen Straße. */
+export function intrigueTargets(s: GameState, seat: number): number[] {
+  const topo = getTopology(s.board);
+  return (s.guards ?? []).flatMap((g, v) => (g && g.owner !== seat && topo.vertices[v].edges.some((e) => s.roads[e] === seat) ? [v] : []));
+}
+
+/** Einen Wächter vom Brett nehmen; sein Besitzer setzt ihn um, wenn er Platz hat. */
+function pushGuard(s: GameState, vertex: number): void {
+  const g = s.guards![vertex]!;
+  s.guards![vertex] = null;
+  if (guardSpots(s, g.owner).length) s.phase = { kind: 'displace', seat: g.owner, guard: g };
+  else log(s, g.owner, `Der Wächter von ${name(s, g.owner)} findet keinen Platz und geht zurück in den Vorrat.`);
+}
 
 const PLAY: Record<ProgressCard, (s: GameState, seat: number, a: ProgressArgs) => void> = {
   bulkBuy(s, seat, { card }) {
@@ -1929,6 +2035,91 @@ const PLAY: Record<ProgressCard, (s: GameState, seat: number, a: ProgressArgs) =
     if (remaining === 0 || !canLayFreePiece(s, seat)) fail('Du kannst gerade keine Straße bauen.');
     log(s, seat, `${name(s, seat)} spielt Landvermesser.`);
     s.phase = { kind: 'roadBuilding', remaining, returnTo: 'main' };
+  },
+  peddler(s, seat, { hexes }) {
+    const hex = hexes[0];
+    if (!traderHexes(s, seat).includes(hex)) fail('Der Händler kommt auf ein Rohstofffeld an deiner Siedlung oder Stadt.');
+    const from = s.trader?.owner ?? null;
+    s.trader = { hex, owner: seat };
+    const what = RESOURCE_NAMES[s.board.hexes[hex].terrain as Resource];
+    log(
+      s,
+      seat,
+      from !== null && from !== seat
+        ? `${name(s, seat)} holt sich den Händler von ${name(s, from)} (${what} 2:1).`
+        : `${name(s, seat)} setzt den Händler (${what} 2:1).`,
+    );
+  },
+  bond(s, seat, { target }) {
+    if (target === undefined || !richerPlayers(s, seat).includes(target)) fail('Wähle einen Spieler mit mehr Siegpunkten und Karten.');
+    log(s, seat, `${name(s, seat)} spielt Schuldschein und sieht sich die Hand von ${name(s, target)} an.`);
+    s.phase = { kind: 'peek', seat, target, what: 'cards', take: Math.min(2, totalResources(s.players[target].resources)) };
+  },
+  fair(s, seat, { card }) {
+    if (!card || !isResource(card)) fail('Nenne einen Rohstoff.');
+    const me = s.players[seat];
+    let n = 0;
+    s.players.forEach((p, i) => {
+      if (i === seat || p.neutral || me.resources[card] <= 0) return;
+      const goods = cardList(p.resources).filter(isCommodity);
+      if (!goods.length) return;
+      const good = goods[randomInt(s, goods.length)];
+      me.resources[card]--;
+      p.resources[card]++;
+      addCard(p.resources, good, -1);
+      addCard(me.resources, good, 1);
+      transfer(s, seatPoint(seat), seatPoint(i), card, 1);
+      s.transfers.push({ from: seatPoint(i), to: seatPoint(seat), card: good, count: 1, hidden: true });
+      n++;
+    });
+    log(s, seat, `${name(s, seat)} spielt Jahrmarkt: ${n === 1 ? 'ein Tausch' : `${n} Tausche`} ${RESOURCE_NAMES[card]} gegen Güter.`);
+  },
+  turncoat(s, seat, { vertices }) {
+    const [from, to] = vertices;
+    if (!turncoatTargets(s, seat).includes(from)) fail('Wähle einen fremden Wächter, dessen Stufe du noch aufstellen darf.');
+    const g = s.guards![from]!;
+    s.guards![from] = null;
+    if (!canPlaceGuard(s, seat, to)) fail('Dein Wächter kommt auf eine freie Ecke an einer eigenen Straße.');
+    s.guards![to] = { owner: seat, level: g.level, active: false };
+    updateLongestRoad(s);
+    log(s, seat, `${name(s, seat)} spielt Überläufer: Ein Wächter von ${name(s, g.owner)} läuft über.`);
+  },
+  envoy(s, seat, { edge }) {
+    if (edge === undefined || !openRoads(s).includes(edge)) fail('Wähle eine offene Straße.');
+    const owner = s.roads[edge]!;
+    s.roads[edge] = null;
+    updateLongestRoad(s);
+    if (owner === seat) {
+      log(s, seat, `${name(s, seat)} spielt Gesandter und verlegt eine eigene Straße.`);
+      if (canLayFreePiece(s, seat)) s.phase = { kind: 'roadBuilding', remaining: 1, returnTo: 'main' };
+    } else {
+      log(s, seat, `${name(s, seat)} spielt Gesandter und entfernt eine Straße von ${name(s, owner)}.`);
+    }
+  },
+  intrigue(s, seat, { vertices }) {
+    const vertex = vertices[0];
+    if (!intrigueTargets(s, seat).includes(vertex)) fail('Wähle einen fremden Wächter an deiner Straße.');
+    log(s, seat, `${name(s, seat)} spielt Ränkespiel gegen einen Wächter von ${name(s, s.guards![vertex]!.owner)}.`);
+    pushGuard(s, vertex);
+    updateLongestRoad(s);
+  },
+  scout(s, seat, { target }) {
+    if (target === undefined || !scoutTargets(s, seat).includes(target)) fail('Wähle einen Mitspieler mit Einflusskarten.');
+    if (s.progress![seat].length >= PROGRESS_LIMIT) fail(`Du hast schon ${PROGRESS_LIMIT} Einflusskarten.`);
+    log(s, seat, `${name(s, seat)} spielt Kundschafter bei ${name(s, target)}.`);
+    s.phase = { kind: 'peek', seat, target, what: 'progress', take: 1 };
+  },
+  fortune(s, seat, { dice }) {
+    if (!Array.isArray(dice) || dice.length !== 2 || !dice.every((d) => Number.isInteger(d) && d >= 1 && d <= 6)) fail('Lege beide Würfel fest (1 bis 6).');
+    log(s, seat, `${name(s, seat)} spielt Losbuch.`);
+    rollDice(s, seat, [dice[0], dice[1]]);
+  },
+  landReform(s, seat, { hexes }) {
+    const [a, b] = hexes;
+    const allowed = reformHexes(s);
+    if (a === b || !allowed.includes(a) || !allowed.includes(b)) fail('Wähle zwei Zahlenfelder ohne 2, 12, 6 und 8.');
+    s.board.hexes = s.board.hexes.map((h, id) => (id === a ? { ...h, number: s.board.hexes[b].number } : id === b ? { ...h, number: s.board.hexes[a].number } : h));
+    log(s, seat, `${name(s, seat)} spielt Flurbereinigung und tauscht die ${s.board.hexes[b].number} gegen die ${s.board.hexes[a].number}.`);
   },
   armory(s, seat, { vertices }) {
     const targets = [...new Set(vertices)];

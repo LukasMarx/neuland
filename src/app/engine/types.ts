@@ -142,6 +142,11 @@ export type Phase =
    * wählt. Danach geht der Wurf `sum` weiter.
    */
   | { kind: 'progressPick'; pending: number[]; sum: number }
+  /**
+   * Schuldschein und Kundschafter: `seat` sieht Handkarten oder Einflusskarten von `target` und nimmt sich
+   * `take` Karten davon. Nur in dieser Phase zeigt die Sicht von `seat` die fremden Karten.
+   */
+  | { kind: 'peek'; seat: number; target: number; what: 'cards' | 'progress'; take: number }
   | { kind: 'ended' };
 
 /** Wo eine Karte herkommt oder hingeht, für die Flug-Animation. */
@@ -262,6 +267,8 @@ export interface GameState {
   progressPoints?: number[];
   /** In einer Sicht: Größe der Einflussstapel, deren Inhalt fehlt. */
   hiddenProgressDeck?: Record<Track, number>;
+  /** Stadtwacht III: Händlerfigur auf einem Feld; ihr Besitzer tauscht dessen Rohstoff 2:1 und hat 1 Punkt. */
+  trader?: { hex: number; owner: number } | null;
   /** Was ausgespielte Einflusskarten für den laufenden Zug bewirken. */
   boost?: { pulley?: boolean; tradingPost?: Card };
 }
@@ -304,7 +311,16 @@ export type ProgressCard =
   | 'lodge'
   | 'observatory'
   | 'surveyor'
-  | 'armory';
+  | 'armory'
+  | 'peddler'
+  | 'bond'
+  | 'fair'
+  | 'turncoat'
+  | 'envoy'
+  | 'intrigue'
+  | 'scout'
+  | 'fortune'
+  | 'landReform';
 
 export interface ProgressDef {
   name: string;
@@ -315,7 +331,23 @@ export interface ProgressDef {
   /** Punktkarte: wird sofort ausgelegt. */
   point?: boolean;
   /** Was beim Ausspielen gewählt wird. */
-  target?: 'resource' | 'commodity' | 'card' | 'city' | 'settlement' | 'guards';
+  target?:
+    | 'resource'
+    | 'commodity'
+    | 'card'
+    | 'city'
+    | 'settlement'
+    | 'guards'
+    | 'trader'
+    | 'richer'
+    | 'player'
+    | 'turncoat'
+    | 'road'
+    | 'enemyGuard'
+    | 'dice'
+    | 'numbers';
+  /** Wird vor dem Würfeln gespielt (statt danach). */
+  beforeRoll?: boolean;
 }
 
 export const PROGRESS: Record<ProgressCard, ProgressDef> = {
@@ -335,6 +367,15 @@ export const PROGRESS: Record<ProgressCard, ProgressDef> = {
   observatory: { name: 'Sternwarte', track: 'scholars', copies: 1, point: true, text: '1 Siegpunkt. Wird sofort offen ausgelegt.' },
   surveyor: { name: 'Landvermesser', track: 'scholars', copies: 2, text: 'Baue 2 Straßen kostenlos.' },
   armory: { name: 'Waffenkammer', track: 'scholars', copies: 2, target: 'guards', text: 'Werte bis zu 2 deiner Wächter kostenlos auf.' },
+  peddler: { name: 'Wanderhändler', track: 'market', copies: 6, target: 'trader', text: 'Setze den Händler auf ein Feld an deiner Siedlung oder Stadt. Solange er dir gehört, tauschst du dessen Rohstoff 2:1 und hast 1 Siegpunkt.' },
+  bond: { name: 'Schuldschein', track: 'market', copies: 2, target: 'richer', text: 'Sieh dir die Hand eines Spielers mit mehr Siegpunkten an und nimm dir 2 Karten davon.' },
+  fair: { name: 'Jahrmarkt', track: 'market', copies: 2, target: 'resource', text: 'Nenne einen Rohstoff. Jeder Mitspieler mit Gütern bekommt 1 Karte davon von dir und gibt dir 1 zufälliges Gut.' },
+  turncoat: { name: 'Überläufer', track: 'council', copies: 2, target: 'turncoat', text: 'Nimm einen fremden Wächter vom Brett und stelle einen eigenen derselben Stufe an deine Straße.' },
+  envoy: { name: 'Gesandter', track: 'council', copies: 2, target: 'road', text: 'Entferne eine offene Straße. Ist es deine eigene, baust du sie gleich kostenlos neu.' },
+  intrigue: { name: 'Ränkespiel', track: 'council', copies: 2, target: 'enemyGuard', text: 'Verdränge einen fremden Wächter an deiner Straße. Sein Besitzer setzt ihn um.' },
+  scout: { name: 'Kundschafter', track: 'council', copies: 3, target: 'player', text: 'Sieh dir die Einflusskarten eines Mitspielers an und nimm dir eine davon.' },
+  fortune: { name: 'Losbuch', track: 'scholars', copies: 2, target: 'dice', beforeRoll: true, text: 'Spiele die Karte statt zu würfeln: Du legst beide Zahlenwürfel selbst fest, der Ereigniswürfel wird geworfen.' },
+  landReform: { name: 'Flurbereinigung', track: 'scholars', copies: 2, target: 'numbers', text: 'Tausche zwei Zahlenchips auf dem Brett. 2, 12, 6 und 8 bleiben liegen.' },
 };
 
 export const PROGRESS_CARDS = Object.keys(PROGRESS) as ProgressCard[];
@@ -401,7 +442,9 @@ export type Action =
   | { type: 'loseCity'; vertex: number }
   | { type: 'placeDisplaced'; vertex: number | null }
   /** Stadtwacht III: Einflusskarte ausspielen; `card` = gewählte Kartenart, `vertices` = Ziele auf dem Brett. */
-  | { type: 'playProgress'; progress: ProgressCard; card?: Card; vertices?: number[] }
+  | { type: 'playProgress'; progress: ProgressCard; card?: Card; vertices?: number[]; hexes?: number[]; edge?: number; target?: number; dice?: [number, number] }
+  /** Schuldschein und Kundschafter: die gewählten Karten nehmen. */
+  | { type: 'takePeek'; cards?: ResourceCounts; progress?: ProgressCard }
   | { type: 'pickProgress'; track: Track };
 
 export const RESOURCE_NAMES: Record<Resource, string> = {

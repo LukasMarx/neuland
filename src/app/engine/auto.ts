@@ -71,6 +71,18 @@ export function autoAction(s: GameState, seat: number, random: () => number = Ma
     }
     case 'displace':
       return { type: 'placeDisplaced', vertex: pick(guardSpots(s, seat)) ?? null };
+    case 'peek': {
+      // Schuldschein und Kundschafter: von den größten Stapeln nehmen bzw. die erste Karte.
+      if (phase.what === 'progress') return { type: 'takePeek', progress: s.progress![phase.target][0] };
+      const left = { ...s.players[phase.target].resources };
+      const out = emptyResources();
+      for (let i = 0; i < phase.take; i++) {
+        const r = [...CARDS].sort((a, b) => count(left, b) - count(left, a))[0];
+        setCount(left, r, count(left, r) - 1);
+        setCount(out, r, count(out, r) + 1);
+      }
+      return { type: 'takePeek', cards: out };
+    }
     case 'progressPick': {
       // Stadtwacht III: aus dem größten Stapel ziehen.
       const track = [...TRACKS].sort((a, b) => progressStackSize(s, b) - progressStackSize(s, a))[0];

@@ -53,7 +53,7 @@ export const VARIANTS: VariantDef[] = [
   },
   {
     id: 'stadtwacht',
-    name: 'Stadtwacht (in Arbeit)',
+    name: 'Stadtwacht',
     victoryPoints: 3,
     description:
       'Städte auf Wald, Weide und Gebirge liefern Güter (Schriften, Stoff, Silber). Damit baut man die Stadt in drei Richtungen aus; wer zuerst Stufe 4 erreicht, bekommt eine Prachtstadt (+2). Palisaden erhöhen das Handkartenlimit. Eine Plündererflotte greift die Städte an; Wächter verteidigen. Der Räuber kommt erst nach dem ersten Angriff. Zeigt der Ereigniswürfel ein Tor, gibt es Einflusskarten für alle, deren Ausbau in dieser Farbe zum roten Würfel passt. Zweite Startfigur ist eine Stadt, keine Entwicklungskarten.',

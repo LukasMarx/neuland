@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { botStep, seeded } from '../net/testing/fake-net';
 import { getTopology } from './board';
-import { applyAction, canImprove, createGame, defenseOf, drawsOnGate, guardTargets, handLimit, isLand, isMetropolis, legalGuardVertices, legalRoadEdges, legalSetupRoads, legalSetupVertices, longestRoad, progressCount, progressStackSize, raiderStrength, tradeRate, victoryPoints } from './rules';
+import { applyAction, canImprove, createGame, defenseOf, drawsOnGate, intrigueTargets, openRoads, reformHexes, richerPlayers, traderHexes, turncoatTargets, guardSpots, guardTargets, handLimit, isLand, isMetropolis, legalGuardVertices, legalRoadEdges, legalSetupRoads, legalSetupVertices, longestRoad, progressCount, progressStackSize, raiderStrength, tradeRate, victoryPoints } from './rules';
 import { isConsistent, rebuild, Secret, secretOf, viewFor } from './secrets';
-import { Card, COMMODITIES, count, emptyResources, GameState, PROGRESS, PROGRESS_CARDS, ProgressCard, ResourceCounts, totalResources, TRACKS } from './types';
+import { Action, Resource, COMMODITIES, count, emptyResources, GameState, PROGRESS, PROGRESS_CARDS, ProgressCard, ResourceCounts, totalResources, TRACKS } from './types';
 
 function players(n: number) {
   return Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: `S${i}`, color: `c${i}` }));
@@ -370,16 +370,16 @@ describe('Stadtwacht III: Einflusskarten', () => {
       if (n.event === event && n.dice![1] === red && n.dice![0] + n.dice![1] !== 7) return n;
     }
   }
-  const play = (s: GameState, seat: number, progress: ProgressCard, extra: Partial<{ card: Card; vertices: number[] }> = {}) => {
+  const play = (s: GameState, seat: number, progress: ProgressCard, extra: Omit<Extract<Action, { type: 'playProgress' }>, 'type' | 'progress'> = {}) => {
     const t = structuredClone(s);
     t.progress![seat].push(progress);
     return applyAction(t, seat, { type: 'playProgress', progress, ...extra });
   };
 
-  it('drei Stapel in den Ausbaufarben, alle Hände leer', () => {
+  it('drei Stapel in den Ausbaufarben mit je 18 Karten, alle Hände leer', () => {
     const s = game();
     expect(s.progress).toEqual([[], [], []]);
-    for (const t of TRACKS) expect(progressStackSize(s, t)).toBeGreaterThan(0);
+    for (const t of TRACKS) expect(progressStackSize(s, t)).toBe(18);
     for (const c of PROGRESS_CARDS) expect(s.progressDeck![PROGRESS[c].track][c]).toBe(PROGRESS[c].copies);
   });
 
@@ -599,5 +599,116 @@ describe('Stadtwacht III: Einflusskarten', () => {
     const wrong = { ...secretOf(s, 1)!, progress: ['charter', 'pulley'] as ProgressCard[] };
     const again = rebuild(v, new Map<number, Secret>([[1, wrong]]), { rng: 5 });
     expect(again.dealt).toContain(1);
+  });
+
+  it('Wanderhändler: Feld an eigener Siedlung, 2:1 für dessen Rohstoff, +1 Punkt; der Nächste holt ihn sich', () => {
+    const s = game();
+    const hex = traderHexes(s, 0)[0];
+    const r = s.board.hexes[hex].terrain as Resource;
+    expect(() => play(s, 0, 'peddler', { hexes: [traderHexes(s, 1).find((h) => !traderHexes(s, 0).includes(h))!] })).toThrow(/Händler/);
+    let n = play(s, 0, 'peddler', { hexes: [hex] });
+    expect(n.trader).toEqual({ hex, owner: 0 });
+    expect(tradeRate(n, 0, r)).toBe(2);
+    expect(victoryPoints(n, 0, false) - victoryPoints(s, 0, false)).toBe(1);
+    n = structuredClone(n);
+    n.current = 1;
+    n = play(n, 1, 'peddler', { hexes: [traderHexes(n, 1)[0]] });
+    expect(n.trader!.owner).toBe(1);
+    expect(victoryPoints(n, 0, false)).toBe(victoryPoints(s, 0, false));
+  });
+
+  it('Schuldschein: nur bei Reicheren; der Spieler sieht die Hand und nimmt 2 Karten, andere sehen sie nicht', () => {
+    const s = game();
+    s.players[1].resources = hand({ ore: 2, wood: 1 });
+    expect(() => play(s, 0, 'bond', { target: 1 })).toThrow(/mehr Siegpunkten/);
+    s.honors![1] = 1;
+    expect(richerPlayers(s, 0)).toEqual([1]);
+    let n = play(s, 0, 'bond', { target: 1 });
+    expect(n.phase).toMatchObject({ kind: 'peek', seat: 0, target: 1, what: 'cards', take: 2 });
+    expect(viewFor(n, 0).players[1].resources.ore).toBe(2);
+    expect(viewFor(n, 2).players[1].resources.ore).toBe(0);
+    expect(() => applyAction(n, 0, { type: 'takePeek', cards: hand({ wood: 2 }) })).toThrow();
+    n = applyAction(n, 0, { type: 'takePeek', cards: hand({ ore: 2 }) });
+    expect(n.players[1].resources).toEqual(hand({ wood: 1 }));
+    expect(n.phase.kind).toBe('main');
+  });
+
+  it('Kundschafter: Einflusskarten ansehen und eine nehmen', () => {
+    const s = game();
+    s.progress![2] = ['pulley', 'envoy'];
+    expect(() => play(s, 0, 'scout', { target: 1 })).toThrow(/Einflusskarten/);
+    let n = play(s, 0, 'scout', { target: 2 });
+    expect(viewFor(n, 0).progress![2]).toEqual(['pulley', 'envoy']);
+    expect(viewFor(n, 1).progress![2]).toEqual([]);
+    n = applyAction(n, 0, { type: 'takePeek', progress: 'envoy' });
+    expect(n.progress![0]).toEqual(['envoy']);
+    expect(n.progress![2]).toEqual(['pulley']);
+  });
+
+  it('Jahrmarkt: genannter Rohstoff gegen ein zufälliges Gut von jedem mit Gütern', () => {
+    const s = game();
+    s.players[0].resources = hand({ wood: 3 });
+    s.players[1].resources = hand({ cloth: 1 });
+    s.players[2].resources = hand({ wheat: 2 });
+    const n = play(s, 0, 'fair', { card: 'wood' });
+    expect(n.players[0].resources).toEqual(hand({ wood: 2, cloth: 1 }));
+    expect(n.players[1].resources).toEqual(hand({ wood: 1, cloth: 0 }));
+    expect(n.players[2].resources).toEqual(hand({ wheat: 2 }));
+  });
+
+  it('Überläufer: fremder Wächter weg, eigener derselben Stufe an die eigene Straße', () => {
+    const s = game();
+    const theirs = legalGuardVertices(s, 1)[0];
+    s.guards![theirs] = { owner: 1, level: 2, active: true };
+    const mine = guardSpots(s, 0)[0];
+    expect(turncoatTargets(s, 0)).toEqual([theirs]);
+    const n = play(s, 0, 'turncoat', { vertices: [theirs, mine] });
+    expect(n.guards![theirs]).toBeNull();
+    expect(n.guards![mine]).toEqual({ owner: 0, level: 2, active: false });
+  });
+
+  it('Gesandter: offene fremde Straße weg; eigene wird gleich neu gebaut', () => {
+    const s = game();
+    const roads = openRoads(s);
+    const theirs = roads.find((e) => s.roads[e] === 1)!;
+    let n = play(s, 0, 'envoy', { edge: theirs });
+    expect(n.roads[theirs]).toBeNull();
+    expect(n.phase.kind).toBe('main');
+    const own = roads.find((e) => s.roads[e] === 0)!;
+    n = play(s, 0, 'envoy', { edge: own });
+    expect(n.roads[own]).toBeNull();
+    expect(n.phase).toMatchObject({ kind: 'roadBuilding', remaining: 1 });
+  });
+
+  it('Ränkespiel: fremder Wächter an eigener Straße wird verdrängt', () => {
+    const s = game();
+    const t = getTopology(s.board);
+    const spot = t.vertices.find((v) => !s.buildings[v.id] && v.edges.some((e) => s.roads[e] === 0) && v.neighbors.every((w) => !s.buildings[w] || true))!.id;
+    s.guards![spot] = { owner: 1, level: 1, active: false };
+    expect(intrigueTargets(s, 0)).toContain(spot);
+    const n = play(s, 0, 'intrigue', { vertices: [spot] });
+    expect(n.guards![spot]).toBeNull();
+    if (guardSpots(n, 1).length) expect(n.phase).toMatchObject({ kind: 'displace', seat: 1 });
+  });
+
+  it('Losbuch: statt zu würfeln, Zahlenwürfel selbst festlegen; nach dem Würfeln nicht mehr', () => {
+    const s = game();
+    const r = structuredClone(s);
+    r.phase = { kind: 'roll' };
+    const n = play(r, 0, 'fortune', { dice: [5, 3] });
+    expect(n.dice).toEqual([5, 3]);
+    expect(n.phase.kind).not.toBe('roll');
+    expect(() => play(s, 0, 'fortune', { dice: [5, 3] })).toThrow();
+    expect(() => play(r, 0, 'fortune', { dice: [7, 0] })).toThrow(/1 bis 6/);
+  });
+
+  it('Flurbereinigung: zwei Zahlen tauschen, 2, 12, 6, 8 bleiben', () => {
+    const s = game();
+    const [a, b] = reformHexes(s).filter((h, i, xs) => s.board.hexes[h].number !== s.board.hexes[xs[0]].number || i === 0);
+    const n = play(s, 0, 'landReform', { hexes: [a, b] });
+    expect(n.board.hexes[a].number).toBe(s.board.hexes[b].number);
+    expect(n.board.hexes[b].number).toBe(s.board.hexes[a].number);
+    const red = s.board.hexes.findIndex((h) => h.number === 6 || h.number === 8);
+    expect(() => play(s, 0, 'landReform', { hexes: [a, red] })).toThrow(/2, 12, 6 und 8/);
   });
 });

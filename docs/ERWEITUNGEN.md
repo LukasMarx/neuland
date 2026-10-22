@@ -257,7 +257,21 @@ Referenz (nur zur Orientierung): „Städte & Ritter“.
 > | | Landvermesser | 2 | 2 Straßen kostenlos |
 > | | Waffenkammer | 2 | bis zu 2 Wächter kostenlos aufwerten |
 >
-> Noch offen (Stadtwacht III-b): die Karten mit Zielen auf dem Brett oder in fremden Händen: Würfel selbst bestimmen, Zahlenchips tauschen, Händlerfigur, fremde Wächter übernehmen oder versetzen, fremde Straße entfernen, Einflusskarten anschauen und nehmen, Rohstoff gegen Gut mit jedem tauschen, Karten bei Führenden ziehen. Bis dahin enthalten die Stapel nur die Karten oben (Gelb 8, Blau 9, Grün 14).
+> **Umgesetzt am 22.10.2026 (Stadtwacht III-b, Stadtwacht damit komplett):** die Karten mit Zielen auf dem Brett oder in fremden Händen. Die Stapel haben jetzt je 18 Karten, in der Lobby heißt die Variante nur noch „Stadtwacht“.
+>
+> | Farbe | Karte | Anzahl | Wirkung (eigene Fassung) |
+> |---|---|---|---|
+> | Gelb (Markt) | Wanderhändler | 6 | Händlerfigur auf ein Rohstofffeld an eigenem Ort: dessen Rohstoff 2:1, +1 Punkt solange man ihn hält (`trader`) |
+> | | Schuldschein | 2 | Hand eines Spielers mit mehr Punkten ansehen, 2 Karten nehmen (Phase `peek`) |
+> | | Jahrmarkt | 2 | Rohstoff nennen; jeder mit Gütern bekommt 1 davon und gibt 1 zufälliges Gut |
+> | Blau (Rat) | Überläufer | 2 | fremden Wächter entfernen, eigenen derselben Stufe an die eigene Straße |
+> | | Gesandter | 2 | offene Straße entfernen (keine Brücken, keine Neutralen); eigene gleich kostenlos neu |
+> | | Ränkespiel | 2 | fremden Wächter an eigener Straße verdrängen (Phase `displace`) |
+> | | Kundschafter | 3 | Einflusskarten eines Mitspielers ansehen, eine nehmen (Phase `peek`) |
+> | Grün (Gelehrte) | Losbuch | 2 | statt zu würfeln: Zahlenwürfel selbst festlegen, Ereigniswürfel wird geworfen |
+> | | Flurbereinigung | 2 | zwei Zahlenchips tauschen, 2, 12, 6, 8 bleiben |
+>
+> Verdeckt: In der Phase `peek` zeigt nur die Sicht des Nachsehenden die fremden Karten. Vereinfachungen gegenüber dem Original: Beim Überläufer wählt der Spielende den fremden Wächter, beim Jahrmarkt ist das abgegebene Gut zufällig.
 
 #### Regeln in Kürze
 

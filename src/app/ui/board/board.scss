@@ -698,3 +698,26 @@ text {
     filter: drop-shadow(0 3px 3px rgb(0 0 0 / 0.5));
   }
 }
+
+// Stadtwacht III: Händlerfigur, bis die Grafik kommt eine Marke in der Farbe des Besitzers.
+.trader {
+  pointer-events: none;
+
+  circle {
+    fill: var(--c);
+    stroke: #fff6e0;
+    stroke-width: 2.5;
+    filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.45));
+  }
+
+  text {
+    fill: #fff6e0;
+    font-size: 12px;
+    font-weight: 900;
+    text-anchor: middle;
+    dominant-baseline: central;
+    paint-order: stroke;
+    stroke: rgb(0 0 0 / 0.35);
+    stroke-width: 2px;
+  }
+}

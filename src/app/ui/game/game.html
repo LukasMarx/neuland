@@ -59,6 +59,9 @@
               @if (p.progress) {
                 · {{ p.progress }} Einfluss
               }
+              @if (p.trader) {
+                · Händler
+              }
               @if (p.coinRank > 0) {
                 · Reichster
               } @else if (p.coinRank < 0) {
@@ -154,6 +157,7 @@
       [vertexTargets]="targets().vertices"
       [edgeTargets]="targets().edges"
       [hexTargets]="targets().hexes"
+      [hexGhost]="hexGhost()"
       [highlightNumber]="highlightNumber()"
       [ghost]="ghost()"
       [ghostColor]="ghostTint()"
@@ -179,7 +183,7 @@
     @if (buildMode(); as mode) {
       <div class="board-hint">
         {{ buildHint() }}
-        @if (mode === 'progress' && progressGuards().length) {
+        @if (mode === 'progress' && progressCard() === 'armory' && progressPicks().length) {
           <button class="small primary" (click)="confirmProgressGuards()">Aufwerten</button>
         }
         <button class="small" (click)="buildMode.set(null); moveFrom.set(null)">Abbrechen <kbd>Esc</kbd></button>
@@ -503,6 +507,10 @@
         <dt>Prachtstädte</dt>
         <dd><span class="muted">{{ d.metropolises }} × 2</span><b [class.none]="!d.metropolises">{{ d.metropolises * 2 || '–' }}</b></dd>
       }
+      @if (d.trader) {
+        <dt>Händler</dt>
+        <dd><span class="muted">Rohstoff seines Feldes 2:1</span><b>1</b></dd>
+      }
       @if (d.progressCards !== null) {
         <dt>Punktkarten</dt>
         <dd><span class="muted">{{ d.progressCards }} Einflusskarten auf der Hand</span><b [class.none]="!d.progressPoints">{{ d.progressPoints || '–' }}</b></dd>
@@ -595,6 +603,32 @@
   </div>
 }
 
+@if (peek(); as pk) {
+  <div class="modal-backdrop">
+    <div class="modal">
+      @if (pk.what === 'cards') {
+        <h3>Schuldschein: die Hand von {{ pk.name }}</h3>
+        <p class="muted">Nimm dir {{ pk.take }} Karten.</p>
+        <app-resource-picker [(value)]="peekPick" [max]="pk.resources" [total]="pk.take" [cards]="handCards()" />
+        <div class="row end mt">
+          <span class="muted">{{ total(peekPick()) }} / {{ pk.take }}</span>
+          <button class="primary" [disabled]="total(peekPick()) !== pk.take" (click)="takePeekCards()">Nehmen</button>
+        </div>
+      } @else {
+        <h3>Kundschafter: die Einflusskarten von {{ pk.name }}</h3>
+        <p class="muted">Nimm dir eine davon.</p>
+        <div class="choice-list">
+          @for (c of pk.cards; track $index) {
+            <button class="ptrack" [attr.data-track]="c.track" (click)="takePeekProgress(c.card)">
+              <i aria-hidden="true"></i> <b>{{ c.name }}</b> <span class="muted">{{ c.text }}</span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}
+
 @switch (dialog()?.kind) {
   @case ('progress') {
     <div class="modal-backdrop" (click)="dialog.set(null)">
@@ -606,6 +640,28 @@
           @if (pd.reason) {
             <p class="muted">{{ pd.reason }}</p>
           }
+          @if (pd.players) {
+            <div class="choice-list">
+              @for (p of pd.players; track p.seat) {
+                <button [disabled]="!!pd.reason" (click)="playOnPlayer(pd.card, p.seat)">
+                  <span class="color-dot" [style.background]="p.color"></span> {{ p.name }} <span class="muted">({{ cards(p.seat) }} Karten)</span>
+                </button>
+              }
+            </div>
+          }
+          @if (pd.target === 'dice') {
+            <div class="dice-pick">
+              @for (i of [0, 1]; track i) {
+                <div class="row" [class.red]="i === 1">
+                  <span class="muted">{{ i === 0 ? 'Weiß' : 'Rot' }}</span>
+                  @for (f of dieFaces; track f) {
+                    <button class="small" [class.primary]="fortuneDice()[i] === f" (click)="setDie($any(i), f)">{{ f }}</button>
+                  }
+                </div>
+              }
+              <p class="muted">Summe {{ fortuneDice()[0] + fortuneDice()[1] }}</p>
+            </div>
+          }
           @if (pd.options.length) {
             <div class="choice-list">
               @for (r of pd.options; track r) {
@@ -615,7 +671,9 @@
           }
           <div class="row end mt">
             <button (click)="dialog.set(null)">Schließen</button>
-            @if (!pd.options.length) {
+            @if (pd.target === 'dice') {
+              <button class="primary" [disabled]="!!pd.reason" (click)="playFortune()">Würfel festlegen</button>
+            } @else if (!pd.options.length && !pd.players) {
               <button class="primary" [disabled]="!!pd.reason" (click)="playProgress(pd.card)">{{ pd.board ? 'Auf dem Brett wählen' : 'Ausspielen' }}</button>
             }
           </div>

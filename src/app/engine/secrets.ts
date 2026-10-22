@@ -54,6 +54,12 @@ export function viewFor(s: GameState, seat: number): GameState {
     p.newDevCards = [];
     if (v.fish) v.fish[i] = [];
   });
+  // Schuldschein und Kundschafter: Wer gerade nachsieht, sieht die Karten des anderen.
+  const phase = s.phase;
+  if (phase.kind === 'peek' && phase.seat === seat && v.players[phase.target].hidden) {
+    if (phase.what === 'cards') v.players[phase.target].resources = { ...s.players[phase.target].resources };
+    else if (v.progress) v.progress[phase.target] = [...s.progress![phase.target]];
+  }
   if (v.hiddenDeck === undefined) {
     v.hiddenDeck = v.devDeck.length;
     v.devDeck = [];

@@ -1,6 +1,6 @@
 import { Injector, runInInjectionContext } from '@angular/core';
 import { Action, actingSeats, applyAction, emptyResources, GameState, getTopology, legalCityVertices, legalRoadEdges } from '../../engine';
-import { autoAction, canImprove, CARDS, count, guardTargets, legalBridgeEdges, legalGuardVertices, legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, legalShipEdges, legalWallVertices, metropolisCandidates, movableShips, PROGRESS, RESOURCES, robberVictims, setCount, TRACKS, COMMODITIES } from '../../engine';
+import { autoAction, canImprove, CARDS, count, guardTargets, legalBridgeEdges, legalGuardVertices, legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, legalShipEdges, legalWallVertices, metropolisCandidates, movableShips, PROGRESS, guardSpots, intrigueTargets, openRoads, reformHexes, richerPlayers, scoutTargets, traderHexes, turncoatTargets, RESOURCES, robberVictims, setCount, TRACKS, COMMODITIES } from '../../engine';
 import type { Card } from '../../engine';
 import { NetMessage } from '../protocol';
 import { NET_ENV, NetEnv, RoomService } from '../room.service';
@@ -288,8 +288,13 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
       return p.step === 'settlement'
         ? { seat, action: { type: 'placeSettlement', vertex: pick(legalSetupVertices(g)) } }
         : { seat, action: { type: 'placeRoad', edge: pick(legalSetupRoads(g)) } };
-    case 'roll':
+    case 'roll': {
+      // Stadtwacht III: ab und zu das Losbuch statt zu würfeln.
+      if (g.progress?.[seat].includes('fortune') && random() < 0.5) {
+        return { seat, action: { type: 'playProgress', progress: 'fortune', dice: [1 + Math.floor(random() * 6), 1 + Math.floor(random() * 6)] } };
+      }
       return { seat, action: { type: 'roll' } };
+    }
     case 'discard':
       // Wie der Automat: von den größten Stapeln, damit verschiedene Sorten bleiben.
       return { seat, action: autoAction(g, seat, random)! };
@@ -303,6 +308,7 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
     case 'raid':
     case 'displace':
     case 'progressPick':
+    case 'peek':
       return { seat, action: autoAction(g, seat, random)! };
     case 'specialBuild':
       return { seat, action: { type: 'endTurn' } };
@@ -343,8 +349,21 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
           const card: Card = target === 'commodity' ? pick([...COMMODITIES]) : target === 'card' ? pick([...CARDS]) : pick([...RESOURCES]);
           const guards = (g.guards ?? []).flatMap((x, v) => (x?.owner === seat ? [v] : []));
           const vertices =
-            target === 'city' ? [pick(legalWallVertices(g, seat))] : target === 'settlement' ? [pick(legalCityVertices(g, seat))] : target === 'guards' ? guards.slice(0, 2) : [];
-          return { type: 'playProgress', progress, card, vertices } as Action;
+            target === 'city'
+              ? [pick(legalWallVertices(g, seat))]
+              : target === 'settlement'
+                ? [pick(legalCityVertices(g, seat))]
+                : target === 'guards'
+                  ? guards.slice(0, 2)
+                  : target === 'turncoat'
+                    ? [pick(turncoatTargets(g, seat)), pick(guardSpots(g, seat))]
+                    : target === 'enemyGuard'
+                      ? [pick(intrigueTargets(g, seat))]
+                      : [];
+          const hexes = target === 'trader' ? [pick(traderHexes(g, seat))] : target === 'numbers' ? [pick(reformHexes(g)), pick(reformHexes(g))] : [];
+          const other = target === 'richer' ? pick(richerPlayers(g, seat)) : target === 'player' ? pick(scoutTargets(g, seat)) : undefined;
+          const edge = target === 'road' ? pick(openRoads(g)) : undefined;
+          return { type: 'playProgress', progress, card, vertices, hexes, edge, target: other } as Action;
         }),
         // Flussläufe: Brücken bauen und Münzen tauschen.
         ...legalBridgeEdges(g, seat).map((edge) => () => ({ type: 'buildBridge', edge }) as Action),

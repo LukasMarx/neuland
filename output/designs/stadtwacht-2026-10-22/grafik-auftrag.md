@@ -1,4 +1,4 @@
-# Auftrag: Grafiken für Stadtwacht I und II
+# Auftrag: Grafiken für Stadtwacht
 
 ## Stand (22.10.2026)
 
@@ -87,7 +87,16 @@ Die Karten tragen ihren Namen und Text als echten Text im Spiel. Gebraucht werde
 | `public/cards/progress/surveyor.png` | **Landvermesser:** Mann mit Messlatte an einem abgesteckten Weg | wie oben | Grün |
 | `public/cards/progress/armory.png` | **Waffenkammer:** Wand mit Speeren, Schilden, Helmen | wie oben | Grün |
 
-Später (Stadtwacht III-b) kommen etwa acht weitere Motive dazu; die Liste folgt mit den Karten.
+| `public/cards/progress/peddler.png` | **Wanderhändler:** Händler mit Rückentrage und Wanderstab | wie oben | Gelb |
+| `public/cards/progress/bond.png` | **Schuldschein:** Hand reicht ein gesiegeltes Papier über einen Tisch mit Münzen | wie oben | Gelb |
+| `public/cards/progress/fair.png` | **Jahrmarkt:** bunte Marktstände mit Wimpeln | wie oben | Gelb |
+| `public/cards/progress/turncoat.png` | **Überläufer:** Wachmann wechselt den Wappenrock | wie oben | Blau |
+| `public/cards/progress/envoy.png` | **Gesandter:** Reiter mit Schriftrolle und Banner | wie oben | Blau |
+| `public/cards/progress/intrigue.png` | **Ränkespiel:** zwei Gestalten flüstern hinter einem Vorhang | wie oben | Blau |
+| `public/cards/progress/scout.png` | **Kundschafter:** Gestalt mit Kapuze und Fernglas hinter einem Busch | wie oben | Blau |
+| `public/cards/progress/fortune.png` | **Losbuch:** aufgeschlagenes Buch mit Sternzeichen und zwei Würfeln | wie oben | Grün |
+| `public/cards/progress/landReform.png` | **Flurbereinigung:** Landkarte mit Messkette und zwei vertauschten Zahlenscheiben | wie oben | Grün |
+| `public/pieces/papiercollage/trader.png` | **Händlerfigur:** kleiner Händler mit Waagschale | 256 × 256, transparent, wie die Figuren (Grundbild + Maske) | auf einem Feld neben der Zahl, Mantel einfärbbar; heute eine Marke mit „H“ |
 
 ### Bedienelemente
 
@@ -111,6 +120,7 @@ Später (Stadtwacht III-b) kommen etwa acht weitere Motive dazu; die Liste folgt
 - **Flotte, Ereigniswürfel, Ehrenschild:** `.raiders` und `.event-die` in `game.html`, Banner-Fall `raid` in `event-banner.ts`.
 - **Bedienelemente:** Knopf „Ausbau“ in `game.html` (heute ▲), Wächter-Dialog `@case ('guard')`.
 - **Einflusskarten:** in `game.html` die Karten `.pcard` (Hand), `.pstack` (Stapel neben der Bank) und der Dialog `@case ('progress')`; Motive über eine Tabelle je `ProgressCard` wie `CARD_ART`.
+- **Händlerfigur:** in `board.html` die Marke `.trader` (und die Vorschau in `.hex-target`) durch `pieceImage('trader', Farbe)` ersetzen.
 
 ## Abnahme
 

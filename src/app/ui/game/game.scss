@@ -1237,3 +1237,25 @@ kbd {
     margin: 2px 0 6px;
   }
 }
+
+// Losbuch: Zahlenwürfel festlegen.
+.dice-pick {
+  display: grid;
+  gap: 6px;
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    > span {
+      width: 44px;
+    }
+  }
+
+  .row.red button.primary {
+    background: #c0281f;
+    border-color: #c0281f;
+    color: #fff4e2;
+  }
+}

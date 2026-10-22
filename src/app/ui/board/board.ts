@@ -48,6 +48,8 @@ export class Board {
   readonly vertexTargets = input<number[]>([]);
   readonly edgeTargets = input<number[]>([]);
   readonly hexTargets = input<number[]>([]);
+  /** Was ein Feldziel als Vorschau zeigt: den Räuber, den Händler (Stadtwacht) oder nur die Markierung. */
+  readonly hexGhost = input<'robber' | 'trader' | null>('robber');
   /** Felder mit dieser Zahl leuchten kurz auf (nach dem Würfeln). */
   readonly highlightNumber = input<number | null>(null);
   /** Was beim Darüberfahren als Vorschau in der eigenen Farbe erscheint. */
@@ -104,7 +106,7 @@ export class Board {
   protected readonly ghostRoadImage = computed(() => pieceImage('road', this.ghostColor()));
   protected readonly ghostShipImage = computed(() => pieceImage('ship', this.ghostColor()));
   /** Was im Baumodus an Kanten als Vorschau erscheint: Straße oder Schiff. */
-  readonly edgeGhost = input<'road' | 'ship'>('road');
+  readonly edgeGhost = input<'road' | 'ship' | 'none'>('road');
 
   protected readonly topo = computed(() => getTopology(this.game().board));
 
@@ -219,6 +221,9 @@ export class Board {
         robberTransform: `translate(${h.x * S + S * 0.42 * this.k()},${h.y * S + S * 0.1}) scale(${this.k()})`,
         red: number === 6 || number === 8,
         robber: g.robber === h.id,
+        // Stadtwacht III: Händlerfigur in der Farbe ihres Besitzers.
+        trader: g.trader?.hex === h.id ? g.players[g.trader.owner]?.color ?? null : null,
+        traderTransform: `translate(${h.x * S - S * 0.42 * this.k()},${h.y * S + S * 0.1}) scale(${this.k()})`,
         hit:
           (number !== null && number === this.highlightNumber()) ||
           (state.terrain === 'lake' && LAKE_NUMBERS.includes(this.highlightNumber() ?? 0)),
