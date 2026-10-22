@@ -1,6 +1,6 @@
 import { BIAS, CLASSIC_BASE, CLASSIC_EXT, FIXED, MapDef, mapById, MaskCell, parseMask, WATER_MARKS } from './maps';
 import { random, randomInt, RngState, shuffle } from './rng';
-import { BoardState, FishingGround, FogPool, HarborType, HexState, Layout, Resource, RESOURCES, Terrain } from './types';
+import { BoardState, FishingGround, FogPool, HarborType, HexState, Layout, Resource, RESOURCES, River, Terrain } from './types';
 
 const SQ3 = Math.sqrt(3);
 
@@ -812,6 +812,66 @@ export function placeFishingGrounds(board: BoardState, rng: RngState): FishingGr
     used.add(topo.edges[e].b);
   }
   return chosen;
+}
+
+/**
+ * Flussläufe: Flüsse von einer Quelle im Inland zur Küste, meist bergab (zur Küste hin), manchmal ein
+ * Stück quer. Flüsse teilen sich keine Felder, ihre Quellen liegen möglichst nicht nebeneinander; die
+ * Mündung liegt nicht auf einer Hafen- oder Fischgrundkante.
+ */
+export function placeRivers(board: BoardState, rng: RngState, count = 2): River[] {
+  const topo = getTopology(board);
+  const land = (h: number) => !topo.hexes[h].sea;
+  const isCoast = (e: number) => topo.edges[e].hexes.filter(land).length === 1;
+  const taken = new Set([...board.harbors.map((h) => h.edge), ...(board.fishing ?? []).map((f) => f.edge)]);
+  // Abstand zur Küste in Feldern.
+  const dist = topo.hexes.map(() => Infinity);
+  const queue = topo.hexes.filter((h) => land(h.id) && h.edges.some(isCoast)).map((h) => h.id);
+  for (const h of queue) dist[h] = 0;
+  for (let i = 0; i < queue.length; i++) {
+    for (const m of topo.hexes[queue[i]].neighbors) {
+      if (land(m) && dist[m] === Infinity) {
+        dist[m] = dist[queue[i]] + 1;
+        queue.push(m);
+      }
+    }
+  }
+  const rivers: River[] = [];
+  const used = new Set<number>();
+  const springs = new Set<number>();
+  const free = (h: number) => !used.has(h) && !topo.hexes[h].neighbors.some((m) => springs.has(m));
+  for (let attempt = 0; attempt < 200 && rivers.length < count; attempt++) {
+    // Quellen möglichst nicht nebeneinander; auf kleinen Brettern geht es manchmal nicht anders.
+    const candidates = topo.hexes.filter((h) => land(h.id) && dist[h.id] >= 1 && board.hexes[h.id].terrain !== 'desert' && !used.has(h.id));
+    const apart = candidates.filter((h) => free(h.id));
+    const options = apart.length ? apart : candidates;
+    if (!options.length) break;
+    const hexes = [options[randomInt(rng, options.length)].id];
+    const edges: number[] = [];
+    for (;;) {
+      const cur = hexes[hexes.length - 1];
+      if (dist[cur] === 0) {
+        const mouths = topo.hexes[cur].edges.filter((e) => isCoast(e) && !taken.has(e));
+        if (mouths.length) edges.push(mouths[randomInt(rng, mouths.length)]);
+        break;
+      }
+      const options = topo.hexes[cur].neighbors.filter((m) => land(m) && !hexes.includes(m) && !used.has(m) && dist[m] <= dist[cur]);
+      const down = options.filter((m) => dist[m] < dist[cur]);
+      const across = options.filter((m) => dist[m] === dist[cur]);
+      const pool = across.length && hexes.length < 4 && random(rng) < 0.35 ? across : down.length ? down : across;
+      if (!pool.length) break;
+      const next = pool[randomInt(rng, pool.length)];
+      edges.push(topo.hexes[cur].edges.find((e) => topo.hexes[next].edges.includes(e))!);
+      hexes.push(next);
+    }
+    // Fertig ist ein Fluss erst mit Mündung, und er soll mindestens zwei Kanten queren.
+    if (edges.length !== hexes.length || edges.length < 2) continue;
+    rivers.push({ hexes, edges });
+    springs.add(hexes[0]);
+    for (const h of hexes) used.add(h);
+    taken.add(edges[edges.length - 1]);
+  }
+  return rivers;
 }
 
 /** Hafentyp je Ecke, abgeleitet aus den Häfen auf dem Brett. */

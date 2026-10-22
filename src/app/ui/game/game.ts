@@ -30,6 +30,8 @@ import {
   ResourceCounts,
   robberVictims,
   canSpendTokens,
+  coinPoints,
+  legalBridgeEdges,
   TokenEffect,
   tokenCost,
   totalResources,
@@ -52,13 +54,14 @@ import { FlyLayer } from './fly-layer';
 import { hasOfferView, offerFor, OfferPanel } from './offer-panel';
 import { TradeTable, withdrawOffers } from './trade-table';
 
-type BuildMode = 'road' | 'settlement' | 'city' | 'ship' | 'moveShip';
+type BuildMode = 'road' | 'settlement' | 'city' | 'ship' | 'moveShip' | 'bridge';
 type Dialog =
   | { kind: 'yearOfPlenty' }
   | { kind: 'monopoly' }
   | { kind: 'victim'; hex: number; victims: number[] }
   | { kind: 'fish'; step: 'menu' | 'steal' | 'bank' }
-  | { kind: 'tokens'; step: 'menu' | 'trade' };
+  | { kind: 'tokens'; step: 'menu' | 'trade' }
+  | { kind: 'coins' };
 
 const FISH_EFFECTS: { effect: FishEffect; label: string }[] = [
   { effect: 'robber', label: 'Räuber vom Brett nehmen' },
@@ -194,6 +197,10 @@ export class GameView {
     return nc ? g.players[nc.active.owner].color : this.myColor();
   });
 
+  /** Flussläufe: eigene Münzen; 2 Münzen sind ein Rohstoff. */
+  protected readonly myCoins = computed(() => this.g().coins?.[this.seat()] ?? null);
+  protected readonly canTradeCoins = computed(() => (this.myCoins() ?? 0) >= 2 && this.isCurrent() && this.g().phase.kind === 'main');
+
   /** Duell: Handelsmarken und was sie gerade kosten. */
   protected readonly myTokens = computed(() => this.g().tokens?.[this.seat()] ?? null);
   protected readonly tokenOptions = computed(() => {
@@ -265,6 +272,11 @@ export class GameView {
         COSTS.ship,
         piecesLeft(g, seat, 'ship') <= 0 ? 'Keine Schiffe mehr' : 'Kein Platz an deinen Küsten und Schiffen',
       ),
+      bridge: option(
+        can && !!g.coins && afford(COSTS.bridge) && piecesLeft(g, seat, 'bridge') > 0 && legalBridgeEdges(g, seat).length > 0,
+        COSTS.bridge,
+        piecesLeft(g, seat, 'bridge') <= 0 ? 'Keine Brücken mehr' : 'Keine Flusskante an deinen Straßen',
+      ),
       moveShip: (() => {
         const enabled = g.phase.kind === 'main' && g.current === seat && movableShips(g, seat).length > 0;
         const reason = g.shipMoved ? 'Schon ein Schiff versetzt' : 'Kein Schiff am offenen Ende einer Linie';
@@ -283,6 +295,8 @@ export class GameView {
         return 'Wähle eine Siedlung für die Stadt';
       case 'ship':
         return 'Wähle eine Kante am Meer für das Schiff';
+      case 'bridge':
+        return 'Wähle eine Flusskante für die Brücke';
       case 'moveShip':
         return this.moveFrom() === null ? 'Wähle das Schiff, das du versetzt' : 'Wähle, wohin das Schiff fährt';
       default:
@@ -329,6 +343,8 @@ export class GameView {
         return { ...none, edges: legalRoadEdges(g, seat) };
       case 'ship':
         return { ...none, edges: legalShipEdges(g, seat) };
+      case 'bridge':
+        return { ...none, edges: legalBridgeEdges(g, seat) };
       case 'moveShip': {
         const from = this.moveFrom();
         if (from === null) return { ...none, edges: movableShips(g, seat) };
@@ -450,6 +466,7 @@ export class GameView {
       anchor: g.anchor === seat,
       neutral: !!p.neutral,
       tokens: g.tokens?.[seat] ?? null,
+      coinRank: coinPoints(g, seat),
       active: actingSeats(g).includes(seat),
       online: !!members.find((m) => m.id === p.id)?.peerId,
       me: seat === this.seat(),
@@ -520,6 +537,8 @@ export class GameView {
       harborPoints: harborPoints(g, i.seat),
       fishing: !!g.fish,
       fishCount: g.fish?.[i.seat].length ?? 0,
+      coins: g.coins?.[i.seat] ?? null,
+      coinPoints: coinPoints(g, i.seat),
       anchor: g.anchor === i.seat,
       target: victoryTarget(g, i.seat),
       vpCards: showHidden ? devCards.filter((c) => c === 'victoryPoint').length : null,
@@ -817,6 +836,8 @@ export class GameView {
         return;
       }
       this.room.act({ type: 'moveShip', from, to: edge });
+    } else if (mode === 'bridge') {
+      this.room.act({ type: 'buildBridge', edge });
     } else if (this.neutralChoice()) {
       this.room.act({ type: 'placeNeutral', owner: this.neutralChoice()!.active.owner, edge });
     } else if (g.phase.kind === 'setup') {
@@ -876,6 +897,11 @@ export class GameView {
         this.dialog.set({ kind: 'monopoly' });
         break;
     }
+  }
+
+  protected tradeCoins(resource: Resource): void {
+    this.room.act({ type: 'tradeCoins', resource });
+    this.dialog.set(null);
   }
 
   protected openTokens(): void {

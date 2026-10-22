@@ -1,6 +1,6 @@
-import { generateBoard, getTopology, placeFishingGrounds, vertexHarbors } from './board';
+import { generateBoard, getTopology, placeFishingGrounds, placeRivers, vertexHarbors } from './board';
 import { mapById, mapFits } from './maps';
-import { DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, HARBOR_MASTER_POINTS, LAKE_NUMBERS, NEUTRALS, VariantId } from './variants';
+import { BRIDGE_COINS, DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, HARBOR_MASTER_POINTS, LAKE_NUMBERS, NEUTRALS, RIVER_COINS, VariantId } from './variants';
 import { randomInt, RngState, shuffle } from './rng';
 import {
   Action,
@@ -51,6 +51,7 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
   const map = mapById(settings.map);
   if (!mapFits(map, players.length)) fail(`${map.name} ist für ${map.players[0]}–${map.players[1]} Spieler.`);
   if (settings.variants?.includes('duell') && players.length !== 2) fail('Das Duell ist nur für zwei Spieler.');
+  if (settings.variants?.includes('flusslaeufe') && map.seafaring) fail('Flussläufe gibt es nur auf Karten ohne Meerfelder.');
   const rng: RngState = { rng: seed | 0 };
   const { board, robber, bank: bankSize, pirate, fog } = generateBoard(map.id, players.length, rng);
   const topo = getTopology(board);
@@ -114,6 +115,10 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
   if (hasVariant(state, 'duell')) setUpDuel(state);
   if (hasVariant(state, 'wuerfelstapel')) state.diceDeck = { ...DICE_DECK };
   if (hasVariant(state, 'fischgruende')) setUpFishing(state);
+  if (hasVariant(state, 'flusslaeufe')) {
+    state.board.rivers = placeRivers(state.board, state);
+    state.coins = state.players.map(() => 0);
+  }
   log(state, null, `Spiel gestartet mit ${n} Spielern. ${seated[0].name} beginnt mit der Aufbauphase.`);
   return state;
 }
@@ -163,6 +168,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     s.phase = { ...phase, step: 'road', settlement: vertex };
     updateLongestRoad(s);
     log(s, seat, text);
+    if (owner === seat && touchesRiver(s, [vertex])) earnCoins(s, seat, RIVER_COINS, 'Siedlung am Fluss');
     updateHarborMaster(s);
   },
 
@@ -174,11 +180,13 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (!e || s.roads[edge] !== null) fail('Hier ist kein Platz für eine Straße.');
     if (e.a !== phase.settlement && e.b !== phase.settlement) fail('Die Straße muss an deine neue Siedlung grenzen.');
     if (!edgeTouchesLand(s, edge)) fail('Straßen liegen an Land.');
+    if (isRiverEdge(s, edge)) fail('Über den Fluss geht es nur mit einer Brücke.');
     const owner = phase.owners?.[phase.index] ?? seat;
     s.roads[edge] = owner;
     updateLongestRoad(s);
     log(s, seat, owner === seat ? `${name(s, seat)} baut eine Straße.` : `${name(s, seat)} baut eine Straße für ${name(s, owner)}.`);
     revealFog(s, seat, edge);
+    if (owner === seat) roadCoins(s, seat, edge);
     const index = phase.index + 1;
     if (index >= phase.order.length) {
       s.current = 0;
@@ -285,6 +293,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
       updateLongestRoad(s);
       log(s, seat, `${name(s, seat)} baut eine Straße (Straßenbau).`);
       revealFog(s, seat, edge);
+      roadCoins(s, seat, edge);
       continueRoadBuilding(s, seat);
       return;
     }
@@ -296,6 +305,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     updateLongestRoad(s);
     log(s, seat, `${name(s, seat)} baut eine Straße.`);
     revealFog(s, seat, edge);
+    roadCoins(s, seat, edge);
     startNeutralStep(s, 'road');
   },
 
@@ -315,6 +325,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
       if (bonus) log(s, seat, `${name(s, seat)} besiedelt eine neue Insel und bekommt ${bonus} Siegpunkte.`);
     }
     if (s.tokens) gainTokens(s, seat, vertex);
+    if (touchesRiver(s, [vertex])) earnCoins(s, seat, RIVER_COINS, 'Siedlung am Fluss');
     startNeutralStep(s, 'settlement');
   },
 
@@ -642,6 +653,31 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     s.tokens[seat] -= cost;
   },
 
+  buildBridge(s, seat, { edge }) {
+    if (!s.coins) fail('In diesem Spiel gibt es keine Flüsse.');
+    requireBuilder(s, seat);
+    if (piecesLeft(s, seat, 'bridge') <= 0) fail('Du hast keine Brücken mehr.');
+    if (!canBuildBridge(s, seat, edge)) fail('Hier kannst du keine Brücke bauen.');
+    pay(s, seat, COSTS.bridge, { kind: 'edge', id: edge });
+    s.roads[edge] = seat;
+    updateLongestRoad(s);
+    log(s, seat, `${name(s, seat)} baut eine Brücke.`);
+    earnCoins(s, seat, BRIDGE_COINS, 'Brücke');
+  },
+
+  tradeCoins(s, seat, { resource }) {
+    if (!s.coins) fail('In diesem Spiel gibt es keine Münzen.');
+    requireTurn(s, seat, 'main');
+    if (s.coins[seat] < 2) fail('Dafür brauchst du 2 Münzen.');
+    if (!isResource(resource)) fail('Wähle einen Rohstoff.');
+    if (s.bank[resource] <= 0) fail(`Die Bank hat kein ${RESOURCE_NAMES[resource]} mehr.`);
+    s.coins[seat] -= 2;
+    s.bank[resource]--;
+    s.players[seat].resources[resource]++;
+    transfer(s, BANK, seatPoint(seat), resource, 1);
+    log(s, seat, `${name(s, seat)} tauscht 2 Münzen gegen 1 ${RESOURCE_NAMES[resource]}.`);
+  },
+
   endTurn(s, seat) {
     const phase = s.phase;
     if (phase.kind === 'specialBuild') {
@@ -688,6 +724,7 @@ export function victoryPoints(s: GameState, seat: number, includeHidden: boolean
   if (s.largestArmy === seat) vp += 2;
   if (s.harborMaster === seat) vp += 2;
   vp += s.islandBonus?.[seat] ?? 0;
+  vp += coinPoints(s, seat);
   if (includeHidden) {
     const p = s.players[seat];
     vp += [...p.devCards, ...p.newDevCards].filter((c) => c === 'victoryPoint').length;
@@ -712,6 +749,20 @@ export function canBuildSettlement(s: GameState, seat: number, vertex: number): 
 }
 
 export function canBuildRoad(s: GameState, seat: number, edge: number): boolean {
+  return !isRiverEdge(s, edge) && roadFits(s, seat, edge);
+}
+
+/** Flussläufe: Brücken liegen auf Flusskanten und schließen an wie Straßen. */
+export function canBuildBridge(s: GameState, seat: number, edge: number): boolean {
+  return isRiverEdge(s, edge) && roadFits(s, seat, edge);
+}
+
+export function legalBridgeEdges(s: GameState, seat: number): number[] {
+  return (s.board.rivers ?? []).flatMap((r) => r.edges).filter((e) => canBuildBridge(s, seat, e));
+}
+
+/** Freie Landkante, die an ein eigenes Gebäude oder eine eigene Straße anschließt (fremde Gebäude unterbrechen). */
+function roadFits(s: GameState, seat: number, edge: number): boolean {
   const topo = getTopology(s.board);
   const e = topo.edges[edge];
   if (!e || s.roads[edge] !== null || s.ships?.[edge] != null || !edgeTouchesLand(s, edge)) return false;
@@ -740,7 +791,7 @@ export function legalSetupVertices(s: GameState): number[] {
 export function legalSetupRoads(s: GameState): number[] {
   const phase = s.phase;
   if (phase.kind !== 'setup' || phase.settlement === null) return [];
-  return getTopology(s.board).vertices[phase.settlement].edges.filter((e) => s.roads[e] === null && edgeTouchesLand(s, e));
+  return getTopology(s.board).vertices[phase.settlement].edges.filter((e) => s.roads[e] === null && edgeTouchesLand(s, e) && !isRiverEdge(s, e));
 }
 
 export function legalSettlementVertices(s: GameState, seat: number): number[] {
@@ -891,10 +942,11 @@ export function tradeRate(s: GameState, seat: number, give: Resource): number {
   return rate;
 }
 
-export function piecesLeft(s: GameState, seat: number, piece: 'road' | 'settlement' | 'city' | 'ship'): number {
+export function piecesLeft(s: GameState, seat: number, piece: 'road' | 'settlement' | 'city' | 'ship' | 'bridge'): number {
+  // Brücken liegen in `roads`, zählen aber als eigener Vorrat.
   const used =
-    piece === 'road'
-      ? s.roads.filter((r) => r === seat).length
+    piece === 'road' || piece === 'bridge'
+      ? s.roads.filter((r, e) => r === seat && isRiverEdge(s, e) === (piece === 'bridge')).length
       : piece === 'ship'
         ? (s.ships ?? []).filter((r) => r === seat).length
         : s.buildings.filter((b) => b?.owner === seat && b.type === piece).length;
@@ -1044,6 +1096,42 @@ function startNeutralStep(s: GameState, piece: 'road' | 'settlement'): void {
   if (next) s.phase = { kind: 'neutral', piece: next };
 }
 
+/** Flussläufe: Liegt diese Kante auf einem Fluss? */
+export function isRiverEdge(s: GameState, edge: number): boolean {
+  return !!s.board.rivers?.some((r) => r.edges.includes(edge));
+}
+
+/** Liegt eine dieser Ecken an einem Fluss (Ende einer Flusskante)? */
+function touchesRiver(s: GameState, vertices: number[]): boolean {
+  if (!s.board.rivers?.length) return false;
+  const topo = getTopology(s.board);
+  return s.board.rivers.some((r) => r.edges.some((e) => vertices.includes(topo.edges[e].a) || vertices.includes(topo.edges[e].b)));
+}
+
+function roadCoins(s: GameState, seat: number, edge: number): void {
+  const e = getTopology(s.board).edges[edge];
+  if (touchesRiver(s, [e.a, e.b])) earnCoins(s, seat, RIVER_COINS, 'Straße am Fluss');
+}
+
+function earnCoins(s: GameState, seat: number, n: number, why: string): void {
+  if (!s.coins || s.players[seat].neutral) return;
+  s.coins[seat] += n;
+  log(s, seat, `${name(s, seat)} bekommt ${n === 1 ? 'eine Münze' : `${n} Münzen`} (${why}).`);
+}
+
+/**
+ * Flussläufe: Wer die meisten Münzen hat, bekommt 1 Punkt, wer die wenigsten hat, verliert 2. Bei
+ * Gleichstand gilt das für alle Gleichen; haben alle gleich viele, gibt es weder Plus noch Minus.
+ */
+export function coinPoints(s: GameState, seat: number): number {
+  if (!s.coins || s.players[seat].neutral) return 0;
+  const counts = s.players.flatMap((p, i) => (p.neutral ? [] : [s.coins![i]]));
+  const max = Math.max(...counts);
+  const min = Math.min(...counts);
+  if (max === min) return 0;
+  return s.coins[seat] === max ? 1 : s.coins[seat] === min ? -2 : 0;
+}
+
 /** Siegziel eines Spielers: Wer den Rostigen Anker hat, braucht einen Punkt mehr. */
 export function victoryTarget(s: GameState, seat: number): number {
   return s.settings.victoryPoints + (s.anchor === seat ? 1 : 0);
@@ -1174,6 +1262,7 @@ export function canBuildAnything(s: GameState, seat: number): boolean {
   if (hasResources(res, COSTS.city) && piecesLeft(s, seat, 'city') > 0 && legalCityVertices(s, seat).length > 0) return true;
   if (hasResources(res, COSTS.settlement) && piecesLeft(s, seat, 'settlement') > 0 && legalSettlementVertices(s, seat).length > 0) return true;
   if (s.ships && hasResources(res, COSTS.ship) && piecesLeft(s, seat, 'ship') > 0 && legalShipEdges(s, seat).length > 0) return true;
+  if (s.coins && hasResources(res, COSTS.bridge) && piecesLeft(s, seat, 'bridge') > 0 && legalBridgeEdges(s, seat).length > 0) return true;
   return hasResources(res, COSTS.road) && piecesLeft(s, seat, 'road') > 0 && legalRoadEdges(s, seat).length > 0;
 }
 

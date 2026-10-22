@@ -50,6 +50,13 @@
       <polygon class="shine" [attr.points]="h.points" fill="url(#g-shine)" />
       <polygon class="outline" [attr.points]="h.points" />
       }
+      @if (h.river) {
+        <g class="river">
+          <path class="river-bank" [attr.d]="h.river" />
+          <path class="river-water" [attr.d]="h.river" />
+          <path class="river-shine" [attr.d]="h.river" />
+        </g>
+      }
       @if (h.lake) {
         <g class="lake-numbers" [attr.transform]="h.tokenTransform || null">
           <rect [attr.x]="h.x - 26" [attr.y]="h.y + S * 0.05 - 9" width="52" height="18" rx="9" />
@@ -74,8 +81,11 @@
   }
 
   @for (r of roads(); track r.id) {
-    <g class="road" [attr.data-edge]="r.id">
+    <g class="road" [class.bridge]="r.bridge" [attr.data-edge]="r.id">
       <title>{{ r.title }}</title>
+      @if (r.bridge) {
+        <rect class="bridge-deck" [attr.transform]="r.transform" [attr.x]="-r.length / 2 - 3" [attr.y]="-r.height / 2 - 4" [attr.width]="r.length + 6" [attr.height]="r.height + 8" rx="3" />
+      }
       @if (r.image) {
         <image class="piece-art" [attr.href]="r.image" [attr.transform]="r.transform"
           [attr.x]="-r.length / 2" [attr.y]="-r.height / 2" [attr.width]="r.length" [attr.height]="r.height" />

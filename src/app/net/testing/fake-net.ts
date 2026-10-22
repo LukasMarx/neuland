@@ -1,6 +1,6 @@
 import { Injector, runInInjectionContext } from '@angular/core';
 import { Action, actingSeats, applyAction, emptyResources, GameState, legalCityVertices, legalRoadEdges } from '../../engine';
-import { autoAction, legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, legalShipEdges, movableShips, RESOURCES, robberVictims } from '../../engine';
+import { autoAction, legalBridgeEdges, legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, legalShipEdges, movableShips, RESOURCES, robberVictims } from '../../engine';
 import { NetMessage } from '../protocol';
 import { NET_ENV, NetEnv, RoomService } from '../room.service';
 import { TransportHandlers } from '../transport';
@@ -318,6 +318,9 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
         ...legalRoadEdges(g, seat).map((edge) => () => ({ type: 'buildRoad', edge }) as Action),
         () => ({ type: 'buyDevCard' }),
         ...legalShipEdges(g, seat).map((edge) => () => ({ type: 'buildShip', edge }) as Action),
+        // Flussläufe: Brücken bauen und Münzen tauschen.
+        ...legalBridgeEdges(g, seat).map((edge) => () => ({ type: 'buildBridge', edge }) as Action),
+        ...(g.coins && g.coins[seat] >= 2 ? [() => ({ type: 'tradeCoins', resource: pick([...RESOURCES]) }) as Action] : []),
         // Fischgründe: Fische ausgeben oder den Anker weiterreichen.
         ...(g.fish && g.fish[seat].length
           ? (['robber', 'steal', 'bank', 'road', 'devCard'] as const).map((effect) => () =>
@@ -341,6 +344,13 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
           return to.length ? ({ type: 'moveShip', from, to: pick(to) } as Action) : null;
         }),
       ];
+      // Brücken sind selten erlaubt und teuer: wenn es geht, meistens bauen, damit die Partien sie abdecken.
+      // Zufall nur ziehen, wenn es Brücken gibt, damit Partien ohne Flüsse genauso laufen wie vorher.
+      const bridges = legalBridgeEdges(g, seat);
+      if (bridges.length && random() < 0.7) {
+        const edge = pick(bridges);
+        if (legal({ type: 'buildBridge', edge })) return { seat, action: { type: 'buildBridge', edge } };
+      }
       if (random() < 0.8) {
         for (let tries = 0; tries < 12 && candidates.length; tries++) {
           const [make] = candidates.splice(Math.floor(random() * candidates.length), 1);

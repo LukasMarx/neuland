@@ -35,6 +35,18 @@ export interface BoardState {
   harbors: HarborState[];
   /** Fischgründe (Variante): Küstenkanten mit Zahl. */
   fishing?: FishingGround[];
+  /** Flussläufe (Variante): Flüsse von der Quelle zur Mündung. */
+  rivers?: River[];
+}
+
+/**
+ * Ein Fluss: Felder von der Quelle bis zur Küste und die Kanten, über die er fließt. `edges[i]` liegt
+ * zwischen `hexes[i]` und `hexes[i + 1]`, die letzte Kante ist die Mündung an der Küste. Auf diesen
+ * Kanten gibt es keine Straße, nur eine Brücke.
+ */
+export interface River {
+  hexes: number[];
+  edges: number[];
 }
 
 export interface FishingGround {
@@ -177,6 +189,8 @@ export interface GameState {
   anchor?: number | null;
   /** Duell: Handelsmarken je Sitz. */
   tokens?: number[];
+  /** Flussläufe: Münzen je Sitz. */
+  coins?: number[];
 }
 
 /** Duell: wofür man Handelsmarken ausgibt. */
@@ -225,7 +239,10 @@ export type Action =
   | { type: 'passAnchor'; to: number }
   /** Duell */
   | { type: 'placeNeutral'; owner: number; vertex?: number; edge?: number }
-  | { type: 'spendTokens'; effect: TokenEffect; give?: ResourceCounts };
+  | { type: 'spendTokens'; effect: TokenEffect; give?: ResourceCounts }
+  /** Flussläufe */
+  | { type: 'buildBridge'; edge: number }
+  | { type: 'tradeCoins'; resource: Resource };
 
 export const RESOURCE_NAMES: Record<Resource, string> = {
   wood: 'Holz',
@@ -249,9 +266,10 @@ export const COSTS = {
   city: { wood: 0, brick: 0, sheep: 0, wheat: 2, ore: 3 },
   devCard: { wood: 0, brick: 0, sheep: 1, wheat: 1, ore: 1 },
   ship: { wood: 1, brick: 0, sheep: 1, wheat: 0, ore: 0 },
+  bridge: { wood: 1, brick: 2, sheep: 0, wheat: 0, ore: 0 },
 } satisfies Record<string, ResourceCounts>;
 
-export const PIECE_LIMITS = { road: 15, settlement: 5, city: 4, ship: 15 };
+export const PIECE_LIMITS = { road: 15, settlement: 5, city: 4, ship: 15, bridge: 3 };
 
 export function emptyResources(): ResourceCounts {
   return { wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 };

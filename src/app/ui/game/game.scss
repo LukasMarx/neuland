@@ -812,6 +812,17 @@ kbd {
   }
 }
 
+.fish-stack.coins {
+  background: #3a3220;
+  border-color: #b08a3c;
+
+  .coin-icon {
+    font-size: 1.3rem;
+    line-height: 1;
+    color: #e3b84f;
+  }
+}
+
 .fish-cost {
   display: inline-grid;
   place-items: center;

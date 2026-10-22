@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, InjectionToken, isDevMode, signal } from '@angular/core';
 import * as engine from '../engine';
-import { Action, applyAction, autoAction, createGame, GameSettings, GameState, RuleError, VARIANTS } from '../engine';
+import { Action, applyAction, autoAction, createGame, GameSettings, GameState, mapById, RuleError, VARIANTS } from '../engine';
 import { LocalTransport } from './local-transport';
 import {
   compareRank,
@@ -266,6 +266,11 @@ export class RoomService {
     const fixed = VARIANTS.find((v) => v.players && room.settings.variants?.includes(v.id) && v.players !== present.length);
     if (fixed) {
       this.showNotice(`${fixed.name} ist nur für ${fixed.players} Spieler.`);
+      return;
+    }
+    const landOnly = VARIANTS.find((v) => v.landOnly && room.settings.variants?.includes(v.id) && mapById(room.settings.map).seafaring);
+    if (landOnly) {
+      this.showNotice(`${landOnly.name} gibt es nur auf Karten ohne Meerfelder.`);
       return;
     }
     const gone = room.players.filter((p) => !present.includes(p));

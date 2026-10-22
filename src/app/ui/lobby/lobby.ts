@@ -139,8 +139,8 @@ import { MapThumb } from './map-thumb';
                 <p class="muted small">Mindestens 2 Spieler nötig. Schick den Link herum!</p>
               } @else if (!fitsNow(map())) {
                 <p class="muted small">{{ map().name }} ist für {{ map().players[0] }}–{{ map().players[1] }} Spieler, gerade sind {{ present() }} da.</p>
-              } @else if (variantMismatch(); as v) {
-                <p class="muted small">{{ v.name }} ist nur für {{ v.players }} Spieler, gerade sind {{ present() }} da.</p>
+              } @else if (variantMismatch(); as text) {
+                <p class="muted small">{{ text }}</p>
               }
             } @else {
               <p class="muted">Warte darauf, dass der Gastgeber das Spiel startet …</p>
@@ -342,10 +342,15 @@ export class Lobby {
     return n >= 2 && n <= MAX_PLAYERS && this.fitsNow(this.map()) && !this.variantMismatch();
   });
 
-  /** Eine Variante, die eine feste Spielerzahl verlangt (Duell), passt gerade nicht. */
+  /** Eine eingeschaltete Variante passt nicht zur Spielerzahl (Duell) oder zur Karte (Flussläufe). */
   protected readonly variantMismatch = computed(() => {
     const n = this.present();
-    return VARIANTS.find((v) => v.players && this.variantOn(v) && v.players !== n) ?? null;
+    const sea = !!this.map().seafaring;
+    const v = VARIANTS.find((x) => this.variantOn(x) && ((x.players && x.players !== n) || (x.landOnly && sea)));
+    if (!v) return null;
+    return v.players && v.players !== n
+      ? `${v.name} ist nur für ${v.players} Spieler, gerade sind ${n} da.`
+      : `${v.name} gibt es nur auf Karten ohne Meerfelder.`;
   });
 
   protected fitsNow(map: MapDef): boolean {

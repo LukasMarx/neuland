@@ -197,6 +197,7 @@ export class Board {
         sea: state.terrain === 'sea',
         fog: state.terrain === 'fog',
         lake: state.terrain === 'lake',
+        river: this.riverPaths().get(h.id) ?? null,
         revealed: this.revealed().has(h.id),
         image: tileImage(state.terrain, h.id),
         // Jedes zweite Feld gespiegelt, damit gleiche Gelände nicht wie gestempelt aussehen.
@@ -282,14 +283,45 @@ export class Board {
 
   protected readonly roads = computed(() => {
     const g = this.game();
+    const riverEdges = new Set((g.board.rivers ?? []).flatMap((r) => r.edges));
     return g.roads.flatMap((owner, id) => {
       if (owner === null) return [];
       const player = g.players[owner];
+      const bridge = riverEdges.has(id);
       return [{
-        id, ...this.edgeLine(id, 0.08), color: player.color,
-        image: pieceImage('road', player.color), title: `${player.name}: Straße`,
+        id, ...this.edgeLine(id, 0.08), color: player.color, bridge,
+        image: pieceImage('road', player.color), title: `${player.name}: ${bridge ? 'Brücke' : 'Straße'}`,
       }];
     });
+  });
+
+  /**
+   * Flussläufe: das Stück Fluss in jedem Feld, von Kantenmitte zu Kantenmitte, zur Feldmitte hin gebogen.
+   * Es wird im Feld unter der Zahl gezeichnet; an den Kantenmitten treffen sich die Stücke.
+   */
+  private readonly riverPaths = computed(() => {
+    const topo = this.topo();
+    const paths = new Map<number, string>();
+    const mid = (e: number) => {
+      const { a, b } = topo.edges[e];
+      return { x: ((topo.vertices[a].x + topo.vertices[b].x) / 2) * S, y: ((topo.vertices[a].y + topo.vertices[b].y) / 2) * S };
+    };
+    const f = (n: number) => n.toFixed(1);
+    for (const river of this.game().board.rivers ?? []) {
+      river.hexes.forEach((h, i) => {
+        const c = { x: topo.hexes[h].x * S, y: topo.hexes[h].y * S };
+        const out = mid(river.edges[i]);
+        let d = i === 0 ? `M${f(c.x)},${f(c.y)} L${f(out.x)},${f(out.y)}` : '';
+        if (i > 0) {
+          const from = mid(river.edges[i - 1]);
+          d = `M${f(from.x)},${f(from.y)} Q${f(c.x)},${f(c.y)} ${f(out.x)},${f(out.y)}`;
+        }
+        // Die Mündung läuft ein Stück ins Meer hinaus.
+        if (i === river.hexes.length - 1) d += ` L${f(out.x + (out.x - c.x) * 0.45)},${f(out.y + (out.y - c.y) * 0.45)}`;
+        paths.set(h, d);
+      });
+    }
+    return paths;
   });
 
   /** Seewege: Schiffe liegen quer auf ihrer Kante wie Straßen, gedreht nach der Kante. */

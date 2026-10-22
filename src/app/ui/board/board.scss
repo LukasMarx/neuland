@@ -197,6 +197,41 @@ text {
   }
 }
 
+// Flussläufe: Fluss in jedem Feld unter der Zahl, mit dunklem Ufer und hellem Glanz.
+.river {
+  pointer-events: none;
+
+  path {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .river-bank {
+    stroke: #2b5e74;
+    stroke-width: 9;
+  }
+
+  .river-water {
+    stroke: #4f9bbf;
+    stroke-width: 6;
+  }
+
+  .river-shine {
+    stroke: #bfe2f0;
+    stroke-width: 1.6;
+    stroke-dasharray: 6 9;
+    opacity: 0.8;
+  }
+}
+
+// Brücke: die Straße liegt auf einem hellen Holzsteg über dem Fluss.
+.bridge-deck {
+  fill: #b98a55;
+  stroke: #5b3d1f;
+  stroke-width: 1.4;
+}
+
 // Ohne Aufhellung des Bretts hält ein dünner, leicht transparenter dunkler Rand
 // die Figuren auf jedem Gelände lesbar (Variante E1, output/designs/board-kontrast-2026-10-21).
 .piece-art {

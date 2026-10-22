@@ -1,5 +1,5 @@
 /** Kleine Varianten, in der Lobby zuschaltbar (docs/ERWEITUNGEN.md, Abschnitt 2.1). */
-export type VariantId = 'milderRaeuber' | 'hafenvogt' | 'wuerfelstapel' | 'fischgruende' | 'duell';
+export type VariantId = 'milderRaeuber' | 'hafenvogt' | 'wuerfelstapel' | 'fischgruende' | 'duell' | 'flusslaeufe';
 
 export interface VariantDef {
   id: VariantId;
@@ -9,6 +9,8 @@ export interface VariantDef {
   victoryPoints?: number;
   /** Nur mit genau so vielen Spielern. */
   players?: number;
+  /** Nur auf Karten ohne Meerfelder (keine Seewege). */
+  landOnly?: boolean;
 }
 
 export const VARIANTS: VariantDef[] = [
@@ -42,7 +44,18 @@ export const VARIANTS: VariantDef[] = [
     description:
       'Für zwei: Zwei neutrale Mitspieler blockieren. Wer eine Straße oder Siedlung baut, setzt auch eine für einen Neutralen. Handelsmarken (Küste, Wüste, Ritter) erzwingen einen Tausch oder schicken den Räuber in die Wüste; der Führende zahlt doppelt.',
   },
+  {
+    id: 'flusslaeufe',
+    name: 'Flussläufe',
+    landOnly: true,
+    description:
+      'Zwei Flüsse laufen zur Küste. Über den Fluss geht es nur mit Brücken (2 Lehm, 1 Holz). Bauen am Fluss bringt Münzen, 2 Münzen sind ein Rohstoff. Die meisten Münzen geben +1 Punkt, die wenigsten −2.',
+  },
 ];
+
+/** Flussläufe: Münzen für eine Brücke und für Straße oder Siedlung am Fluss. */
+export const BRIDGE_COINS = 3;
+export const RIVER_COINS = 1;
 
 /** Duell: die beiden neutralen Mitspieler. */
 export const NEUTRALS = [

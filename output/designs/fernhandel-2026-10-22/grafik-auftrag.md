@@ -1,18 +1,19 @@
-# Auftrag: Grafiken für Fischgründe, Duell und kleine Varianten
+# Auftrag: Grafiken für Fernhandel I und kleine Varianten
 
 ## Worum es geht
 
-Neuland hat zwei neue Varianten aus „Fernhandel I“, beide in der Lobby zuschaltbar:
+Neuland hat drei neue Varianten aus „Fernhandel I“, alle in der Lobby zuschaltbar:
 
 - **Fischgründe:** Ein See ersetzt die Wüste. An der Küste liegen Fischgründe mit Zahl. Wer daran baut, fängt Fischplättchen im Wert 1 bis 3. Unter den Plättchen ist ein **Rostiger Anker**; wer ihn hat, braucht einen Punkt mehr zum Sieg.
 - **Duell:** Für zwei Spieler. Zwei neutrale Mitspieler in Grau bauen mit. **Handelsmarken** erzwingen einen Tausch oder schicken den Räuber in die Wüste.
+- **Flussläufe:** Zwei Flüsse laufen über das Brett zur Küste. Über den Fluss führen nur **Brücken**. Bauen am Fluss bringt **Münzen**; die meisten Münzen geben einen Punkt, die wenigsten kosten zwei.
 
 Dazu kommen Nachträge für zwei kleine Varianten, die schon länger spielbar sind:
 
 - **Hafenvogt:** Wer zuerst 3 Hafenpunkte hat (Siedlung am Hafen 1, Stadt 2), bekommt 2 Siegpunkte; wer mehr hat, übernimmt.
 - **Würfelstapel:** 36 Karten statt Würfeln, genau mit der Verteilung zweier Würfel.
 
-Im Spiel stehen dafür im Moment einfache SVG-Platzhalter oder nur Text. Gebraucht werden Grafiken im bestehenden **Papiercollage-Stil**. Die Regeln stehen in `docs/ERWEITUNGEN.md`, Abschnitte 2.1 (Duell) und 2.4 (Fischgründe).
+Im Spiel stehen dafür im Moment einfache SVG-Platzhalter oder nur Text. Gebraucht werden Grafiken im bestehenden **Papiercollage-Stil**. Die Regeln stehen in `docs/ERWEITUNGEN.md`, Abschnitte 2.1 (Duell) und 2.4 (Fischgründe, Flussläufe).
 
 Stilreferenzen:
 
@@ -21,7 +22,7 @@ Stilreferenzen:
 - **Kleine Symbole:** `public/icons/resources/*.png` (Rohstoffsymbole in Hand und Häfen)
 - **Banner-Motive:** `public/banner/papiercollage/*.png` und `output/designs/banner-2026-10-21/einzelteile-auftrag.md`
 
-In Prompts nur die Neuland-Begriffe verwenden (See, Fischgrund, Rostiger Anker, Handelsmarke, Neutrale), keine Originalnamen und keine Beschreibung des Original-Artworks.
+In Prompts nur die Neuland-Begriffe verwenden (See, Fischgrund, Rostiger Anker, Handelsmarke, Neutrale, Brücke, Münze), keine Originalnamen und keine Beschreibung des Original-Artworks.
 
 ## Benötigte Dateien
 
@@ -41,6 +42,16 @@ In Prompts nur die Neuland-Begriffe verwenden (See, Fischgrund, Rostiger Anker, 
 |---|---|---|---|
 | `public/icons/duel/token.png` | **Handelsmarke:** runde Marke aus Messing oder Karton mit eingeprägten Waagschalen oder zwei Pfeilen im Kreis | 256 × 256, transparent | Für Hand und Menü, etwa 30 Pixel. Keine Schrift. |
 | Graue Figuren | **Neutrale Mitspieler:** Dorf, Stadt und Straße in zwei Grautönen | keine neue Grafik nötig | siehe „Graue Figuren“ unten |
+
+### Flussläufe
+
+| Datei | Motiv | Format | Hinweise |
+|---|---|---|---|
+| `output/designs/pieces-2026-10-21/sources/bridge-base.png` | **Brücke:** kleine Holzbrücke mit Geländer, steile Draufsicht wie die übrigen Figuren, liegt quer | 512 × 128 wie die Straße, transparent | Der **Belag** muss einfärbbar sein wie die Terrakottaflächen bei Straße und Stadt; Geländer und Pfosten bleiben holzbraun. Liegt auf einer Kante quer über einem Fluss und muss sich von einer Straße unterscheiden. |
+| `public/icons/rivers/coin.png` | **Münze:** Goldmünze aus Papier mit eingeprägter Welle | 256 × 256, transparent | Für Hand, Menü und Spielerleiste, etwa 24 bis 30 Pixel. Keine Zahl, keine Schrift. |
+| `public/icons/rivers/rich.png`, `poor.png` | **Abzeichen:** voller Geldbeutel (meiste Münzen, +1 Punkt) und leerer, geflickter Beutel (wenigste Münzen, −2 Punkte) | 256 × 256, transparent | Für die Spielerleiste, etwa 20 Pixel. Freundlich, nicht abwertend. |
+
+Die Flüsse selbst zeichnet das Spiel als Linien über die Felder; dafür braucht es keine Feldgrafiken je Flussrichtung.
 
 ### Hafenvogt
 
@@ -73,6 +84,14 @@ Die Neutralen brauchen kein neues Grundbild. Dorf, Stadt und Straße laufen durc
 2. Ausführen: `python scripts/build-piece-assets.py` (Straße) und `python scripts/build-organic-piece-assets.py` (Dorf und Stadt).
 3. Ergebnis prüfen: Grau muss sich auf allen Geländen von Weiß und Braun abheben. Notfalls die Grautöne leicht bläulich verschieben, dann aber auch `NEUTRALS` in `src/app/engine/variants.ts` anpassen.
 
+## Brücken in Spielerfarben (Flussläufe)
+
+Wie beim Schiff läuft die Brücke durch dieselbe Pipeline wie die Straße (`scripts/build-piece-assets.py`):
+
+1. In `PIECES` den Eintrag `"bridge": "Brücke"` ergänzen und wie `road` flach behandeln (`size = (512, 128)`).
+2. Ausführen: `python scripts/build-piece-assets.py`. Das legt `masks/bridge.png` an; die Maske so nacharbeiten, dass nur der Belag eingefärbt wird.
+3. Ergebnis: `public/pieces/papiercollage/bridge-<farbe>.png` für alle Farben, auch die beiden Grautöne der Neutralen.
+
 ## Einbindung (macht danach der Code-Agent)
 
 - **See:** `lake` in `src/app/ui/board/tile-art.ts` eintragen und mit `node scripts/optimize-images.mjs` die Web-Fassung erzeugen. Der SVG-Platzhalter `#t-lake` bleibt als Rückfall.
@@ -83,6 +102,8 @@ Die Neutralen brauchen kein neues Grundbild. Dorf, Stadt und Straße laufen durc
 - **Banner Anker:** neue Banner-Art in `src/app/ui/game/event-banner.ts`.
 - **Hafenvogt:** Abzeichen in Spielerleiste und Punkteübersicht (`src/app/ui/game/game.html`), Motiv im Fall `harbor` von `event-banner.ts` statt der Münzen.
 - **Würfelstapel:** Rückseite neben dem Würfelbecher (`.dice-deck` in `game.html`).
+- **Brücke:** `bridge` als `PieceKind` in `src/app/ui/shared/piece-art.ts`; in `board.html` ersetzt das Bild den Holzsteg `.bridge-deck` samt Straße, dazu der Bauknopf „Brücke“ in `game.html`.
+- **Münze und Abzeichen:** Münzstapel in der Hand (`.fish-stack.coins`), Münzmenü, „Reichster“/„Bettler“ in der Spielerleiste.
 
 ## Abnahme
 
@@ -93,5 +114,7 @@ Die Neutralen brauchen kein neues Grundbild. Dorf, Stadt und Straße laufen durc
 - [ ] Anker und Handelsmarke bei 24 Pixeln erkennbar
 - [ ] Graue Figuren auf jedem Gelände von Weiß und Braun zu unterscheiden
 - [ ] Hafenvogt-Abzeichen bei 20 Pixeln erkennbar und anders als die übrigen Abzeichen
+- [ ] Brücke auf dem Fluss klar von einer Straße zu unterscheiden, Belag in allen Farben lesbar
+- [ ] Münze und Geldbeutel-Abzeichen bei 20 Pixeln erkennbar
 
 Die verwendeten Prompts bitte in `output/designs/fernhandel-2026-10-22/prompts.json` ablegen.

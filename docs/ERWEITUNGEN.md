@@ -349,6 +349,8 @@ Eine Sammlung voneinander unabhängiger Szenarien für 3–4 Spieler. Die enthal
 
 #### Flussläufe
 
+> **Umgesetzt am 22.10.2026** als Variante `flusslaeufe` (nur auf Karten ohne Meerfelder). Eigene Umsetzung: Zwei Flüsse laufen von einer Quelle im Inland über die Felder zur Küste (`board.rivers`), gezeichnet als Linien über den Feldern, also ohne Feldgrafiken je Flussrichtung. Auf den Kanten, die ein Fluss quert, gibt es keine Straße, nur eine Brücke (2 Lehm, 1 Holz, 3 je Spieler); Brücken liegen in `roads` und zählen für die längste Straße. Münzen: Straße oder Siedlung am Fluss 1, Brücke 3; 2 Münzen sind ein Rohstoff aus der Bank. Die meisten Münzen geben +1 Punkt, die wenigsten −2, bei Gleichstand für alle Gleichen; haben alle gleich viele, gilt beides nicht. Brücke, Münze und Abzeichen sind Platzhalter, der Auftrag liegt in `output/designs/fernhandel-2026-10-22/grafik-auftrag.md`.
+
 **Regel:** Zwei Flüsse ersetzen einige Felder. Wer an einem Fluss eine Straße oder Siedlung baut, bekommt eine Münze. Brücken über den Fluss kosten 2 Lehm + 1 Holz und bringen 3 Münzen. Wer die meisten Münzen hat, bekommt +1 Punkt, wer die wenigsten hat, −2 Punkte (bei Gleichstand gelten die Regeln des Originals, prüfen). 2 Münzen tauschen gegen 1 Rohstoff.
 
 **Engine:** Flussfelder in der Kartendefinition (Felder mit Flusskanten), `edge.kind: 'bridge'`, `ext.coins: number[]`, Aktion `buildBridge`, Hooks `onBuild` und `victoryPoints`. Setzt Karten als Daten voraus.
@@ -773,7 +775,7 @@ Bedarf nach Paket (Details in den Abschnitten 2.x):
 | Fernhandel II | Oase, Burg/Sonderstätten | Kamel, Kantenritter ×8, Plünderer, Wagen 3 Stufen ×8 | Waren (4), Aufträge | – |
 | Ferne Küsten | Schlupfwinkel, Fischgrund-Feld, Dorf, Inselrat | großes Schiff ×8, Siedlertrupp ×8, Matrose ×8, Hafenort ×8 | Gold, Fisch, Gewürz, Auftragsleisten | Land entdeckt, Schlupfwinkel |
 
-Konkrete Aufträge mit Dateinamen, Formaten und Einbindung: Seewege (mit Nebel und Inselbonus) in `output/designs/seewege-2026-10-22/grafik-auftrag.md`, Fischgründe, Duell, Hafenvogt und Würfelstapel in `output/designs/fernhandel-2026-10-22/grafik-auftrag.md`.
+Konkrete Aufträge mit Dateinamen, Formaten und Einbindung: Seewege (mit Nebel und Inselbonus) in `output/designs/seewege-2026-10-22/grafik-auftrag.md`, Fischgründe, Duell, Flussläufe, Hafenvogt und Würfelstapel in `output/designs/fernhandel-2026-10-22/grafik-auftrag.md`.
 
 ---
 

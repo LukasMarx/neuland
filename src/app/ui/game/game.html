@@ -56,6 +56,11 @@
               @if (p.anchor) {
                 · Anker
               }
+              @if (p.coinRank > 0) {
+                · Reichster
+              } @else if (p.coinRank < 0) {
+                · Bettler
+              }
             </small>
           </span>
           <span class="vp" title="Siegpunkte">{{ p.vp }}</span>
@@ -231,6 +236,14 @@
             </div>
           }
         }
+        @if (myCoins() !== null) {
+          <span class="divider"></span>
+          <button class="fish-stack coins" title="Münzen: 2 Münzen sind ein Rohstoff aus der Bank" (click)="dialog.set({ kind: 'coins' })">
+            <span class="coin-icon" aria-hidden="true">●</span>
+            <b>{{ myCoins() }}</b>
+            <small>Münzen</small>
+          </button>
+        }
         @if (myTokens() !== null) {
           <span class="divider"></span>
           <button class="fish-stack tokens" title="Handelsmarken: Tausch erzwingen oder Räuber in die Wüste" (click)="openTokens()">
@@ -302,6 +315,13 @@
             <span class="figure trade">⤳</span>
             <span class="label">Versetzen</span>
             <span class="cost text">{{ buildMode() === 'moveShip' ? (moveFrom() === null ? 'Schiff wählen' : 'Ziel wählen') : '1× pro Zug' }}</span>
+          </button>
+        }
+        @if (myCoins() !== null) {
+          <button [disabled]="!opts.bridge.enabled" [class.selected]="buildMode() === 'bridge'" [title]="opts.bridge.reason ?? 'Brücke über den Fluss bauen, bringt 3 Münzen'" (click)="toggleBuild('bridge')">
+            <span class="figure"><svg viewBox="-14 -9 28 18" aria-hidden="true"><rect x="-13" y="-6" width="26" height="12" rx="2" fill="#b98a55" stroke="#5b3d1f" /><line x1="-10" y1="0" x2="10" y2="0" [attr.stroke]="myColor()" stroke-width="4" stroke-linecap="round" /></svg></span>
+            <span class="label">Brücke</span>
+            <span class="cost">@for (c of costArt(costs.bridge); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
           </button>
         }
         <button [disabled]="!canTrade()" [title]="canTrade() ? 'Handeln (H)' : 'Gehandelt wird nach dem Würfeln'" (click)="openTrade()">
@@ -397,6 +417,13 @@
           }
         </dd>
       }
+      @if (d.coins !== null) {
+        <dt>Münzen</dt>
+        <dd>
+          <span class="muted">{{ d.coins }} {{ d.coinPoints > 0 ? '· die meisten' : d.coinPoints < 0 ? '· die wenigsten' : '' }}</span>
+          <b [class.none]="!d.coinPoints">{{ d.coinPoints > 0 ? '+1' : d.coinPoints < 0 ? '−2' : '–' }}</b>
+        </dd>
+      }
       @if (d.fishing) {
         <dt>Fische</dt>
         <dd><span class="muted">{{ d.fishCount }} Plättchen</span><b class="none">–</b></dd>
@@ -476,6 +503,25 @@
         <div class="row end mt">
           <button (click)="dialog.set(null)">Abbrechen</button>
           <button class="primary" [disabled]="total(plentyPick()) !== 2" (click)="confirmPlenty()">Nehmen</button>
+        </div>
+      </div>
+    </div>
+  }
+  @case ('coins') {
+    <div class="modal-backdrop" (click)="dialog.set(null)">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h3>Münzen tauschen</h3>
+        <p class="muted">
+          Du hast {{ myCoins() }} Münzen. 2 Münzen sind ein Rohstoff aus der Bank. Münzen gibt es für Straßen und Siedlungen am Fluss (1) und für Brücken (3).
+          Wer die meisten hat, bekommt 1 Punkt, wer die wenigsten hat, verliert 2.
+        </p>
+        <div class="choice-list">
+          @for (r of resources; track r) {
+            <button [disabled]="!canTradeCoins() || !game.bank[r]" (click)="tradeCoins(r)"><img class="choice-icon" [src]="resourceArt[r]" alt="" /> 2 Münzen → 1 {{ resourceNames[r] }}</button>
+          }
+        </div>
+        <div class="row end mt">
+          <button (click)="dialog.set(null)">Schließen</button>
         </div>
       </div>
     </div>

@@ -4,16 +4,20 @@ import { getTopology, vertexHarbors } from './board';
 import {
   actingSeats,
   applyAction,
+  canBuildRoad,
   canBuildSettlement,
   canSpendFish,
+  coinPoints,
   createGame,
   fishTotal,
   harborPoints,
+  legalBridgeEdges,
   legalRoadEdges,
   legalRobberHexes,
   legalSettlementVertices,
   legalSetupRoads,
   legalSetupVertices,
+  piecesLeft,
   tokenCost,
   victoryPoints,
   victoryTarget,
@@ -452,4 +456,107 @@ describe('Duell für zwei', () => {
     }
     expect(s.roads.filter((r) => r === 2 || r === 3).length).toBeGreaterThan(3);
   });
+});
+
+describe('Flussläufe', () => {
+  const rivers = (s: GameState) => s.board.rivers!;
+
+  it('zwei Flüsse von der Quelle zur Küste, ohne gemeinsame Felder, Mündung nicht an Hafen oder Fischgrund', () => {
+    for (const [n, variants] of [
+      [3, ['flusslaeufe']],
+      [6, ['flusslaeufe']],
+      [4, ['flusslaeufe', 'fischgruende']],
+    ] as const) {
+      for (let seed = 1; seed <= 12; seed++) {
+        const s = game([...variants], n, seed);
+        const t = getTopology(s.board);
+        expect(rivers(s)).toHaveLength(2);
+        const harborEdges = new Set(s.board.harbors.map((h) => h.edge));
+        const fishEdges = new Set((s.board.fishing ?? []).map((f) => f.edge));
+        const allHexes = rivers(s).flatMap((r) => r.hexes);
+        expect(new Set(allHexes).size).toBe(allHexes.length);
+        for (const r of rivers(s)) {
+          expect(r.edges.length).toBe(r.hexes.length);
+          expect(r.edges.length).toBeGreaterThanOrEqual(2);
+          r.edges.slice(0, -1).forEach((e, i) => expect(t.edges[e].hexes.sort()).toEqual([r.hexes[i], r.hexes[i + 1]].sort()));
+          const mouth = r.edges[r.edges.length - 1];
+          expect(t.edges[mouth].hexes).toEqual([r.hexes[r.hexes.length - 1]]);
+          expect(harborEdges.has(mouth) || fishEdges.has(mouth)).toBe(false);
+          expect(s.board.hexes[r.hexes[0]].terrain).not.toBe('desert');
+        }
+      }
+    }
+    expect(() => createGame([0, 1, 2].map((i) => ({ id: `p${i}`, name: `S${i}`, color: 'c' })), { victoryPoints: 13, map: 'erste-ueberfahrt', variants: ['flusslaeufe'] }, 1)).toThrow(
+      /ohne Meerfelder/,
+    );
+  });
+
+  it('über den Fluss nur mit Brücke; Brücke kostet 2 Lehm und 1 Holz und bringt 3 Münzen', () => {
+    const s = game(['flusslaeufe']);
+    const t = getTopology(s.board);
+    const edge = rivers(s)[0].edges[0];
+    s.buildings[t.edges[edge].a] = { owner: 0, type: 'settlement' };
+    expect(canBuildRoad(s, 0, edge)).toBe(false);
+    expect(legalBridgeEdges(s, 0)).toContain(edge);
+    s.players[0].resources = { ...emptyResources(), ...COSTS.road };
+    expect(() => applyAction(s, 0, { type: 'buildRoad', edge })).toThrow(/keine Straße/);
+    expect(() => applyAction(s, 0, { type: 'buildBridge', edge })).toThrow(/Rohstoffe/);
+    s.players[0].resources = { ...emptyResources(), ...COSTS.bridge };
+    const n = applyAction(s, 0, { type: 'buildBridge', edge });
+    expect(n.roads[edge]).toBe(0);
+    expect(n.coins![0]).toBe(3);
+    expect(piecesLeft(n, 0, 'bridge')).toBe(2);
+    expect(piecesLeft(n, 0, 'road')).toBe(15);
+    expect(n.players[0].resources).toEqual(emptyResources());
+  });
+
+  it('Straße und Siedlung am Fluss bringen je eine Münze', () => {
+    const s = game(['flusslaeufe']);
+    const t = getTopology(s.board);
+    const river = rivers(s)[0].edges[0];
+    const v = t.edges[river].a;
+    s.buildings[v] = { owner: 0, type: 'settlement' };
+    const road = t.vertices[v].edges.find((e) => e !== river && canBuildRoad(s, 0, e))!;
+    s.players[0].resources = { ...emptyResources(), ...COSTS.road };
+    const n = applyAction(s, 0, { type: 'buildRoad', edge: road });
+    expect(n.coins![0]).toBe(1);
+  });
+
+  it('meiste Münzen +1 Punkt, wenigste −2, bei allen gleich nichts; 2 Münzen sind ein Rohstoff', () => {
+    const s = game(['flusslaeufe']);
+    expect([0, 1, 2].map((i) => coinPoints(s, i))).toEqual([0, 0, 0]);
+    s.coins = [4, 1, 1];
+    expect([0, 1, 2].map((i) => coinPoints(s, i))).toEqual([1, -2, -2]);
+    s.coins = [4, 4, 2];
+    expect([0, 1, 2].map((i) => coinPoints(s, i))).toEqual([1, 1, -2]);
+    s.coins = [3, 2, 1];
+    expect(victoryPoints(s, 1, false)).toBe(0);
+    const n = applyAction(s, 0, { type: 'tradeCoins', resource: 'ore' });
+    expect(n.coins![0]).toBe(1);
+    expect(n.players[0].resources.ore).toBe(1);
+    expect(() => applyAction(n, 0, { type: 'tradeCoins', resource: 'ore' })).toThrow(/2 Münzen/);
+  });
+
+  for (const [n, variants] of [
+    [4, ['flusslaeufe']],
+    [2, ['flusslaeufe', 'duell']],
+    [6, ['flusslaeufe', 'fischgruende']],
+  ] as const) {
+    it(`${n} Spieler mit ${variants.join(' + ')}: 3000 Züge ohne Regelfehler, es entstehen Brücken`, { timeout: 120000 }, () => {
+      const random = seeded(n * 13 + variants.length);
+      const players = Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: `P${i}`, color: '#000' }));
+      let s = createGame(players, { victoryPoints: 12, variants: [...variants] }, 4);
+      const riverEdges = new Set(s.board.rivers!.flatMap((r) => r.edges));
+      let coins = 0;
+      for (let step = 0; step < 3000 && s.phase.kind !== 'ended'; step++) {
+        const next = botStep(s, random);
+        expect(next).not.toBeNull();
+        s = applyAction(s, next!.seat, next!.action);
+        // Münzen werden auch wieder ausgegeben, deshalb zählt, ob es irgendwann welche gab.
+        coins = Math.max(coins, ...s.coins!);
+      }
+      expect(s.roads.some((r, e) => r !== null && riverEdges.has(e))).toBe(true);
+      expect(coins).toBeGreaterThan(0);
+    });
+  }
 });
