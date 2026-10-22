@@ -3,6 +3,7 @@ import { getTopology } from './board';
 import {
   actingSeats,
   applyAction,
+  canBuildRoad,
   canBuildShip,
   createGame,
   legalRobberHexes,
@@ -12,7 +13,7 @@ import {
   movableShips,
   victoryPoints,
 } from './rules';
-import { COSTS, emptyResources, GameState, ResourceCounts } from './types';
+import { COSTS, emptyResources, GameState, ResourceCounts, totalResources } from './types';
 
 function game(map = 'erste-ueberfahrt', seed = 3): GameState {
   const players = Array.from({ length: 3 }, (_, i) => ({ id: `p${i}`, name: `S${i}`, color: `c${i}` }));
@@ -201,5 +202,92 @@ describe('Seewege: Inselbonus, Gold, Kaperschiff, Route', () => {
     s = applyAction(s, 0, { type: 'buildShip', edge: out });
     expect(s.ships![out]).toBe(0);
     expect(s.phase).toMatchObject({ kind: 'roadBuilding', remaining: 1 });
+  });
+});
+
+describe('Seewege: Im Dunst', () => {
+  const fogged = (s: GameState) => s.board.hexes.flatMap((h, i) => (h.terrain === 'fog' ? [i] : []));
+  /** Eine Kante zwischen Meer und Nebel, dazu eine Ecke daran mit eigener Siedlung. */
+  function seaFogEdge(s: GameState) {
+    const t = getTopology(s.board);
+    const e = t.edges.find((x) => x.hexes.length === 2 && x.hexes.some((h) => isSea(s, h)) && x.hexes.some((h) => s.board.hexes[h].terrain === 'fog'))!;
+    s.buildings[e.a] = { owner: 0, type: 'settlement' };
+    return e;
+  }
+
+  it('liegt verdeckt: im Spielstand nur ein Zählwerk, keine Felder und keine Zahlen', () => {
+    const s = game('im-dunst');
+    const fog = fogged(s);
+    expect(fog.length).toBe(25);
+    for (const h of fog) expect(s.board.hexes[h].number).toBeNull();
+    const pool = Object.values(s.fog!.terrain).reduce((a, b) => a + b!, 0);
+    expect(pool).toBe(fog.length);
+    // Nebel ist weder Land noch Meer: kein Räuber, kein Kaperschiff, keine Startsiedlung daran.
+    expect(legalRobberHexes(s).some((h) => fog.includes(h))).toBe(false);
+    const t = getTopology(s.board);
+    for (const v of legalSetupVertices(createGame([0, 1, 2].map((i) => ({ id: `p${i}`, name: `S${i}`, color: 'c' })), { victoryPoints: 12, map: 'im-dunst' }, 1))) {
+      expect(t.vertices[v].hexes.some((h) => !t.hexes[h].sea)).toBe(true);
+    }
+  });
+
+  it('ein Schiff an den Nebel deckt das Feld auf, Land bringt Zahl und Rohstoff', () => {
+    const s = game('im-dunst');
+    const e = seaFogEdge(s);
+    const hex = e.hexes.find((h) => s.board.hexes[h].terrain === 'fog')!;
+    s.fog = { terrain: { ore: 3 }, numbers: { 9: 3 } };
+    s.players[0].resources = res(COSTS.ship);
+    const n = applyAction(s, 0, { type: 'buildShip', edge: e.id });
+    expect(n.board.hexes[hex]).toEqual({ terrain: 'ore', number: 9 });
+    expect(n.fog).toEqual({ terrain: { ore: 2 }, numbers: { 9: 2 } });
+    expect(n.players[0].resources.ore).toBe(1);
+    expect(n.bank.ore).toBe(s.bank.ore - 1);
+    expect(n.transfers).toContainEqual({ from: { kind: 'hex', id: hex }, to: { kind: 'player', seat: 0 }, card: 'ore', count: 1 });
+    // Die Topologie kennt das neue Land, der alte Stand bleibt unverändert.
+    expect(getTopology(n.board).hexes[hex].sea).toBe(false);
+    expect(getTopology(s.board).hexes[hex].sea).toBe(true);
+    expect(s.board.hexes[hex].terrain).toBe('fog');
+  });
+
+  it('wird es Meer, gibt es nichts, und das Schiff kann weiter', () => {
+    const s = game('im-dunst');
+    const e = seaFogEdge(s);
+    const hex = e.hexes.find((h) => s.board.hexes[h].terrain === 'fog')!;
+    s.fog = { terrain: { sea: 30 }, numbers: {} };
+    s.players[0].resources = res(COSTS.ship);
+    const n = applyAction(s, 0, { type: 'buildShip', edge: e.id });
+    expect(n.board.hexes[hex]).toEqual({ terrain: 'sea', number: null });
+    expect(n.players[0].resources).toEqual(emptyResources());
+    expect(n.log.at(-1)!.text).toMatch(/lichtet den Nebel: Meer/);
+    expect(legalShipEdges(n, 0).some((x) => getTopology(n.board).hexes[hex].edges.includes(x))).toBe(true);
+  });
+
+  it('auch eine Straße an Land deckt auf; zwischen Nebel und Meer gibt es keine Straße', () => {
+    const s = game('im-dunst');
+    const t = getTopology(s.board);
+    // Ein Meerfeld neben dem Nebel wird für den Test zu Land, so entsteht eine Kante Land–Nebel.
+    const e = t.edges.find((x) => x.hexes.length === 2 && x.hexes.some((h) => isSea(s, h)) && x.hexes.some((h) => s.board.hexes[h].terrain === 'fog'))!;
+    const seaHex = e.hexes.find((h) => isSea(s, h))!;
+    const fogHex = e.hexes.find((h) => h !== seaHex)!;
+    expect(canBuildRoad(s, 0, e.id)).toBe(false);
+    s.board = { ...s.board, hexes: s.board.hexes.map((h, i) => (i === seaHex ? { terrain: 'wheat', number: 5 } : h)) };
+    s.buildings[e.a] = { owner: 0, type: 'settlement' };
+    expect(canBuildRoad(s, 0, e.id)).toBe(true);
+    s.fog = { terrain: { gold: 1 }, numbers: { 4: 1 } };
+    s.players[0].resources = res(COSTS.road);
+    const n = applyAction(s, 0, { type: 'buildRoad', edge: e.id });
+    expect(n.board.hexes[fogHex]).toEqual({ terrain: 'gold', number: 4 });
+    expect(totalResources(n.players[0].resources)).toBe(1);
+  });
+
+  it('legt keine 6 neben eine 8, solange der Vorrat anderes hergibt', () => {
+    const s = game('im-dunst');
+    const e = seaFogEdge(s);
+    const t = getTopology(s.board);
+    const hex = e.hexes.find((h) => s.board.hexes[h].terrain === 'fog')!;
+    const neighbor = t.hexes[hex].neighbors.find((m) => m !== e.hexes.find((h) => h !== hex))!;
+    s.board = { ...s.board, hexes: s.board.hexes.map((h, i) => (i === neighbor ? { terrain: 'wood', number: 8 } : h)) };
+    s.fog = { terrain: { wood: 1 }, numbers: { 6: 5, 3: 1 } };
+    s.players[0].resources = res(COSTS.ship);
+    expect(applyAction(s, 0, { type: 'buildShip', edge: e.id }).board.hexes[hex].number).toBe(3);
   });
 });

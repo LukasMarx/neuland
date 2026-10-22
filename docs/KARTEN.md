@@ -412,6 +412,9 @@ kommen Meerfelder mit eigenen Ecken und Kanten hinzu. Dann werden möglich:
 Das Maskenformat ist dafür schon vorbereitet: `~` wird dann zum echten Meerfeld, der Validator prüft statt
 „zusammenhängend über Land“ nur noch „jede Insel über Meer erreichbar, Startinsel groß genug“.
 
+**Umgesetzt:** Seewege-Karten Erste Überfahrt, Inselquartett, Im Dunst (mit Nebel `?`) und Inselwelt (zufälliges
+Archipel, `MapDef.archipelago`), siehe `docs/ERWEITUNGEN.md` 2.2.
+
 ## 10. Aufwand und erster Meilenstein
 
 | Schritt | Inhalt | Aufwand |

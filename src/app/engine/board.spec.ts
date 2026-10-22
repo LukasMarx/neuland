@@ -154,19 +154,24 @@ describe('Brettgenerierung', () => {
       const red = (n: number | null) => n === 6 || n === 8;
       for (let players = map.players[0]; players <= map.players[1]; players++) {
         for (let seed = 1; seed <= 12; seed++) {
-          const { board, robber, bank } = generateBoard(map.id, players, { rng: seed * 104729 + players });
+          const { board, robber, bank, fog } = generateBoard(map.id, players, { rng: seed * 104729 + players });
           const t = getTopology(board);
           checkTopology(t);
-          // Ohne Schiffe muss alles über Land erreichbar sein; Seewege-Karten bestehen aus Inseln.
-          expect(isConnected(t)).toBe(!map.seafaring);
-          if (map.seafaring) expect(Math.max(...t.islands)).toBeGreaterThan(0);
+          // Ohne Schiffe muss alles über Land erreichbar sein; Seewege-Karten bestehen aus Inseln
+          // (im Nebel zeigen sie sich erst beim Aufdecken).
+          expect(isConnected(t)).toBe(!map.seafaring || !!fog);
+          if (map.seafaring && !fog) expect(Math.max(...t.islands)).toBeGreaterThan(0);
           expect(board.hexes).toHaveLength(t.hexes.length);
           expect(board.hexes[robber].terrain).toBe('desert');
-          for (const [i, h] of board.hexes.entries()) expect(h.terrain === 'sea').toBe(t.hexes[i].sea);
-          expect(bank).toBe(bankSize(t.hexes.filter((h) => !h.sea).length));
+          for (const [i, h] of board.hexes.entries()) expect(h.terrain === 'sea' || h.terrain === 'fog').toBe(t.hexes[i].sea);
+          // Bank für alles Land, auch das unter dem Nebel.
+          const fogCells = board.hexes.filter((h) => h.terrain === 'fog').length;
+          const fogLand = fog ? fogCells - (fog.terrain.sea ?? 0) : 0;
+          if (fog) expect(Object.values(fog.terrain).reduce((a, b) => a + b, 0)).toBe(fogCells);
+          expect(bank).toBe(bankSize(t.hexes.filter((h) => !h.sea).length + fogLand));
           for (const h of t.hexes) {
             const hex = board.hexes[h.id];
-            expect(hex.number === null).toBe(hex.terrain === 'desert' || hex.terrain === 'sea');
+            expect(hex.number === null).toBe(hex.terrain === 'desert' || hex.terrain === 'sea' || hex.terrain === 'fog');
             if (red(hex.number)) for (const n of h.neighbors) expect(red(board.hexes[n].number)).toBe(false);
           }
           // Häfen an der Küste, nie an derselben oder einer benachbarten Ecke.

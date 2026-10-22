@@ -321,6 +321,27 @@ text {
   }
 }
 
+// Im Dunst: Ein frisch aufgedecktes Feld dreht sich wie eine Karte um.
+.hex.revealed {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: reveal 0.9s ease-out;
+}
+
+@keyframes reveal {
+  0% {
+    transform: scaleX(0.05);
+    filter: brightness(1.6);
+  }
+  60% {
+    transform: scaleX(1.06);
+  }
+  100% {
+    transform: none;
+    filter: none;
+  }
+}
+
 // Seewege: Meerfelder liegen im Wasser, nur ein zarter Umriss zeigt das Raster.
 .hex.sea .sea-grid {
   fill: none;

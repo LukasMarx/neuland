@@ -19,6 +19,7 @@ import {
   Resource,
   ResourceCounts,
   ReturnPhase,
+  Terrain,
   totalResources,
   TransferPoint,
 } from './types';
@@ -47,7 +48,7 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
   const map = mapById(settings.map);
   if (!mapFits(map, players.length)) fail(`${map.name} ist für ${map.players[0]}–${map.players[1]} Spieler.`);
   const rng: RngState = { rng: seed | 0 };
-  const { board, robber, bank: bankSize, pirate } = generateBoard(map.id, players.length, rng);
+  const { board, robber, bank: bankSize, pirate, fog } = generateBoard(map.id, players.length, rng);
   const topo = getTopology(board);
   const seated = shuffle(rng, players);
   const n = seated.length;
@@ -104,6 +105,7 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
     state.shipsBuilt = [];
     state.shipMoved = false;
     state.islandBonus = state.players.map(() => 0);
+    if (fog) state.fog = fog;
   }
   if (hasVariant(state, 'wuerfelstapel')) state.diceDeck = { ...DICE_DECK };
   log(state, null, `Spiel gestartet mit ${n} Spielern. ${seated[0].name} beginnt mit der Aufbauphase.`);
@@ -167,6 +169,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     s.roads[edge] = seat;
     updateLongestRoad(s);
     log(s, seat, `${name(s, seat)} baut eine Straße.`);
+    revealFog(s, seat, edge);
     const index = phase.index + 1;
     if (index >= phase.order.length) {
       s.current = 0;
@@ -241,6 +244,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (phase.kind !== 'robber') fail('Der Räuber wird gerade nicht versetzt.');
     if (seat !== s.current) fail('Du bist nicht dran.');
     if (!s.board.hexes[hex]) fail('Unbekanntes Feld.');
+    if (s.board.hexes[hex].terrain === 'fog') fail('Im Nebel kann niemand stehen.');
     const pirate = s.board.hexes[hex].terrain === 'sea';
     if (pirate && s.pirate === undefined) fail('Auf diesem Brett gibt es kein Kaperschiff.');
     if (hex === (pirate ? s.pirate : s.robber)) fail(pirate ? 'Das Kaperschiff muss auf ein anderes Feld.' : 'Der Räuber muss auf ein anderes Feld.');
@@ -270,6 +274,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
       s.roads[edge] = seat;
       updateLongestRoad(s);
       log(s, seat, `${name(s, seat)} baut eine Straße (Straßenbau).`);
+      revealFog(s, seat, edge);
       continueRoadBuilding(s, seat);
       return;
     }
@@ -280,6 +285,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     s.roads[edge] = seat;
     updateLongestRoad(s);
     log(s, seat, `${name(s, seat)} baut eine Straße.`);
+    revealFog(s, seat, edge);
   },
 
   buildSettlement(s, seat, { vertex }) {
@@ -483,6 +489,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     s.shipsBuilt = [...(s.shipsBuilt ?? []), edge];
     updateLongestRoad(s);
     log(s, seat, `${name(s, seat)} baut ein Schiff.`);
+    revealFog(s, seat, edge);
     if (free) continueRoadBuilding(s, seat);
   },
 
@@ -497,6 +504,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     s.shipMoved = true;
     updateLongestRoad(s);
     log(s, seat, `${name(s, seat)} versetzt ein Schiff.`);
+    revealFog(s, seat, to);
   },
 
   endTurn(s, seat) {
@@ -558,7 +566,7 @@ export function isFreeForSettlement(s: GameState, vertex: number): boolean {
     !!v &&
     s.buildings[vertex] === null &&
     v.neighbors.every((n) => s.buildings[n] === null) &&
-    v.hexes.some((h) => s.board.hexes[h].terrain !== 'sea')
+    v.hexes.some((h) => isLand(s.board.hexes[h].terrain))
   );
 }
 
@@ -689,7 +697,7 @@ export function legalRobberHexes(s: GameState): number[] {
 }
 
 function landRobberHexes(s: GameState): number[] {
-  const others = s.board.hexes.map((_, id) => id).filter((id) => id !== s.robber && s.board.hexes[id].terrain !== 'sea');
+  const others = s.board.hexes.map((_, id) => id).filter((id) => id !== s.robber && isLand(s.board.hexes[id].terrain));
   if (!hasVariant(s, 'milderRaeuber')) return others;
   const topo = getTopology(s.board);
   const protectedSeat = s.players.map((_, seat) => victoryPoints(s, seat, false) <= 2);
@@ -763,7 +771,75 @@ function isResource(t: string): t is Resource {
 }
 
 function edgeTouchesLand(s: GameState, edge: number): boolean {
-  return getTopology(s.board).edges[edge].hexes.some((h) => s.board.hexes[h].terrain !== 'sea');
+  return getTopology(s.board).edges[edge].hexes.some((h) => isLand(s.board.hexes[h].terrain));
+}
+
+/** Bekanntes Land: weder Meer noch Nebel. */
+export function isLand(terrain: Terrain): boolean {
+  return terrain !== 'sea' && terrain !== 'fog';
+}
+
+const TERRAIN_NAMES: Record<Exclude<Terrain, 'fog'>, string> = {
+  wood: 'Wald',
+  brick: 'Lehmgrube',
+  sheep: 'Weideland',
+  wheat: 'Acker',
+  ore: 'Gebirge',
+  desert: 'Wüste',
+  gold: 'Goldfluss',
+  sea: 'Meer',
+};
+
+/** Zieht einen Schlüssel aus einem Zählwerk, gewichtet nach Anzahl, und zählt ihn herunter. */
+function drawFrom<K extends string | number>(s: GameState, pool: Partial<Record<K, number>>, allowed: (k: K) => boolean = () => true): K | null {
+  const keys = (Object.keys(pool) as K[]).filter((k) => (pool[k] ?? 0) > 0);
+  const options = keys.some(allowed) ? keys.filter(allowed) : keys;
+  const total = options.reduce((a, k) => a + pool[k]!, 0);
+  if (!total) return null;
+  let roll = randomInt(s, total);
+  for (const k of options) {
+    roll -= pool[k]!;
+    if (roll < 0) {
+      pool[k] = pool[k]! - 1;
+      return k;
+    }
+  }
+  return null;
+}
+
+/**
+ * Im Dunst: Nebelfelder an dieser Kante aufdecken. Gelände und Zahl entscheidet erst jetzt der Zufall
+ * (der Host mischt vor jeder Aktion frischen Zufall bei). Wer aufdeckt, bekommt einen Rohstoff des Landes.
+ */
+function revealFog(s: GameState, seat: number, edge: number): void {
+  if (!s.fog) return;
+  const topo = getTopology(s.board);
+  const fogged = topo.edges[edge].hexes.filter((h) => s.board.hexes[h].terrain === 'fog');
+  if (!fogged.length) return;
+  // Neues Feld-Array: Die Topologie hängt daran und muss mit dem aufgedeckten Feld neu entstehen.
+  const hexes = [...s.board.hexes];
+  for (const h of fogged) {
+    const terrain: Terrain = drawFrom<Terrain>(s, s.fog.terrain) ?? 'sea';
+    let number: number | null = null;
+    if (terrain !== 'sea' && terrain !== 'desert') {
+      // Keine 6 und 8 nebeneinander, solange der Vorrat noch etwas anderes hergibt.
+      const redNear = topo.hexes[h].neighbors.some((m) => hexes[m].number === 6 || hexes[m].number === 8);
+      const drawn = drawFrom<string>(s, s.fog.numbers as Record<string, number>, (k) => !redNear || (k !== '6' && k !== '8'));
+      number = drawn === null ? null : Number(drawn);
+    }
+    hexes[h] = { terrain, number };
+    const found = number ? `${TERRAIN_NAMES[terrain as Exclude<Terrain, 'fog'>]} (${number})` : TERRAIN_NAMES[terrain as Exclude<Terrain, 'fog'>];
+    const res = terrain === 'gold' ? [...RESOURCES].sort((a, b) => s.bank[b] - s.bank[a])[0] : terrain;
+    if (isResource(res) && s.bank[res] > 0) {
+      s.bank[res]--;
+      s.players[seat].resources[res]++;
+      transfer(s, { kind: 'hex', id: h }, seatPoint(seat), res, 1);
+      log(s, seat, `${name(s, seat)} lichtet den Nebel: ${found}, dafür 1 ${RESOURCE_NAMES[res]}.`);
+    } else {
+      log(s, seat, `${name(s, seat)} lichtet den Nebel: ${found}.`);
+    }
+  }
+  s.board = { ...s.board, hexes };
 }
 
 /** Hat der Spieler schon ein Gebäude auf der Insel dieser Ecke? */

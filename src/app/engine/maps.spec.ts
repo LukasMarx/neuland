@@ -21,6 +21,8 @@ describe('Karten im Spiel', () => {
     it(`${map.name}: 3000 Züge mit ${map.players[1]} Spielern ohne Regelfehler`, { timeout: 120000 }, () => {
       const random = seeded(map.id.length * 97);
       let s = createGame(players(map.players[1]), { victoryPoints: map.victoryPoints, map: map.id }, 7);
+      const fog = (g: typeof s) => g.board.hexes.filter((h) => h.terrain === 'fog').length;
+      const fogAtStart = fog(s);
       for (let step = 0; step < 3000 && s.phase.kind !== 'ended'; step++) {
         const next = botStep(s, random);
         expect(next).not.toBeNull();
@@ -29,6 +31,8 @@ describe('Karten im Spiel', () => {
       expect(s.turn).toBeGreaterThan(40);
       expect(s.roads.filter((r) => r !== null).length).toBeGreaterThan(map.players[1] * 2);
       if (map.seafaring) expect(s.ships!.filter((r) => r !== null).length).toBeGreaterThan(0);
+      // Im Nebel wird entdeckt: Ein Teil der verdeckten Felder ist am Ende aufgedeckt.
+      if (map.seafaring?.fog) expect(fog(s)).toBeLessThan(fogAtStart);
     });
   }
 });

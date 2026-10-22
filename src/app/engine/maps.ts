@@ -15,6 +15,7 @@ export type MapId = string;
  * | `x` | Wüstenplatz |
  * | `H L W G E X` | festes Gelände |
  * | `$` | Goldfeld (Seewege) |
+ * | `?` | Nebelfeld (Seewege): Land oder Meer, wird erst beim Aufdecken bestimmt |
  *
  * Auf Seewege-Karten ist `~` ein echtes Meerfeld mit eigenen Ecken und Kanten.
  */
@@ -30,6 +31,8 @@ export interface MapDef {
   mask?: string[] | ((players: number) => string[]);
   /** Zufällige Form mit so vielen Feldern. */
   randomSize?: (players: number) => number;
+  /** Seewege: zufällige Insellandschaft, eine Hauptinsel und kleine Inseln mit Gold. */
+  archipelago?: (players: number) => { main: number; small: number[]; gold: number };
   /** Feste Hafenzahl statt der Formel. */
   harbors?: number;
   /** Meer als Rahmen um die Form oder als Seekarte (Rechteck), z. B. für die Weltkarte. */
@@ -42,6 +45,8 @@ export interface MapDef {
     islandBonus: number;
     /** Wo die Startsiedlungen stehen dürfen: nur auf der größten Insel oder überall. */
     setup: 'largest' | 'any';
+    /** Was unter den Nebelfeldern (`?`) liegt: Anteil Meer und Zahl der Goldfelder, der Rest ist Land. */
+    fog?: { seaShare: number; gold: number };
   };
 }
 
@@ -150,43 +155,111 @@ export const MAPS: MapDef[] = [
   {
     id: 'erste-ueberfahrt',
     name: 'Erste Überfahrt',
-    description: 'Seewege: eine Hauptinsel und drei kleine Inseln mit Gold. Wer als Erster drüben siedelt, bekommt 2 Punkte.',
+    description: 'Seewege: eine Hauptinsel und kleine Inseln mit Gold. Wer als Erster drüben siedelt, bekommt 2 Punkte.',
     tags: ['Seewege', 'Schiffe', 'Gold'],
-    players: [3, 4],
+    players: [3, 6],
     victoryPoints: 13,
     seafaring: { islandBonus: 2, setup: 'largest' },
-    mask: [
-      '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
-      ' ~ . . . ~ ~ . . ~ ~',
-      '~ . . . . ~ ~ $ ~ ~ ~',
-      ' . . x . . ~ ~ ~ ~ ~',
-      '~ . . . . ~ ~ ~ ~ . ~',
-      ' ~ . . . ~ ~ ~ ~ $ .',
-      '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
-      ' ~ ~ ~ ~ ~ ~ . . ~ ~',
-      '~ ~ ~ ~ ~ ~ ~ $ ~ ~ ~',
-      ' ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
-    ],
+    mask: (p) =>
+      p > 4
+        ? [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . . . ~ ~ ~ . . ~ ~',
+            '~ . . . . . ~ ~ . $ ~ ~ ~',
+            ' ~ . . x . . ~ ~ ~ ~ ~ ~',
+            '~ . . . . . ~ ~ ~ ~ . . ~',
+            ' ~ . x . . . ~ ~ ~ $ . ~',
+            '~ . . . . . ~ ~ ~ ~ . ~ ~',
+            ' ~ . . . . ~ ~ ~ ~ ~ ~ ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ . . ~ ~ ~',
+            ' ~ ~ . . ~ ~ ~ . $ . ~ ~',
+            '~ ~ $ . ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ]
+        : [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . . ~ ~ . . ~ ~',
+            '~ . . . . ~ ~ $ ~ ~ ~',
+            ' . . x . . ~ ~ ~ ~ ~',
+            '~ . . . . ~ ~ ~ ~ . ~',
+            ' ~ . . . ~ ~ ~ ~ $ .',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ ~ ~ ~ ~ ~ . . ~ ~',
+            '~ ~ ~ ~ ~ ~ ~ $ ~ ~ ~',
+            ' ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ],
   },
   {
     id: 'inselquartett',
     name: 'Inselquartett',
     description: 'Seewege: vier gleich große Inseln. Start überall, jede neue Insel bringt 2 Punkte.',
     tags: ['Seewege', 'Schiffe', 'Gold'],
-    players: [3, 4],
+    players: [3, 6],
     victoryPoints: 12,
     seafaring: { islandBonus: 2, setup: 'any' },
-    mask: [
-      '~ ~ ~ ~ ~ ~ ~ ~ ~',
-      ' ~ . . ~ ~ . . ~',
-      '~ . . . ~ . . $ ~',
-      ' ~ . . ~ ~ . . ~',
-      '~ ~ ~ ~ ~ ~ ~ ~ ~',
-      ' ~ . . ~ ~ . . ~',
-      '~ $ . . ~ . . . ~',
-      ' ~ . . ~ ~ . . ~',
-      '~ ~ ~ ~ ~ ~ ~ ~ ~',
-    ],
+    mask: (p) =>
+      p > 4
+        ? [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . . ~ ~ . . . ~',
+            '~ . . . . ~ . . . $ ~',
+            ' ~ . . . ~ ~ . . . ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . . ~ ~ . . . ~',
+            '~ $ . . . ~ . . . . ~',
+            ' ~ . . . ~ ~ . . . ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ]
+        : [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . ~ ~ . . ~',
+            '~ . . . ~ . . $ ~',
+            ' ~ . . ~ ~ . . ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . ~ ~ . . ~',
+            '~ $ . . ~ . . . ~',
+            ' ~ . . ~ ~ . . ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ],
+  },
+  {
+    id: 'im-dunst',
+    name: 'Im Dunst',
+    description: 'Seewege: Östlich der Hauptinsel liegt Nebel. Wer ihn mit Straße oder Schiff lichtet, findet Land oder Meer und bekommt einen Rohstoff.',
+    tags: ['Seewege', 'Nebel', 'Entdecken'],
+    players: [3, 6],
+    victoryPoints: 12,
+    seafaring: { islandBonus: 2, setup: 'largest', fog: { seaShare: 0.45, gold: 2 } },
+    mask: (p) =>
+      p > 4
+        ? [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . . . . ~ ? ? ? ? ? ? ~',
+            '~ . . . . . . ~ ? ? ? ? ? ? ~',
+            ' . . . x . . . ~ ? ? ? ? ? ?',
+            '~ . . . . . . ~ ? ? ? ? ? ? ~',
+            ' ~ . . . . . ~ ? ? ? ? ? ? ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ]
+        : [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . . ~ ? ? ? ? ? ~',
+            '~ . . . . ~ ? ? ? ? ? ~',
+            ' . . x . . ~ ? ? ? ? ?',
+            '~ . . . . ~ ? ? ? ? ? ~',
+            ' ~ . . . ~ ? ? ? ? ? ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ],
+  },
+  {
+    id: 'inselwelt',
+    name: 'Inselwelt',
+    description: 'Seewege: jedes Spiel eine neue Insellandschaft. Eine Hauptinsel, ringsum kleine Inseln, einige mit Gold.',
+    tags: ['Seewege', 'jedes Mal neu'],
+    players: [3, 6],
+    victoryPoints: 13,
+    seafaring: { islandBonus: 2, setup: 'largest' },
+    archipelago: (p) => (p > 4 ? { main: 28, small: [4, 3, 3, 3, 2, 2], gold: 4 } : { main: 19, small: [4, 3, 3, 2, 2], gold: 3 }),
   },
   {
     id: 'zufallskueste',
@@ -232,3 +305,5 @@ export function parseMask(rows: string[], keepSea = false): MaskCell[] {
 
 export const BIAS: Record<string, Terrain> = { h: 'wood', l: 'brick', w: 'sheep', g: 'wheat', e: 'ore', x: 'desert' };
 export const FIXED: Record<string, Terrain> = { H: 'wood', L: 'brick', W: 'sheep', G: 'wheat', E: 'ore', X: 'desert', $: 'gold' };
+/** Maskenzeichen, die kein bekanntes Land sind: Meer und Nebel. */
+export const WATER_MARKS = new Set(['~', '?']);

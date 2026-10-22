@@ -113,7 +113,7 @@ import { MapThumb } from './map-thumb';
             }
           </div>
           <p class="muted small">
-            <b>{{ map().name }}</b> · {{ tiles() }} Felder · {{ map().description }}
+            <b>{{ map().name }}</b> · {{ tiles() }} · {{ map().description }}
             @if (present() > 4) {
               Mit 5–6 Spielern gibt es nach jedem Zug eine Sonderbauphase.
             }
@@ -328,7 +328,12 @@ export class Lobby {
   protected readonly map = computed(() => mapById(this.room.room()?.settings.map));
   /** Verbundene Spieler; mit ihnen wird gestartet. */
   protected readonly present = computed(() => this.room.room()?.players.filter((p) => p.peerId).length ?? 0);
-  protected readonly tiles = computed(() => mapShape(this.map(), Math.max(2, this.present()), { rng: 7 }).filter((c) => c.ch !== '~').length);
+  private readonly shape = computed(() => mapShape(this.map(), Math.max(2, this.present()), { rng: 7 }));
+  protected readonly tiles = computed(() => {
+    const land = this.shape().filter((c) => c.ch !== '~' && c.ch !== '?').length;
+    const fog = this.shape().filter((c) => c.ch === '?').length;
+    return fog ? `${land} Felder, ${fog} im Nebel` : `${land} Felder`;
+  });
   /** Gestartet wird mit allen, die verbunden sind; wer die Lobby verlassen hat, bleibt draußen. */
   protected readonly canStart = computed(() => {
     const n = this.present();

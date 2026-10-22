@@ -1,8 +1,11 @@
 export type Resource = 'wood' | 'brick' | 'sheep' | 'wheat' | 'ore';
 export const RESOURCES: readonly Resource[] = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
 
-/** `sea` und `gold` gibt es nur auf Seewege-Karten. Gold liefert einen Rohstoff nach Wahl. */
-export type Terrain = Resource | 'desert' | 'sea' | 'gold';
+/**
+ * `sea`, `gold` und `fog` gibt es nur auf Seewege-Karten. Gold liefert einen Rohstoff nach Wahl,
+ * `fog` ist ein noch verdecktes Feld (Land oder Meer, entschieden erst beim Aufdecken).
+ */
+export type Terrain = Resource | 'desert' | 'sea' | 'gold' | 'fog';
 export type ResourceCounts = Record<Resource, number>;
 export type DevCard = 'knight' | 'roadBuilding' | 'yearOfPlenty' | 'monopoly' | 'victoryPoint';
 export type HarborType = Resource | 'any';
@@ -150,6 +153,16 @@ export interface GameState {
   shipMoved?: boolean;
   /** Seewege: Siegpunkte aus dem Inselbonus je Sitz. */
   islandBonus?: number[];
+  /**
+   * Seewege „Im Dunst“: was unter den verdeckten Feldern noch liegt, nur als Zählwerk. Welches Feld
+   * was wird, entscheidet erst der Zufall beim Aufdecken, deshalb steht es vorher nirgends im Stand.
+   */
+  fog?: FogPool;
+}
+
+export interface FogPool {
+  terrain: Partial<Record<Terrain, number>>;
+  numbers: Record<number, number>;
 }
 
 export type Action =

@@ -1,4 +1,4 @@
-import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, input, output, signal } from '@angular/core';
+import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, input, linkedSignal, output, signal } from '@angular/core';
 import { GameState, getTopology, mapById, NEIGHBOR_STEPS, RESOURCE_NAMES, Terrain, Topology } from '../../engine';
 import { harborLabel } from '../shared/labels';
 import { RESOURCE_ART } from '../shared/resource-art';
@@ -103,6 +103,16 @@ export class Board {
   readonly edgeGhost = input<'road' | 'ship'>('road');
 
   protected readonly topo = computed(() => getTopology(this.game().board));
+
+  /** Im Dunst: Felder, die mit dem letzten Stand aus dem Nebel kamen, für die Umdreh-Animation. */
+  private readonly revealed = linkedSignal<GameState, Set<number>>({
+    source: this.game,
+    computation: (game, previous) => {
+      const before = previous?.source.board.hexes;
+      if (!before || before.length !== game.board.hexes.length) return new Set();
+      return new Set(game.board.hexes.flatMap((h, i) => (before[i].terrain === 'fog' && h.terrain !== 'fog' ? [i] : [])));
+    },
+  });
   private readonly map = computed(() => mapById(this.game().board.map));
 
   /** Alles, was gezeichnet wird: Wasser und Häfen samt Schild, plus ein schmaler Rand. */
@@ -185,6 +195,8 @@ export class Board {
         points: h.corners.map((c) => this.point(c)).join(' '),
         terrain: state.terrain,
         sea: state.terrain === 'sea',
+        fog: state.terrain === 'fog',
+        revealed: this.revealed().has(h.id),
         image: tileImage(state.terrain, h.id),
         // Jedes zweite Feld gespiegelt, damit gleiche Gelände nicht wie gestempelt aussehen.
         transform: `translate(${(h.x * S).toFixed(1)},${(h.y * S).toFixed(1)})${h.id % 2 ? ' scale(-1,1)' : ''}`,

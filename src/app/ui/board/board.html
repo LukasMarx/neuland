@@ -23,7 +23,7 @@
   }
 
   @for (h of hexes(); track h.id) {
-    <g class="hex" [attr.data-hex]="h.id" [class.hit]="h.hit" [class.robbed]="h.hit && h.robber" [class.sea]="h.sea">
+    <g class="hex" [attr.data-hex]="h.id" [class.hit]="h.hit" [class.robbed]="h.hit && h.robber" [class.sea]="h.sea" [class.fog]="h.fog" [class.revealed]="h.revealed">
       @if (h.sea) {
         <polygon class="sea-grid" [attr.points]="h.points" />
       } @else {

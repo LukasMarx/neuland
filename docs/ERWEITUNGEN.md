@@ -127,7 +127,14 @@ Referenz (nur zur Orientierung): „Die Seefahrer“.
 > - **Route:** Längste Route aus Straßen und Schiffen, Wechsel nur an eigenen Gebäuden.
 > - **Vereinfachung:** Gold in der Aufstellung liefert automatisch den Rohstoff, von dem die Bank am meisten hat.
 > - **Grafiken:** Schiff, Kaperschiff und Goldfeld sind SVG-Platzhalter, der Auftrag für den Bild-Agenten liegt in `output/designs/seewege-2026-10-22/grafik-auftrag.md`.
-> - **Noch offen:** Nebel („Im Dunst“), freie Karte, 5–6-Spieler-Karten, weitere Szenarien.
+> - **Noch offen:** weitere Szenarien (Sandmeer, Die Verschollenen, Stoffhandel, Freibeuterbuchten, Großbauten).
+>
+> **Umgesetzt am 22.10.2026 (Seewege II):**
+> - **Im Dunst:** Nebelfelder (`?` in der Maske, Gelände `fog`). Im Spielstand steht nur ein Zählwerk (`GameState.fog`), Gelände und Zahl zieht der Zufall erst beim Aufdecken. Aufgedeckt wird, wenn eine Straße oder ein Schiff an das Feld gebaut oder ein Schiff dorthin versetzt wird. Land bringt dem Entdecker einen Rohstoff (Gold: den, von dem die Bank am meisten hat). Keine 6 neben einer 8, solange der Vorrat anderes hergibt. Bis zum Aufdecken gilt Nebel als Wasser für Inseln und Küsten, aber weder Straße noch Schiff noch Räuber dürfen hinein. Häfen liegen nur an bekannter Küste. Auf dem Brett dreht sich ein aufgedecktes Feld um.
+> - **Inselwelt** (freie Karte): Hauptinsel aus dem Generator der Zufallsküste, ringsum kleine Inseln mit mindestens einem Meerfeld Abstand, einige mit Gold, Meer nur rund um das Land und in den Durchfahrten.
+> - **5–6 Spieler:** größere Masken für Erste Überfahrt, Inselquartett und Im Dunst, alle Seewege-Karten für 3–6 Spieler.
+> - **Nebenbei:** Die Topologie wird zusätzlich je Feld-Array zwischengespeichert. Das macht Partien auf großen Karten mehrfach schneller.
+> - Nebelfeld ist noch ein SVG-Platzhalter, `tiles/papiercollage/fog.png` steht im Grafik-Auftrag.
 
 #### Regeln in Kürze
 

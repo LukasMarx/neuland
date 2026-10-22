@@ -1,6 +1,6 @@
-import { BIAS, CLASSIC_BASE, CLASSIC_EXT, FIXED, MapDef, mapById, MaskCell, parseMask } from './maps';
+import { BIAS, CLASSIC_BASE, CLASSIC_EXT, FIXED, MapDef, mapById, MaskCell, parseMask, WATER_MARKS } from './maps';
 import { random, randomInt, RngState, shuffle } from './rng';
-import { BoardState, HarborType, HexState, Layout, Resource, RESOURCES, Terrain } from './types';
+import { BoardState, FogPool, HarborType, HexState, Layout, Resource, RESOURCES, Terrain } from './types';
 
 const SQ3 = Math.sqrt(3);
 
@@ -14,7 +14,10 @@ export const BANK_SIZE: Record<Layout, number> = { base: bankSize(19), ext: bank
 
 export interface TopoHex {
   id: number;
-  /** Meerfeld (Seewege): hat Ecken und Kanten, liefert aber nichts und zählt nicht als Land. */
+  /**
+   * Meer- oder Nebelfeld (Seewege): hat Ecken und Kanten, liefert aber nichts und zählt nicht als Land.
+   * Nebel gilt bis zum Aufdecken als Wasser, so trennt er Inseln und Küsten.
+   */
   sea: boolean;
   /** Feld in „doubled coordinates“ (siehe maps.ts). */
   c: number;
@@ -79,6 +82,8 @@ export const NEIGHBOR_STEPS: readonly [number, number][] = [
 
 const cellKey = (c: number, r: number) => `${c},${r}`;
 const cache = new Map<string, Topology>();
+/** Schneller Weg für dasselbe Brett-Objekt: Der Schlüssel muss dann nicht jedes Mal neu gebaut werden. */
+const byObject = new WeakMap<object, Topology>();
 
 /** Felder eines Bretts; alte Spielstände kennen nur das Layout. */
 export function boardCells(board: Pick<BoardState, 'cells' | 'layout'>): [number, number][] {
@@ -88,15 +93,21 @@ export function boardCells(board: Pick<BoardState, 'cells' | 'layout'>): [number
 
 /** Die Geometrie hängt nur von den Feldern ab und wird deshalb nicht im Spielstand gespeichert. */
 export function getTopology(board: TopologySource | Layout): Topology {
+  // Hängt am Feld-Array. Felder werden deshalb nie an Ort und Stelle geändert: Wer ein Nebelfeld
+  // aufdeckt, legt ein neues Array an, und damit entsteht auch eine neue Topologie.
+  const handle = typeof board === 'string' || board.sea ? null : (board.hexes ?? null);
+  const known = handle ? byObject.get(handle) : undefined;
+  if (known) return known;
   const source: TopologySource = typeof board === 'string' ? { layout: board } : board;
   const cells = boardCells(source);
-  const sea = source.sea ?? (source.hexes ?? []).flatMap((h, i) => (h.terrain === 'sea' ? [i] : []));
+  const sea = source.sea ?? (source.hexes ?? []).flatMap((h, i) => (h.terrain === 'sea' || h.terrain === 'fog' ? [i] : []));
   const key = cells.map(([c, r]) => cellKey(c, r)).join(';') + (sea.length ? `|${sea.join(',')}` : '');
   let topo = cache.get(key);
   if (!topo) {
     topo = buildTopology(cells, key, new Set(sea));
     cache.set(key, topo);
   }
+  if (handle) byObject.set(handle, topo);
   return topo;
 }
 
@@ -313,7 +324,7 @@ function harborTypes(count: number): HarborType[] {
 }
 
 function placeTerrain(topo: Topology, marks: string[], pool: Record<Terrain, number>, rng: RngState): Terrain[] {
-  const terrain: (Terrain | null)[] = topo.hexes.map((h) => (h.sea ? 'sea' : null));
+  const terrain: (Terrain | null)[] = topo.hexes.map((h) => (marks[h.id] === '?' ? 'fog' : h.sea ? 'sea' : null));
   const left = { ...pool };
   for (const h of topo.hexes) {
     const t = FIXED[marks[h.id]];
@@ -364,7 +375,7 @@ function placeTerrain(topo: Topology, marks: string[], pool: Record<Terrain, num
 function placeNumbers(topo: Topology, terrain: Terrain[], pool: number[], rng: RngState, strict: boolean): (number | null)[] | null {
   for (let attempt = 0; attempt < 400; attempt++) {
     const numbers: (number | null)[] = topo.hexes.map(() => null);
-    const open = new Set(topo.hexes.filter((h) => terrain[h.id] !== 'desert' && terrain[h.id] !== 'sea').map((h) => h.id));
+    const open = new Set(topo.hexes.filter((h) => !h.sea && terrain[h.id] !== 'desert').map((h) => h.id));
     const sequence = [...shuffle(rng, pool.filter(isRed)), ...shuffle(rng, pool.filter((x) => !isRed(x)))];
     let ok = true;
     for (const num of sequence) {
@@ -479,7 +490,7 @@ function score(topo: Topology, terrain: Terrain[], numbers: (number | null)[], p
   let cluster = 1;
   const seen = new Set<number>();
   for (const h of topo.hexes) {
-    if (seen.has(h.id) || terrain[h.id] === 'desert' || terrain[h.id] === 'sea') continue;
+    if (seen.has(h.id) || h.sea || terrain[h.id] === 'desert') continue;
     let size = 0;
     const stack = [h.id];
     seen.add(h.id);
@@ -504,7 +515,7 @@ function score(topo: Topology, terrain: Terrain[], numbers: (number | null)[], p
   const skew = Math.max(...perTile.map((p) => Math.abs(p - mean) / mean));
   // Startrunde: Schlangenauswahl, jeder nimmt gierig die beste freie Ecke
   const value = topo.vertices.map((v) => {
-    const kinds = new Set(v.hexes.map((id) => terrain[id]).filter((t) => t !== 'desert' && t !== 'sea'));
+    const kinds = new Set(v.hexes.filter((id) => !topo.hexes[id].sea).map((id) => terrain[id]).filter((t) => t !== 'desert'));
     const p = v.hexes.reduce((a, id) => a + pips(numbers[id]), 0);
     return { p, score: p + 0.6 * Math.max(0, kinds.size - 1) };
   });
@@ -600,10 +611,80 @@ function growShape(size: number, rng: RngState): MaskCell[] {
   return [...land.values()];
 }
 
-/** Form einer Karte für eine Spielerzahl; auf Seewege-Karten mit Meerfeldern (`~`). */
+/** Form einer Karte für eine Spielerzahl; auf Seewege-Karten mit Meerfeldern (`~`) und Nebel (`?`). */
 export function mapShape(map: MapDef, players: number, rng: RngState): MaskCell[] {
   if (map.mask) return parseMask(typeof map.mask === 'function' ? map.mask(players) : map.mask, !!map.seafaring);
+  if (map.archipelago) return growArchipelago(map.archipelago(players), rng);
   return growShape(map.randomSize!(players), rng);
+}
+
+/** Abstand zweier Felder in „doubled coordinates“, in Feldschritten. */
+function hexDistance(a: { c: number; r: number }, b: { c: number; r: number }): number {
+  const dr = Math.abs(a.r - b.r);
+  return dr + Math.max(0, (Math.abs(a.c - b.c) - dr) / 2);
+}
+
+/**
+ * Inselwelt: eine Hauptinsel wie bei der Zufallsküste, ringsum kleine Inseln mit mindestens einem
+ * Meerfeld Abstand, einige mit Gold. Rundherum ein Rand aus Meer.
+ */
+function growArchipelago(spec: { main: number; small: number[]; gold: number }, rng: RngState): MaskCell[] {
+  const owner = new Map<string, number>();
+  const cells: MaskCell[] = [];
+  const add = (c: number, r: number, island: number) => {
+    owner.set(cellKey(c, r), island);
+    cells.push({ c, r, ch: '.' });
+  };
+  for (const m of growShape(spec.main, rng)) add(m.c, m.r, 0);
+  const main = [...cells];
+  // Ein Feld ist frei für Insel `island`, wenn kein Land einer anderen Insel daneben liegt.
+  const freeFor = (c: number, r: number, island: number) =>
+    !owner.has(cellKey(c, r)) && NEIGHBOR_STEPS.every(([dc, dr]) => (owner.get(cellKey(c + dc, r + dr)) ?? island) === island);
+  spec.small.forEach((size, i) => {
+    const island = i + 1;
+    for (let attempt = 0; attempt < 400; attempt++) {
+      // Startfeld in Reichweite der Hauptinsel: zwei bis vier Felder vom nächsten Hauptinselfeld.
+      const anchor = main[randomInt(rng, main.length)];
+      const [dc, dr] = NEIGHBOR_STEPS[randomInt(rng, 6)];
+      const steps = 2 + randomInt(rng, 3);
+      const start = { c: anchor.c + dc * steps, r: anchor.r + dr * steps };
+      if (!freeFor(start.c, start.r, island)) continue;
+      const near = Math.min(...main.map((m) => hexDistance(m, start)));
+      if (near < 2 || near > 4) continue;
+      const mine = [start];
+      add(start.c, start.r, island);
+      while (mine.length < size) {
+        const options = mine.flatMap((m) => NEIGHBOR_STEPS.map(([a, b]) => ({ c: m.c + a, r: m.r + b }))).filter((x) => freeFor(x.c, x.r, island));
+        if (!options.length) break;
+        const next = options[randomInt(rng, options.length)];
+        mine.push(next);
+        add(next.c, next.r, island);
+      }
+      break;
+    }
+  });
+  // Gold auf die kleinen Inseln, je höchstens eines.
+  const smallIslands = shuffle(rng, [...new Set([...owner.values()].filter((i) => i > 0))]);
+  for (const island of smallIslands.slice(0, spec.gold)) {
+    const options = cells.filter((m) => owner.get(cellKey(m.c, m.r)) === island);
+    options[randomInt(rng, options.length)].ch = '$';
+  }
+  // Meer: ein Ring um alles Land und die Durchfahrten zwischen den Inseln (Felder nahe an zwei Inseln).
+  const land = [...cells];
+  const parity = (land[0].c + land[0].r) & 1;
+  const minC = Math.min(...land.map((m) => m.c)) - 4;
+  const maxC = Math.max(...land.map((m) => m.c)) + 4;
+  const minR = Math.min(...land.map((m) => m.r)) - 2;
+  const maxR = Math.max(...land.map((m) => m.r)) + 2;
+  for (let r = minR; r <= maxR; r++) {
+    for (let c = minC; c <= maxC; c++) {
+      if (((c + r) & 1) !== parity || owner.has(cellKey(c, r))) continue;
+      const near = new Set(land.filter((m) => hexDistance(m, { c, r }) <= 2).map((m) => owner.get(cellKey(m.c, m.r))));
+      const touching = land.some((m) => hexDistance(m, { c, r }) === 1);
+      if (touching || near.size > 1) cells.push({ c, r, ch: '~' });
+    }
+  }
+  return cells;
 }
 
 /** Erzeugt ein Brett für eine Karte: Form, Gelände, Zahlen und Häfen, die beste von mehreren Varianten. */
@@ -611,17 +692,20 @@ export function generateBoard(
   mapId: string | undefined,
   players: number,
   rng: RngState,
-): { board: BoardState; robber: number; bank: number; pirate: number | null } {
+): { board: BoardState; robber: number; bank: number; pirate: number | null; fog?: FogPool } {
   const map = mapById(mapId);
   const shape = mapShape(map, players, rng);
   // Felder in Brett-Reihenfolge (zeilenweise), die Maskenzeichen dazu.
   const sortedShape = [...shape].sort((p, q) => p.r - q.r || p.c - q.c);
   const cells = sortedShape.map((m): [number, number] => [m.c, m.r]);
   const marks = sortedShape.map((m) => m.ch);
-  const sea = marks.flatMap((m, i) => (m === '~' ? [i] : []));
+  const sea = marks.flatMap((m, i) => (WATER_MARKS.has(m) ? [i] : []));
   const topo = getTopology({ cells, sea });
-  // Vorräte richten sich nach den Landfeldern; Meer liefert nichts.
+  // Vorräte richten sich nach den Landfeldern; Meer liefert nichts, Nebel erst nach dem Aufdecken.
   const n = topo.hexes.length - sea.length;
+  const fogCells = marks.filter((m) => m === '?').length;
+  const fog = fogCells ? fogPool(fogCells, map.seafaring?.fog ?? { seaShare: 0.5, gold: 0 }, rng) : undefined;
+  const fogLand = fog ? fogCells - (fog.terrain.sea ?? 0) : 0;
 
   const deserts = Math.max(1, Math.round(n / 15));
   const gold = marks.filter((m) => m === '$').length;
@@ -633,7 +717,9 @@ export function generateBoard(
   } as Record<Terrain, number>;
   const counts = largestRemainder(n - deserts, NUMBER_WEIGHT, rng);
   const numberPool = Object.entries(counts).flatMap(([k, c]) => Array<number>(c).fill(Number(k)));
-  const coastLength = topo.coastLoops.reduce((a, l) => a + l.edges.length, 0);
+  // Häfen nur an bekannter Küste: Eine Küste zum Nebel hin kann sich später als Land entpuppen.
+  const harborTopo = fogCells ? knownCoast(topo, marks) : topo;
+  const coastLength = harborTopo.coastLoops.reduce((a, l) => a + l.edges.length, 0);
   const harborCount = map.harbors ?? harborCountFor(n, coastLength);
 
   let best: { hexes: HexState[]; harborEdges: number[]; score: number } | null = null;
@@ -641,7 +727,7 @@ export function generateBoard(
     const terrain = placeTerrain(topo, marks, terrainPool, rng);
     const numbers = placeNumbers(topo, terrain, numberPool, rng, true) ?? placeNumbers(topo, terrain, numberPool, rng, false);
     if (!numbers) continue;
-    const harborEdges = map.evenHarbors ? evenHarborEdges(topo, harborCount) : placeHarbors(topo, harborCount, rng);
+    const harborEdges = map.evenHarbors ? evenHarborEdges(topo, harborCount) : placeHarbors(harborTopo, harborCount, rng);
     const s = score(topo, terrain, numbers, players);
     if (!best || s < best.score) best = { hexes: terrain.map((t, i) => ({ terrain: t, number: numbers[i] })), harborEdges, score: s };
   }
@@ -649,7 +735,7 @@ export function generateBoard(
 
   const types = shuffle(rng, harborTypes(best.harborEdges.length));
   // Das Kaperschiff startet auf einem Meerfeld an der Küste.
-  const coastalSea = topo.hexes.filter((h) => h.sea && h.neighbors.some((m) => !topo.hexes[m].sea));
+  const coastalSea = topo.hexes.filter((h) => marks[h.id] === '~' && h.neighbors.some((m) => !topo.hexes[m].sea));
   const pirate = coastalSea.length ? coastalSea[randomInt(rng, coastalSea.length)].id : null;
   const board: BoardState = {
     map: map.id,
@@ -659,7 +745,28 @@ export function generateBoard(
   };
   // Das klassische Brett behält sein Layout zusätzlich, so bleiben alte Werkzeuge und Tests gültig.
   if (map.id === 'klassisch') board.layout = n > 19 ? 'ext' : 'base';
-  return { board, robber: best.hexes.findIndex((h) => h.terrain === 'desert'), bank: bankSize(n), pirate };
+  const result = { board, robber: best.hexes.findIndex((h) => h.terrain === 'desert'), bank: bankSize(n + fogLand), pirate };
+  return fog ? { ...result, fog } : result;
+}
+
+/**
+ * Was unter dem Nebel liegt, als Zählwerk: Meer nach Anteil, Gold, eine Wüste ab zehn Landfeldern,
+ * der Rest Rohstoffland wie sonst gewichtet; Zahlen für alle Landfelder außer Wüste.
+ */
+function fogPool(cells: number, spec: { seaShare: number; gold: number }, rng: RngState): FogPool {
+  const sea = Math.round(cells * spec.seaShare);
+  const land = cells - sea;
+  const gold = Math.min(spec.gold, land);
+  const desert = land - gold >= 10 ? 1 : 0;
+  const terrain: Partial<Record<Terrain, number>> = { ...largestRemainder(land - gold - desert, TERRAIN_WEIGHT, rng), sea, gold, desert };
+  const numbers = largestRemainder(land - desert, NUMBER_WEIGHT, rng);
+  return { terrain, numbers };
+}
+
+/** Dieselbe Topologie, aber ohne Küstenkanten, die an Nebel grenzen. */
+function knownCoast(topo: Topology, marks: string[]): Topology {
+  const fogged = (e: number) => topo.edges[e].hexes.some((h) => marks[h] === '?');
+  return { ...topo, coastLoops: topo.coastLoops.map((l) => ({ ...l, edges: l.edges.filter((e) => !fogged(e)) })).filter((l) => l.edges.length) };
 }
 
 /** Klassisch: Häfen gleichmäßig um die Außenküste wie bisher. */

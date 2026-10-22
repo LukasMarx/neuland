@@ -9,7 +9,7 @@ const SQ3 = Math.sqrt(3);
   template: `
     <svg [attr.viewBox]="shape().viewBox" aria-hidden="true">
       @for (h of shape().hexes; track $index) {
-        <polygon [attr.points]="h.points" [class.desert]="h.desert" [class.gold]="h.gold" [class.sea]="h.sea" />
+        <polygon [attr.points]="h.points" [class.desert]="h.desert" [class.gold]="h.gold" [class.sea]="h.sea" [class.fog]="h.fog" />
       }
     </svg>
   `,
@@ -37,6 +37,10 @@ const SQ3 = Math.sqrt(3);
       fill: #2c6d8f;
       stroke: #24576f;
     }
+    .fog {
+      fill: #c9d3d8;
+      stroke: #8fa3ad;
+    }
   `,
 })
 export class MapThumb {
@@ -56,6 +60,7 @@ export class MapThumb {
       desert: m.ch === 'x' || m.ch === 'X',
       gold: m.ch === '$',
       sea: m.ch === '~',
+      fog: m.ch === '?',
     }));
     const xs = cells.map((m) => (m.c * SQ3) / 2);
     const ys = cells.map((m) => m.r * 1.5);
