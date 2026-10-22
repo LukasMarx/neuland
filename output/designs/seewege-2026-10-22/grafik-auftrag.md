@@ -4,7 +4,9 @@
 
 **Geliefert und eingebunden:** Goldfeld, Nebelfeld, Schiff in allen Farben (Draufsicht, auch in den beiden Grautönen), Kaperschiff, Banner-Motive Schiff und Insel, Inselbonus-Symbol. Lieferung siehe `README.md` in diesem Ordner.
 
-**Offen:** nur das optionale Banner-Motiv Kaperschiff (erst nötig, wenn es ein Banner „Kaperschiff versetzt“ gibt).
+**Offen, neu seit der Lieferung:** Symbole für die Knöpfe „Versetzen“ und „Handeln“ im Bauraster (siehe „Bedienelemente“). Seit dort echte Figuren stehen, fallen die Textzeichen ⤳ und ⇄ daneben auf.
+
+**Offen, optional:** Banner-Motiv Kaperschiff (erst nötig, wenn es ein Banner „Kaperschiff versetzt“ gibt).
 
 ## Worum es geht
 
@@ -34,6 +36,15 @@ Optional, erst nötig, wenn es dafür ein Banner gibt:
 |---|---|---|
 | `public/banner/papiercollage/pirate.png` | **Banner-Motiv Kaperschiff**, 1024 × 1024, transparent | für ein späteres Banner „Kaperschiff versetzt“; darf die Datei `pieces/papiercollage/pirate.png` als Vorlage nehmen |
 
+### Bedienelemente
+
+Die Knöpfe im Bauraster zeigen Straße, Siedlung, Stadt, Schiff als Figuren und die Entwicklungskarte als Kartenrückseite. Zwei Knöpfe haben noch ein Textzeichen:
+
+| Datei | Motiv | Format | Hinweise |
+|---|---|---|---|
+| `public/icons/ui/move-ship.png` | **Schiff versetzen:** kleines Schiff mit geschwungenem Pfeil | 256 × 256, transparent | Knopf „Versetzen“ (Seewege), etwa 28 Pixel; neutral, nicht eingefärbt |
+| `public/icons/ui/trade.png` | **Handeln:** zwei Hände tauschen Karten, oder zwei Karten mit Pfeilen | 256 × 256, transparent | Knopf „Handeln“ (Grundspiel), etwa 28 Pixel |
+
 ## Technische Vorgaben
 
 - Echte Transparenz, keine eingezeichneten Schachbrettmuster.
@@ -49,6 +60,8 @@ Das Schiff läuft durch dieselbe Pipeline wie Straße und Stadt (`scripts/build-
 3. Ergebnis: `public/pieces/papiercollage/ship-<farbe>.png` für alle acht Farben.
 
 ## Einbindung (macht danach der Code-Agent)
+
+- **Bedienelemente:** in `src/app/ui/game/game.html` die Zeichen ⤳ (Versetzen) und ⇄ (Handeln) im Bauraster durch die Bilder ersetzen.
 
 - **Goldfeld:** `gold` in `src/app/ui/board/tile-art.ts` eintragen und mit `node scripts/optimize-images.mjs` die Web-Fassung erzeugen. Der SVG-Platzhalter `#t-gold` bleibt als Rückfall.
 - **Schiff und Kaperschiff:** In `src/app/ui/board/board.html` die `<use href="#ship">` bzw. `#pirate` durch `<image>` mit `pieceImage('ship', farbe)` bzw. der Kaperschiff-Datei ersetzen. Danach noch der Bauknopf in `game.html`.

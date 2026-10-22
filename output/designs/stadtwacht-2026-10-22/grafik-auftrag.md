@@ -2,7 +2,7 @@
 
 ## Stand (22.10.2026)
 
-**Alles offen.** Dieser Auftrag ist neuer als die letzte Lieferung. Im Spiel stehen Platzhalter: Güterkarten und -symbole als schlichte SVGs, Prachtstadt als Abzeichen, Palisade als Ring, Wächter als runde Marken, Flotte und Ereigniswürfel als einfache Formen. Stadtwacht III (Einflusskarten) bekommt einen eigenen Abschnitt, sobald die Kartenliste steht.
+**Alles offen.** Dieser Auftrag ist neuer als die letzte Lieferung. Zuletzt dazugekommen: Symbol für den Knopf „Ausbau“ und (optional) Symbole für die Wächter-Aktionen. Im Spiel stehen Platzhalter: Güterkarten und -symbole als schlichte SVGs, Prachtstadt als Abzeichen, Palisade als Ring, Wächter als runde Marken, Flotte und Ereigniswürfel als einfache Formen. Stadtwacht III (Einflusskarten) bekommt einen eigenen Abschnitt, sobald die Kartenliste steht.
 
 ## Worum es geht
 
@@ -63,6 +63,13 @@ In Prompts nur die Neuland-Begriffe verwenden (Schriften, Stoff, Silber, Markt, 
 | `public/icons/city/honor.png` | **Ehrenschild:** kleiner Schild mit Lorbeer | 256 × 256, transparent | Punkteübersicht und Spielerleiste |
 | `public/banner/papiercollage/raiders.png` | **Banner-Motiv Angriff:** Langschiff vor einer Stadtmauer | 1024 × 1024, transparent, Motiv ca. 85 % | für „Flotte abgewehrt“ und „Die Flotte plündert“; heute ersatzweise Schild und Schwerter |
 
+### Bedienelemente
+
+| Datei | Motiv | Format | Hinweise |
+|---|---|---|---|
+| `public/icons/city/improve.png` | **Stadtausbau:** Stadt mit kleinem Baugerüst oder drei gestaffelten Türmen in Gelb, Blau, Grün | 256 × 256, transparent | Knopf „Ausbau“ im Bauraster, etwa 28 Pixel; heute ein Dreieck ▲ |
+| optional `public/icons/city/guard-activate.png`, `guard-upgrade.png`, `guard-move.png`, `guard-chase.png` | **Wächter-Aktionen:** Fackel (bereit machen), Stern oder Pfeil nach oben (aufwerten), Fußspuren (ziehen), verjagter Räuberhut (Räuber vertreiben) | 256 × 256, transparent | für den Wächter-Dialog, etwa 22 Pixel; heute nur Text |
+
 ## Technische Vorgaben
 
 - Echte Transparenz, keine eingezeichneten Schachbrettmuster.
@@ -76,6 +83,7 @@ In Prompts nur die Neuland-Begriffe verwenden (Schriften, Stoff, Silber, Markt, 
 - **Palisade:** in `board.html` den Ring `.wall` durch das Bild ersetzen.
 - **Wächter:** in `board.html` die Marke `.guard` durch `pieceImage('guard' + Stufe, Farbe)` ersetzen (neue `PieceKind`), den Bauknopf „Wächter“ in `game.html` ebenso.
 - **Flotte, Ereigniswürfel, Ehrenschild:** `.raiders` und `.event-die` in `game.html`, Banner-Fall `raid` in `event-banner.ts`.
+- **Bedienelemente:** Knopf „Ausbau“ in `game.html` (heute ▲), Wächter-Dialog `@case ('guard')`.
 
 ## Abnahme
 
