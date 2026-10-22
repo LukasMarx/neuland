@@ -6,13 +6,15 @@ export interface LobbyPlayer {
   color: string;
   /** Aktuelle WebRTC-Peer-ID, null wenn nicht verbunden. */
   peerId: string | null;
+  /** Seit wann (Uhrzeit des Hosts) der Spieler nicht verbunden ist. */
+  awaySince?: number | null;
 }
 
 /**
  * Version des Protokolls. Peers mit anderer Version spielen nicht zusammen, weil sich
  * Spielstand oder Nachrichten unterscheiden können; sie bekommen einen Hinweis zum Neuladen.
  */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export interface RoomInfo {
   code: string;
@@ -39,8 +41,14 @@ export type NetMessage =
   | { t: 'offer'; game: GameState }
   | { t: 'profile'; name: string; color: string }
   | { t: 'claim'; playerId: string }
-  | { t: 'action'; action: Action }
-  | { t: 'reject'; error: string }
+  /** Aktion mit Sitzung `s` und Laufnummer `n`; der Host wendet jede genau einmal an und bestätigt sie. */
+  | { t: 'action'; action: Action; s: string; n: number }
+  | { t: 'ack'; s: string; n: number }
+  | { t: 'reject'; error: string; s?: string; n?: number }
+  /** Wem ein Client gerade folgt (null: keinem erreichbaren Host). Hosts erkennen so Rivalen. */
+  | { t: 'follow'; hostId: string | null; rank: number[] }
+  /** Für einen nicht verbundenen Spieler einen automatischen Zug machen. */
+  | { t: 'standIn'; seat: number }
   | { t: 'chat'; id: string; name: string; text: string };
 
 export const PLAYER_COLORS = [

@@ -87,8 +87,11 @@ Der Spielstand ist klein (wenige KB). Deshalb schickt der Host nach jeder Aktion
 | `sync` | Client → Host | „Schick mir den vollen Stand“, wenn das Lebenszeichen zeigt, dass man zurückliegt |
 | `offer` | Client → Host | Neuerer Stand derselben Partie, z. B. aus dem eigenen Speicher oder weil dem neuen Host der letzte Broadcast fehlte |
 | `profile` | Client → Host | Name und Farbe ändern |
-| `action` | Client → Host | Spielaktion |
+| `action` | Client → Host | Spielaktion mit Sitzung und Laufnummer |
+| `ack` | Host → Client | Aktion angewendet (oder schon früher angewendet) |
 | `reject` | Host → Client | Aktion ungültig, mit Grund |
+| `follow` | Client → alle | Wem man gerade folgt (alle 3 Sekunden); so erkennen Hosts Rivalen |
+| `standIn` | Client → Host | Automatischen Zug für einen Spieler machen, der länger nicht verbunden ist |
 | `chat` | alle → alle | Chatnachricht |
 
 ### Identität und Wiedereinstieg
@@ -115,7 +118,34 @@ Regeln, die den Stand bei allen gleich halten:
 - Dieselbe Aktion kurz hintereinander (Doppelklick) wird nur einmal geschickt.
 - Einen Platz übernehmen kann man nur, wenn der Spieler nicht verbunden ist, auch bei gleichem Namen.
 
-Noch offen (Phase 2 der Prüfung vom 21.10.2026): Bestätigung und erneutes Senden von Aktionen, Host nur mit Mehrheit der verbundenen Spieler (sonst können eine abgetrennte Minderheit oder ein einseitiger Verbindungsabbruch zu zwei Hosts führen), Verbindungsanzeige im Spiel und Überspringen oder Übernehmen von Spielern, die nicht zurückkommen.
+### Aktionen kommen genau einmal an
+
+Jede Aktion eines Clients trägt eine Sitzung (pro Seitenaufruf) und eine Laufnummer. Der Client hält sie in einem Ausgang, bis der Host sie bestätigt (`ack`) oder ablehnt. Ohne Bestätigung nach 4 Sekunden und bei jedem Host-Wechsel schickt er sie erneut. Der Host merkt sich im Spielstand die letzte angewendete Nummer je Client (`GameState.acks`); dieser Vermerk wandert beim Host-Wechsel mit, deshalb wird eine erneut gesendete Aktion nie doppelt angewendet. Was nach 30 Sekunden noch nicht angekommen ist, verfällt mit Hinweis. Die Oberfläche zeigt „wird gesendet …“, solange ein Zug unterwegs ist.
+
+### Mehrheit und Rivalen
+
+- **Host nur mit Mehrheit:** Host wird und bleibt handlungsfähig nur, wer die Mehrheit der Sitzplätze erreicht, sich selbst eingerechnet; bei Gleichstand die Hälfte mit Sitz 0. Erreichbar ist, wer in den letzten 7 Sekunden etwas geschickt hat. WebRTC meldet einen harten Abbruch erst nach ~15 Sekunden, darauf wartet niemand. Ohne Mehrheit nimmt ein Host keine Züge an, und eine abgetrennte Minderheit kann so nie mehr Züge sammeln als die Mehrheit.
+- **Lebenszeichen:** Der Host schickt alle 3 Sekunden eins. Kommt 9 Sekunden lang nichts, gilt er als weg, und es wird gewählt.
+- **Meldung, wem man folgt:** Clients melden regelmäßig, welchem Host sie folgen. Folgt ein erreichbarer Mitspieler noch einem lebenden Host, wählt niemand einen neuen; dann ist nur die eigene Leitung zum Host gestört. Erfährt ein Host über so eine Meldung von einem Rivalen mit höherem Rang, tritt er zurück. So entsteht auch bei einem einseitigen Abbruch kein zweiter Host.
+- **Neuer Host:** Wer Host wird, wendet seine eigenen noch unbestätigten Züge selbst an.
+- **Selbstheilung:** Kommt von einem Peer eine Nachricht, gilt er wieder als verbunden, auch nach einer verspäteten Abmeldung.
+
+### Spieler, die wegbleiben
+
+Gestartet wird nur mit Spielern, die gerade verbunden sind. Ist im Spiel jemand nicht verbunden, auf den das Spiel wartet, sehen alle „X ist nicht verbunden“. Nach 20 Sekunden kann jeder Mitspieler „Für X weiterspielen“ wählen: Der Host macht dann einen zurückhaltenden, legalen Zug für X (`autoAction` in `engine/auto.ts`). Er würfelt, wirft von den größten Stapeln ab, setzt den Räuber möglichst auf ein Feld ohne Opfer, setzt im Aufbau zufällig oder beendet den Zug. Gebaut oder gehandelt wird für niemanden. Kommt X zurück, bekommt er seinen Platz wieder.
+
+Ist die Verbindung zum Spiel weg (kein Host erreichbar oder als Host ohne Mehrheit), zeigt das Spiel einen Hinweis und nach 15 Sekunden „Neu verbinden“. Kommt die Seite aus dem Zurück-Cache des Browsers, verbindet sie sich von selbst neu.
+
+### Tests
+
+`src/app/net/room.service.spec.ts` prüft den RoomService mit einem simulierten Netz (`src/app/net/testing/fake-net.ts`). Das Netz läuft mit virtueller Uhr und kann Latenz, harte Abbrüche, einseitige Abbrüche, Partitionen, Umordnung, Verlust und Duplikate erzeugen. Abgedeckt sind:
+
+- alle Befunde der Prüfung vom 21.10.2026
+- ein Chaostest mit zufälligen Störungen und neu geladenen Tabs: Am Ende müssen alle auf einen Host, eine Partie und einen Stand zusammenlaufen, ohne offene Züge
+
+Die Umgebung (Speicher, Uhr, Netz) kommt über `NET_ENV` herein.
+
+Bewusst nicht gelöst: Wer die Entwicklertools öffnet, kann sich als anderer Spieler ausgeben oder einen gefälschten Spielstand als „Host“ verteilen. Unter Kollegen nehmen wir das in Kauf; sicher ginge es nur mit Signaturen pro Spieler.
 
 Wird ein Tab normal geschlossen, meldet er sich ab und der Wechsel geschieht sofort. Bricht die Verbindung hart ab, erkennt WebRTC das nach etwa 15 Sekunden.
 

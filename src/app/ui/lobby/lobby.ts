@@ -218,8 +218,9 @@ export class Lobby {
 
   protected readonly takenColors = computed(() => new Set(this.room.room()?.players.map((p) => p.color)));
   protected readonly spectatorNames = computed(() => this.room.room()?.spectators.map((p) => p.name).join(', '));
+  /** Gestartet wird mit allen, die verbunden sind; wer die Lobby verlassen hat, bleibt draußen. */
   protected readonly canStart = computed(() => {
-    const n = this.room.room()?.players.length ?? 0;
+    const n = this.room.room()?.players.filter((p) => p.peerId).length ?? 0;
     return n >= 2 && n <= MAX_PLAYERS;
   });
 

@@ -97,6 +97,11 @@ export interface GameState {
   /** Kennung dieser Partie. Stände verschiedener Partien werden nie über die Version verglichen. */
   id?: string;
   version: number;
+  /**
+   * Letzte angewendete Aktion je Client (Sitzung und Laufnummer). Wandert beim Host-Wechsel mit,
+   * damit eine erneut gesendete Aktion nie doppelt angewendet wird.
+   */
+  acks?: Record<string, { s: string; n: number }>;
   rng: number;
   settings: GameSettings;
   board: BoardState;

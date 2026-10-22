@@ -63,7 +63,34 @@
         <span class="color-dot" [style.background]="statusColor()"></span>
         {{ status() }}
       }
+      @if (sending()) {
+        <span class="sending">· wird gesendet …</span>
+      }
     </div>
+
+    @if (connection() || absent().length) {
+      <div class="board-notes">
+        @if (connection(); as c) {
+          <div class="note net" role="status">
+            <span class="pulse"></span>{{ c.text }}
+            @if (c.retry) {
+              <button class="small" (click)="room.reconnect()">Neu verbinden</button>
+            }
+          </div>
+        }
+        @for (a of absent(); track a.seat) {
+          <div class="note away">
+            <span class="color-dot" [style.background]="a.color"></span>
+            <span><b>{{ a.name }}</b> ist nicht verbunden.</span>
+            @if (a.ready) {
+              <button class="small primary" (click)="room.standIn(a.seat)" title="Macht einen zurückhaltenden Zug: würfeln, abwerfen, Räuber versetzen oder Zug beenden">Für {{ a.name }} weiterspielen</button>
+            } @else {
+              <span class="muted">Weiterspielen für {{ a.name }} in {{ a.wait }} s</span>
+            }
+          </div>
+        }
+      </div>
+    }
 
     <div class="bank" data-anchor="bank" title="Vorrat der Bank">
       <small>Bank</small>

@@ -1,4 +1,4 @@
-import { afterRenderEffect, Component, computed, effect, ElementRef, inject, isDevMode, output, signal, untracked, viewChild } from '@angular/core';
+import { afterRenderEffect, Component, computed, DestroyRef, effect, ElementRef, inject, isDevMode, output, signal, untracked, viewChild } from '@angular/core';
 import {
   actingSeats,
   COSTS,
@@ -21,7 +21,7 @@ import {
   totalResources,
   victoryPoints,
 } from '../../engine';
-import { RoomService } from '../../net/room.service';
+import { AWAY_MS, RoomService } from '../../net/room.service';
 import { Board } from '../board/board';
 import { ChatBox } from '../shared/chat-box';
 import { CardFace } from '../shared/card-face';
@@ -65,6 +65,43 @@ export class GameView {
   protected readonly pieceImage = pieceImage;
 
   protected readonly g = computed(() => this.room.game()!);
+
+  /** Sekundentakt für Wartezeiten (abwesende Spieler, Verbindungsanzeige). */
+  private readonly now = signal(Date.now());
+  private readonly reconnectingSince = signal<number | null>(null);
+  private readonly pendingSince = signal<number | null>(null);
+
+  /** Hinweis, solange das Spiel ohne erreichbaren Host oder ohne Mehrheit ist. */
+  protected readonly connection = computed(() => {
+    if (this.room.status() !== 'reconnecting') return null;
+    const since = this.reconnectingSince() ?? this.now();
+    return {
+      text: this.room.isHost()
+        ? 'Nur ein Teil der Spieler ist verbunden. Es geht weiter, sobald die Mehrheit wieder da ist.'
+        : 'Verbindung zum Spiel unterbrochen. Verbinde neu …',
+      // Erst nach einer Weile anbieten: neu verbinden lädt den Raum frisch.
+      retry: !this.room.isHost() && this.now() - since > 15000,
+    };
+  });
+
+  /** Eigener Zug ist unterwegs und noch nicht bestätigt (nach kurzer Zeit sichtbar). */
+  protected readonly sending = computed(() => {
+    const since = this.pendingSince();
+    return since !== null && this.now() - since > 1000;
+  });
+
+  /** Spieler, auf die das Spiel gerade wartet, die aber nicht verbunden sind. */
+  protected readonly absent = computed(() => {
+    const g = this.g();
+    const room = this.room.room();
+    if (!room || this.seat() < 0 || g.phase.kind === 'ended') return [];
+    return actingSeats(g).flatMap((seat) => {
+      const entry = room.players.find((p) => p.id === g.players[seat].id);
+      if (!entry || entry.peerId || seat === this.seat()) return [];
+      const waited = this.now() - (entry.awaySince ?? this.now());
+      return [{ seat, name: g.players[seat].name, color: g.players[seat].color, ready: waited >= AWAY_MS, wait: Math.ceil((AWAY_MS - waited) / 1000) }];
+    });
+  });
   protected readonly seat = this.room.mySeat;
   protected readonly me = computed(() => this.g().players[this.seat()] ?? null);
   protected readonly myColor = computed(() => this.me()?.color ?? '#ffffff');
@@ -358,6 +395,17 @@ export class GameView {
   }));
 
   constructor() {
+    const clock = setInterval(() => this.now.set(Date.now()), 1000);
+    inject(DestroyRef).onDestroy(() => clearInterval(clock));
+    effect(() => {
+      const reconnecting = this.room.status() === 'reconnecting';
+      untracked(() => this.reconnectingSince.set(reconnecting ? (this.reconnectingSince() ?? Date.now()) : null));
+    });
+    effect(() => {
+      const pending = this.room.pending() > 0;
+      untracked(() => this.pendingSince.set(pending ? (this.pendingSince() ?? Date.now()) : null));
+    });
+
     // Baumodus verlassen, sobald sich die Phase ändert oder man nicht mehr dran ist.
     effect(() => {
       this.g().phase.kind;
