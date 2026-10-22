@@ -773,7 +773,7 @@ Bedarf nach Paket (Details in den Abschnitten 2.x):
 | Fernhandel II | Oase, Burg/Sonderstätten | Kamel, Kantenritter ×8, Plünderer, Wagen 3 Stufen ×8 | Waren (4), Aufträge | – |
 | Ferne Küsten | Schlupfwinkel, Fischgrund-Feld, Dorf, Inselrat | großes Schiff ×8, Siedlertrupp ×8, Matrose ×8, Hafenort ×8 | Gold, Fisch, Gewürz, Auftragsleisten | Land entdeckt, Schlupfwinkel |
 
-Konkrete Aufträge mit Dateinamen, Formaten und Einbindung: Seewege in `output/designs/seewege-2026-10-22/grafik-auftrag.md`, Fischgründe und Duell in `output/designs/fernhandel-2026-10-22/grafik-auftrag.md`.
+Konkrete Aufträge mit Dateinamen, Formaten und Einbindung: Seewege (mit Nebel und Inselbonus) in `output/designs/seewege-2026-10-22/grafik-auftrag.md`, Fischgründe, Duell, Hafenvogt und Würfelstapel in `output/designs/fernhandel-2026-10-22/grafik-auftrag.md`.
 
 ---
 

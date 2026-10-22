@@ -19,7 +19,14 @@ Stilreferenzen:
 | `public/pieces/papiercollage/pirate.png` | **Kaperschiff:** dunkles Schiff mit schwarzen oder anthrazitfarbenen Segeln, ein kleiner heller Totenkopf-freier Wimpel (kein Totenkopf, freundlich-bedrohlich) | 512 × 512, transparent | Eine Datei, nicht eingefärbt |
 | `public/banner/papiercollage/ship.png` | **Banner-Motiv Schiff:** Segelschiff, Seitenansicht | 1024 × 1024, transparent, Motiv ca. 85 % | wie die übrigen Banner-Motive |
 | `public/banner/papiercollage/island.png` | **Banner-Motiv Insel:** kleine Insel mit Palme oder Baum und einem Fähnchen | 1024 × 1024, transparent | für „Neue Insel“ |
-| optional `public/tiles/papiercollage/fog.png` | **Nebelfeld:** Nebelschwaden aus weißem Seidenpapier über Wasser | wie Gelände | erst für das Szenario „Im Dunst“ nötig |
+| `public/tiles/papiercollage/fog.png` | **Nebelfeld:** Nebelschwaden aus weißem Seidenpapier über dunklem Wasser | wie Gelände | Für das Szenario „Im Dunst“, das schon spielbar ist. Ohne Zahl, klar unterscheidbar von Meer und von allen Landfeldern. Beim Aufdecken dreht sich das Feld wie eine Karte um, es darf also wie eine Kartenrückseite wirken. |
+| `public/icons/seewege/island-bonus.png` | **Inselbonus:** kleine Insel mit Fähnchen | 256 × 256, transparent | Für die Punkteübersicht der Spieler, etwa 24 Pixel. Darf dasselbe Motiv sein wie das Banner „Insel“, nur vereinfacht. |
+
+Optional, erst nötig, wenn es dafür ein Banner gibt:
+
+| Datei | Motiv | Hinweise |
+|---|---|---|
+| `public/banner/papiercollage/pirate.png` | **Banner-Motiv Kaperschiff**, 1024 × 1024, transparent | für ein späteres Banner „Kaperschiff versetzt“; darf die Datei `pieces/papiercollage/pirate.png` als Vorlage nehmen |
 
 ## Technische Vorgaben
 
@@ -40,6 +47,8 @@ Das Schiff läuft durch dieselbe Pipeline wie Straße und Stadt (`scripts/build-
 - **Goldfeld:** `gold` in `src/app/ui/board/tile-art.ts` eintragen und mit `node scripts/optimize-images.mjs` die Web-Fassung erzeugen. Der SVG-Platzhalter `#t-gold` bleibt als Rückfall.
 - **Schiff und Kaperschiff:** In `src/app/ui/board/board.html` die `<use href="#ship">` bzw. `#pirate` durch `<image>` mit `pieceImage('ship', farbe)` bzw. der Kaperschiff-Datei ersetzen. Danach noch der Bauknopf in `game.html`.
 - **Banner:** Die Motive `ship` und `island` kommen in `src/app/ui/game/event-banner.ts`, Fall `island`.
+- **Nebelfeld:** `fog` in `src/app/ui/board/tile-art.ts` eintragen, Web-Fassung erzeugen. Der SVG-Platzhalter `#t-fog` bleibt als Rückfall.
+- **Inselbonus:** Symbol in der Punkteübersicht (`src/app/ui/game/game.html`, Zeile „Inselbonus“).
 
 ## Abnahme
 
@@ -48,5 +57,6 @@ Das Schiff läuft durch dieselbe Pipeline wie Straße und Stadt (`scripts/build-
 - [ ] Schiff in Blau und Weiß gut lesbar, Segel bleiben hell
 - [ ] Kaperschiff hebt sich auf dem Wasser deutlich ab
 - [ ] Bei 40 Pixeln noch als Schiff erkennbar
+- [ ] Nebelfeld neben Meer und Land eindeutig als verdeckt erkennbar
 
 Die verwendeten Prompts bitte in `output/designs/seewege-2026-10-22/prompts.json` ablegen.

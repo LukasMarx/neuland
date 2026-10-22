@@ -1,4 +1,4 @@
-# Auftrag: Grafiken für Fischgründe und Duell
+# Auftrag: Grafiken für Fischgründe, Duell und kleine Varianten
 
 ## Worum es geht
 
@@ -7,7 +7,12 @@ Neuland hat zwei neue Varianten aus „Fernhandel I“, beide in der Lobby zusch
 - **Fischgründe:** Ein See ersetzt die Wüste. An der Küste liegen Fischgründe mit Zahl. Wer daran baut, fängt Fischplättchen im Wert 1 bis 3. Unter den Plättchen ist ein **Rostiger Anker**; wer ihn hat, braucht einen Punkt mehr zum Sieg.
 - **Duell:** Für zwei Spieler. Zwei neutrale Mitspieler in Grau bauen mit. **Handelsmarken** erzwingen einen Tausch oder schicken den Räuber in die Wüste.
 
-Im Spiel stehen dafür im Moment einfache SVG-Platzhalter. Gebraucht werden Grafiken im bestehenden **Papiercollage-Stil**. Die Regeln stehen in `docs/ERWEITUNGEN.md`, Abschnitte 2.1 (Duell) und 2.4 (Fischgründe).
+Dazu kommen Nachträge für zwei kleine Varianten, die schon länger spielbar sind:
+
+- **Hafenvogt:** Wer zuerst 3 Hafenpunkte hat (Siedlung am Hafen 1, Stadt 2), bekommt 2 Siegpunkte; wer mehr hat, übernimmt.
+- **Würfelstapel:** 36 Karten statt Würfeln, genau mit der Verteilung zweier Würfel.
+
+Im Spiel stehen dafür im Moment einfache SVG-Platzhalter oder nur Text. Gebraucht werden Grafiken im bestehenden **Papiercollage-Stil**. Die Regeln stehen in `docs/ERWEITUNGEN.md`, Abschnitte 2.1 (Duell) und 2.4 (Fischgründe).
 
 Stilreferenzen:
 
@@ -37,11 +42,20 @@ In Prompts nur die Neuland-Begriffe verwenden (See, Fischgrund, Rostiger Anker, 
 | `public/icons/duel/token.png` | **Handelsmarke:** runde Marke aus Messing oder Karton mit eingeprägten Waagschalen oder zwei Pfeilen im Kreis | 256 × 256, transparent | Für Hand und Menü, etwa 30 Pixel. Keine Schrift. |
 | Graue Figuren | **Neutrale Mitspieler:** Dorf, Stadt und Straße in zwei Grautönen | keine neue Grafik nötig | siehe „Graue Figuren“ unten |
 
+### Hafenvogt
+
+| Datei | Motiv | Format | Hinweise |
+|---|---|---|---|
+| `public/icons/variants/harbor-master.png` | **Abzeichen Hafenvogt:** Kapitänsmütze oder kleiner Leuchtturm auf einer runden Plakette | 256 × 256, transparent | Für Spielerleiste und Punkteübersicht, etwa 20 bis 24 Pixel. Steht neben den Abzeichen für längste Straße und Rittermacht, muss sich davon abheben. |
+| `public/banner/papiercollage/lighthouse.png` | **Banner-Motiv Hafenvogt:** Leuchtturm an einer Mole, ein paar Wellen | 1024 × 1024, transparent, Motiv ca. 85 % | Für das Banner „Hafenvogt“. Heute zeigt es ersatzweise Gebäude des Spielers und Münzen. |
+
 ### Optional
 
 | Datei | Motiv | Hinweise |
 |---|---|---|
 | `public/banner/papiercollage/fish.png` | Banner-Motiv Fisch, 1024 × 1024 | nur falls später ein Banner für einen großen Fang kommt |
+| `public/cards/dice-deck-back.png` | **Würfelstapel, Rückseite:** zwei Würfel auf Papier, im Design „Symbolstark“ der übrigen Karten | Format wie die Entwicklungskarten. Heute zeigt das Spiel nur „N Karten“ als Text; nötig erst, wenn der Stapel als Karte erscheint oder Ereigniskarten dazukommen. |
+| `public/cards/dice-deck-front.png` | **Würfelstapel, Vorderseite:** leere Karte mit Platz für zwei Würfelaugen | Die Augen setzt das Spiel selbst, die Karte bleibt textfrei. |
 
 ## Technische Vorgaben
 
@@ -67,6 +81,8 @@ Die Neutralen brauchen kein neues Grundbild. Dorf, Stadt und Straße laufen durc
 - **Handelsmarke:** Markenstapel in der Hand (`.fish-stack.tokens`) und Markenmenü.
 - **Graue Figuren:** die beiden Grautöne in `PIECE_COLORS` (`src/app/ui/shared/piece-art.ts`) eintragen.
 - **Banner Anker:** neue Banner-Art in `src/app/ui/game/event-banner.ts`.
+- **Hafenvogt:** Abzeichen in Spielerleiste und Punkteübersicht (`src/app/ui/game/game.html`), Motiv im Fall `harbor` von `event-banner.ts` statt der Münzen.
+- **Würfelstapel:** Rückseite neben dem Würfelbecher (`.dice-deck` in `game.html`).
 
 ## Abnahme
 
@@ -76,5 +92,6 @@ Die Neutralen brauchen kein neues Grundbild. Dorf, Stadt und Straße laufen durc
 - [ ] Ein, zwei, drei Fische ohne Zahl unterscheidbar
 - [ ] Anker und Handelsmarke bei 24 Pixeln erkennbar
 - [ ] Graue Figuren auf jedem Gelände von Weiß und Braun zu unterscheiden
+- [ ] Hafenvogt-Abzeichen bei 20 Pixeln erkennbar und anders als die übrigen Abzeichen
 
 Die verwendeten Prompts bitte in `output/designs/fernhandel-2026-10-22/prompts.json` ablegen.
