@@ -415,7 +415,11 @@ export class GameView {
       const rollKey = this.rollKey();
       const current = this.me()?.resources ?? null;
       untracked(() => {
-        const isNew = lastVersion !== null && g.version !== lastVersion;
+        // Ein anderer Spielstand derselben Runde (neue Partie, Host-Wechsel) zählt nicht als Spielzug:
+        // keine Flüge, keine Banner, nur Vorwärtsschritte derselben Partie.
+        const switched = lastGame !== null && lastGame.id !== g.id;
+        if (switched) previous = null;
+        const isNew = !switched && lastVersion !== null && g.version > lastVersion;
         const rolled = rollKey !== null && rollKey !== lastRollKey;
         const delay = rolled ? ROLL_DURATION_MS + 150 : 0;
         lastVersion = g.version;
@@ -423,7 +427,7 @@ export class GameView {
         if (isNew) this.fly()?.play(g.transfers ?? [], this.seat(), delay);
         if (isNew && lastGame) this.detectEvents(lastGame, g, delay);
         if (g.phase.kind !== 'ended') this.winnerReady.set(false);
-        else if (!lastGame) this.winnerReady.set(true);
+        else if (!lastGame || switched) this.winnerReady.set(true);
         lastGame = g;
 
         if (current && previous) {

@@ -94,6 +94,8 @@ export interface LogEntry {
 }
 
 export interface GameState {
+  /** Kennung dieser Partie. Stände verschiedener Partien werden nie über die Version verglichen. */
+  id?: string;
   version: number;
   rng: number;
   settings: GameSettings;
@@ -135,10 +137,14 @@ export type Action =
   | { type: 'playYearOfPlenty'; resources: [Resource, Resource] }
   | { type: 'playMonopoly'; resource: Resource }
   | { type: 'bankTrade'; give: Resource; get: Resource }
+  /** Mehrere Bank- und Hafentausche auf einmal, ganz oder gar nicht. */
+  | { type: 'bankTradeBatch'; give: ResourceCounts; get: ResourceCounts }
   | { type: 'offerTrade'; give: ResourceCounts; want: ResourceCounts }
   | { type: 'respondTrade'; offerId: number; accept: boolean }
   | { type: 'confirmTrade'; offerId: number; partner: number }
   | { type: 'cancelTrade'; offerId: number }
+  /** Eigene Angebote zurückziehen; wer am Zug ist, lehnt damit auch alle Gegenangebote ab. */
+  | { type: 'withdrawOffers' }
   | { type: 'endTurn' };
 
 export const RESOURCE_NAMES: Record<Resource, string> = {

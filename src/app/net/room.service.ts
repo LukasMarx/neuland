@@ -2,7 +2,7 @@ import { computed, Injectable, isDevMode, signal } from '@angular/core';
 import * as engine from '../engine';
 import { Action, applyAction, createGame, GameSettings, GameState, RuleError } from '../engine';
 import { LocalTransport } from './local-transport';
-import { compareRoom, LobbyPlayer, MAX_PLAYERS, NetMessage, PLAYER_COLORS, RoomInfo } from './protocol';
+import { compareRank, compareRoom, LobbyPlayer, MAX_PLAYERS, NetMessage, PLAYER_COLORS, PROTOCOL_VERSION, RoomInfo, roomRank } from './protocol';
 import { Transport, TransportFactory, TransportHandlers } from './transport';
 import { TrysteroTransport } from './trystero-transport';
 
@@ -25,6 +25,12 @@ const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 /** So lange wartet ein Beitretender auf einen Host, bevor er gespeicherte Spiele selbst fortsetzt. */
 const SEARCH_TIMEOUT_MS = 12000;
 const RE_ELECT_MS = 8000;
+/** Takt des Lebenszeichens vom Host; wer zurückliegt, holt sich danach den vollen Stand. */
+const TICK_MS = 3000;
+/** In diesem Fenster wird dieselbe Aktion auf denselben Stand nur einmal geschickt (Doppelklick). */
+const DUPLICATE_MS = 1500;
+/** Beim Host ändert sich der Stand sofort; ein Doppelklick ist dann nur noch an der Zeit zu erkennen. */
+const DOUBLE_CLICK_MS = 400;
 /** Lokaler Testmodus (`?local`): Tabs verbinden sich per BroadcastChannel statt P2P. */
 const params = new URLSearchParams(location.search);
 /** Lokaler Testmodus (`?local`): Tabs verbinden sich per BroadcastChannel statt P2P. */
@@ -57,6 +63,10 @@ export class RoomService {
   private hostPeer: string | null = null;
   private readonly peerClients = new Map<string, string>();
   private timers: ReturnType<typeof setTimeout>[] = [];
+  private tickTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Peers mit anderer Protokollversion: deren Nachrichten werden nicht verarbeitet. */
+  private readonly mismatched = new Set<string>();
+  private lastAction: { key: string; version: number; at: number } | null = null;
   private readonly factory: TransportFactory = LOCAL_MODE
     ? (code, h) => new LocalTransport(code, h)
     : (code, h) => new TrysteroTransport(code, h);
@@ -83,7 +93,9 @@ export class RoomService {
     this.status.set('searching');
     this.later(4000, () => this.status() === 'searching' && this.searchSlow.set(true));
     this.later(SEARCH_TIMEOUT_MS, () => {
-      if (this.status() === 'searching' && loadSaved(code)?.game) this.openAsHost();
+      // Ein beendetes Spiel wird nicht von selbst wieder eröffnet.
+      const saved = loadSaved(code)?.game;
+      if (this.status() === 'searching' && saved && saved.phase.kind !== 'ended') this.openAsHost();
     });
   }
 
@@ -104,6 +116,9 @@ export class RoomService {
     this.transport = null;
     this.timers.forEach(clearTimeout);
     this.timers = [];
+    this.stopTicking();
+    this.mismatched.clear();
+    this.lastAction = null;
     this.hostPeer = null;
     this.peerClients.clear();
     this.isHost.set(false);
@@ -149,18 +164,28 @@ export class RoomService {
     if (!this.isHost() || !room) return;
     const players = room.players.map(({ id, name, color }) => ({ id, name, color }));
     const seed = Math.floor(Math.random() * 2 ** 31);
-    this.game.set(createGame(players, room.settings, seed));
+    this.room.set(nextRound(room));
+    this.game.set({ ...createGame(players, room.settings, seed), id: crypto.randomUUID() });
     this.broadcast();
   }
 
   /** Zurück in die Lobby, z. B. für eine neue Runde. */
   backToLobby(): void {
-    if (!this.isHost()) return;
+    const room = this.room();
+    if (!this.isHost() || !room) return;
+    this.room.set(nextRound(room));
     this.game.set(null);
     this.broadcast();
   }
 
   act(action: Action): void {
+    // Doppelklick: dieselbe Aktion auf denselben Stand kurz hintereinander nur einmal schicken.
+    const key = JSON.stringify(action);
+    const version = this.game()?.version ?? -1;
+    const last = this.lastAction;
+    const age = last && last.key === key ? Date.now() - last.at : Infinity;
+    if (age < DOUBLE_CLICK_MS || (age < DUPLICATE_MS && last!.version === version)) return;
+    this.lastAction = { key, version, at: Date.now() };
     if (this.isHost()) {
       this.applyFrom(this.clientId, action, null);
     } else if (!this.toHost({ t: 'action', action })) {
@@ -185,12 +210,16 @@ export class RoomService {
   private connect(code: string): void {
     this.leave();
     this.pendingCode.set(code);
+    // Späte Ereignisse eines schon verlassenen Raums werden verworfen.
+    let transport: Transport | null = null;
+    const live = () => transport !== null && this.transport === transport;
     const handlers: TransportHandlers = {
-      onPeerJoin: (peer) => this.onPeerJoin(peer),
-      onPeerLeave: (peer) => this.onPeerLeave(peer),
-      onMessage: (msg, peer) => this.onMessage(msg, peer),
+      onPeerJoin: (peer) => live() && this.onPeerJoin(peer),
+      onPeerLeave: (peer) => live() && this.onPeerLeave(peer),
+      onMessage: (msg, peer) => live() && this.onMessage(msg, peer),
     };
-    this.transport = this.factory(code, handlers);
+    transport = this.factory(code, handlers);
+    this.transport = transport;
   }
 
   private freshRoom(code: string): RoomInfo {
@@ -198,6 +227,7 @@ export class RoomService {
       code,
       hostId: this.clientId,
       epoch: 0,
+      round: 0,
       players: [],
       spectators: [],
       settings: { victoryPoints: 10 },
@@ -226,11 +256,12 @@ export class RoomService {
     this.room.set(next);
     this.game.set(game);
     this.broadcast();
+    this.startTicking();
   }
 
   private onPeerJoin(peer: string): void {
     this.connectedPeers.update((s) => new Set(s).add(peer));
-    this.transport?.send({ t: 'hello', id: this.clientId, name: this.name() }, peer);
+    this.sendHello(peer);
     if (this.isHost()) this.sendRoom(peer);
   }
 
@@ -280,8 +311,15 @@ export class RoomService {
   }
 
   private onMessage(msg: NetMessage, peer: string): void {
+    if (this.mismatched.has(peer) && msg.t !== 'chat') return;
     switch (msg.t) {
       case 'hello':
+        if ((msg.proto ?? 1) !== PROTOCOL_VERSION) {
+          this.mismatched.add(peer);
+          this.showNotice(`${msg.name || 'Jemand'} nutzt eine andere Version von Neuland. Bitte alle die Seite neu laden.`);
+          if (this.isHost()) this.transport?.send({ t: 'reject', error: 'Andere Version von Neuland: bitte die Seite neu laden.' }, peer);
+          break;
+        }
         this.peerClients.set(peer, msg.id);
         if (this.isHost()) {
           this.mutateRoom((r) => this.withMember(r, this.game(), msg.id, msg.name, peer));
@@ -311,32 +349,83 @@ export class RoomService {
       case 'chat':
         this.receiveChat(msg);
         break;
+      case 'tick':
+        this.onTick(msg.rank, msg.gameId, peer);
+        break;
+      case 'sync':
+        if (this.isHost()) this.sendRoom(peer);
+        break;
+      case 'offer':
+        this.onOffer(msg.game, peer);
+        break;
     }
   }
 
   private onRoom(room: RoomInfo, game: GameState | null, peer: string): void {
+    // Nur der Host selbst verteilt seinen Stand; weitergereichte oder untergeschobene Stände zählen nicht.
+    if (this.peerClients.get(peer) !== room.hostId) return;
     const current = this.room();
-    const incoming = { room, game };
+    const order = current ? compareRoom({ room, game }, { room: current, game: this.game() }) : 1;
     if (this.isHost()) {
-      if (current && compareRoom(incoming, { room: current, game: this.game() }) <= 0) {
+      if (order <= 0) {
         // Wir haben den höheren Rang, der andere soll zurücktreten.
         this.sendRoom(peer);
         return;
       }
       this.isHost.set(false);
-    } else if (current && peer !== this.hostPeer && this.hostPeer !== null) {
-      if (compareRoom(incoming, { room: current, game: this.game() }) <= 0) return;
+      this.stopTicking();
+    } else if (order < 0) {
+      // Älterer Stand: vom eigenen Host verspätet (Nachrichten können sich überholen) oder von
+      // einem neuen Host, dem der letzte Stand fehlt. Dem bieten wir unseren an.
+      if (this.hostPeer === null && this.offerNewer(peer, game)) {
+        this.hostPeer = peer;
+        this.status.set('connected');
+      }
+      return;
+    } else if (order === 0 && peer !== this.hostPeer && this.hostPeer !== null) {
+      return;
     }
+    // Beim Beitritt: Ist der eigene Speicherstand derselben Partie neuer, bekommt ihn der Host.
+    const saved = current ? null : loadSaved(room.code)?.game;
     this.hostPeer = peer;
-    this.peerClients.set(peer, room.hostId);
     this.status.set('connected');
     this.searchSlow.set(false);
     this.room.set(room);
     this.game.set(game);
-    save(room, game);
+    if (saved && game && saved.id && saved.id === game.id && saved.version > game.version) {
+      this.transport?.send({ t: 'offer', game: saved }, peer);
+    } else {
+      save(room, game);
+    }
     // Falls der Host uns noch nicht kennt (z. B. nach einem Host-Wechsel), melden wir uns an.
     const known = [...room.players, ...room.spectators].some((p) => p.id === this.clientId && p.peerId);
-    if (!known) this.transport?.send({ t: 'hello', id: this.clientId, name: this.name() }, peer);
+    if (!known) this.sendHello(peer);
+  }
+
+  /** Lebenszeichen des Hosts: Liegen wir zurück, holen wir den vollen Stand; sind wir weiter, bieten wir ihn an. */
+  private onTick(rank: number[], gameId: string | null, peer: string): void {
+    const room = this.room();
+    if (this.isHost() || peer !== this.hostPeer || !room) return;
+    const d = compareRank(rank, roomRank({ room, game: this.game() }));
+    if (d > 0) this.transport?.send({ t: 'sync' }, peer);
+    else if (d < 0 && gameId && gameId === this.game()?.id) this.offerNewer(peer, { id: gameId, version: rank[2] });
+  }
+
+  /** Bietet dem Host den eigenen Stand an, wenn er dieselbe Partie weiter fortgeschritten zeigt. */
+  private offerNewer(peer: string, theirs: Pick<GameState, 'id' | 'version'> | null): boolean {
+    const mine = this.game();
+    if (!mine?.id || !theirs || mine.id !== theirs.id || mine.version <= theirs.version) return false;
+    this.transport?.send({ t: 'offer', game: mine }, peer);
+    return true;
+  }
+
+  /** Ein Client kennt einen neueren Stand derselben Partie (verpasster Broadcast, Speicherstand). */
+  private onOffer(game: GameState, peer: string): void {
+    const mine = this.game();
+    if (!this.isHost() || !mine?.id || !this.peerClients.has(peer)) return;
+    if (game?.id !== mine.id || !(game.version > mine.version)) return;
+    this.game.set(game);
+    this.broadcast();
   }
 
   private applyFrom(clientId: string, action: Action, peer: string | null): void {
@@ -345,7 +434,10 @@ export class RoomService {
     const seat = game.players.findIndex((p) => p.id === clientId);
     try {
       if (seat < 0) throw new RuleError('Zuschauer können nicht mitspielen.');
-      this.game.set(applyAction(game, seat, action));
+      const next = applyAction(game, seat, action);
+      // Aktionen ohne Wirkung (z. B. ein schon erledigtes Zurückziehen) erzeugen keinen neuen Stand.
+      if (next === game) return;
+      this.game.set(next);
       this.broadcast();
     } catch (e) {
       const error = e instanceof RuleError ? e.message : 'Unerwarteter Fehler.';
@@ -361,7 +453,8 @@ export class RoomService {
     const target = room?.players.find((p) => p.id === playerId);
     const seat = game?.players.findIndex((p) => p.id === playerId) ?? -1;
     if (!room || !game || !claimant || !target || seat < 0) return;
-    if (target.peerId && target.name !== claimant.name) {
+    // Nur freie Plätze: Wer verbunden ist, kann nicht von jemand anderem verdrängt werden, auch nicht mit gleichem Namen.
+    if (target.peerId) {
       this.reject(peer, `${target.name} ist noch verbunden.`);
       return;
     }
@@ -438,6 +531,27 @@ export class RoomService {
     if (room) this.transport?.send({ t: 'room', room, game: this.game() }, peer);
   }
 
+  private sendHello(peer: string): void {
+    this.transport?.send({ t: 'hello', id: this.clientId, name: this.name(), proto: PROTOCOL_VERSION }, peer);
+  }
+
+  private startTicking(): void {
+    this.stopTicking();
+    const tick = () => {
+      const room = this.room();
+      if (!this.isHost() || !this.transport || !room) return;
+      const game = this.game();
+      this.transport.send({ t: 'tick', rank: roomRank({ room, game }), gameId: game?.id ?? null });
+      this.tickTimer = setTimeout(tick, TICK_MS);
+    };
+    this.tickTimer = setTimeout(tick, TICK_MS);
+  }
+
+  private stopTicking(): void {
+    if (this.tickTimer) clearTimeout(this.tickTimer);
+    this.tickTimer = null;
+  }
+
   private toHost(msg: NetMessage): boolean {
     if (!this.transport || !this.hostPeer) return false;
     this.transport.send(msg, this.hostPeer);
@@ -451,6 +565,10 @@ export class RoomService {
   private later(ms: number, fn: () => void): void {
     this.timers.push(setTimeout(fn, ms));
   }
+}
+
+function nextRound(room: RoomInfo): RoomInfo {
+  return { ...room, round: (room.round ?? 0) + 1 };
 }
 
 function storedValue(key: string, create: () => string): string {

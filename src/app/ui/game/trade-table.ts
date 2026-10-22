@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, OnInit, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, OnInit, output, signal, untracked } from '@angular/core';
 import {
   emptyResources,
   GameState,
@@ -243,6 +243,18 @@ export class TradeTable implements OnInit {
     });
   });
 
+  private clearAfter: number | null = null;
+
+  constructor() {
+    effect(() => {
+      const version = this.game().version;
+      if (this.clearAfter !== null && version > this.clearAfter) {
+        this.clearAfter = null;
+        untracked(() => this.clear());
+      }
+    });
+  }
+
   ngOnInit(): void {
     const p = this.prefill();
     if (!p) return;
@@ -283,14 +295,9 @@ export class TradeTable implements OnInit {
 
   protected bankTrade(): void {
     if (!this.bank().ok) return;
-    // Die Engine tauscht einzeln: je Kurs-Paket eine Karte von der Bank.
-    const wanted = RESOURCES.flatMap((r) => Array<Resource>(this.want()[r]).fill(r));
-    for (const r of RESOURCES) {
-      for (let i = 0; i < this.give()[r] / this.rates()[r]; i++) {
-        this.room.act({ type: 'bankTrade', give: r, get: wanted.shift()! });
-      }
-    }
-    this.clear();
+    // Alle Kurs-Pakete in einer Aktion: ganz oder gar nicht.
+    this.room.act({ type: 'bankTradeBatch', give: this.give(), get: this.want() });
+    this.clearWhenApplied();
   }
 
   protected offer(): void {
@@ -307,12 +314,14 @@ export class TradeTable implements OnInit {
   protected deal(a: Answer): void {
     const offer = a.counter ?? this.myOffer();
     if (!offer) return;
+    // Übrige Angebote räumt die Engine mit dem Abschluss selbst ab.
     this.room.act({ type: 'confirmTrade', offerId: offer.id, partner: a.seat });
-    // Was sonst noch offen war, hat sich damit erledigt.
-    for (const o of this.game().offers) {
-      if (o.id !== offer.id && (o.from === this.seat() || o.counter)) this.room.act({ type: 'cancelTrade', offerId: o.id });
-    }
-    this.clear();
+    this.clearWhenApplied();
+  }
+
+  /** Erst leeren, wenn der Host die Aktion angenommen hat; bei einer Ablehnung bleibt die Auswahl stehen. */
+  private clearWhenApplied(): void {
+    this.clearAfter = this.game().version;
   }
 
   protected cards(c: ResourceCounts): Resource[] {
@@ -322,9 +331,7 @@ export class TradeTable implements OnInit {
 
 /** Zieht das eigene Angebot zurück; wer am Zug ist, lehnt damit auch alle Gegenangebote ab. */
 export function withdrawOffers(room: RoomService, g: GameState, seat: number): void {
-  for (const o of g.offers) {
-    if (o.from === seat || (o.counter && g.current === seat)) room.act({ type: 'cancelTrade', offerId: o.id });
-  }
+  if (g.offers.some((o) => o.from === seat || (o.counter && g.current === seat))) room.act({ type: 'withdrawOffers' });
 }
 
 function covers(have: ResourceCounts, need: ResourceCounts): boolean {

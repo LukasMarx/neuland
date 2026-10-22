@@ -886,6 +886,21 @@ describe('Handel mit der Bank', () => {
     s.bank.ore = 0;
     expectFail(s, 0, { type: 'bankTrade', give: 'wood', get: 'ore' }, /kein Erz/);
   });
+
+  it('mehrere Pakete auf einmal, ganz oder gar nicht', () => {
+    const s = toPhase(game(), 'main');
+    give(s, 0, { wood: 8 });
+    const n = act(s, 0, { type: 'bankTradeBatch', give: res({ wood: 8 }), get: res({ ore: 1, wheat: 1 }) });
+    expect(n.players[0].resources).toEqual(res({ ore: 1, wheat: 1 }));
+    expect(n.version).toBe(s.version + 1);
+    expectFail(s, 0, { type: 'bankTradeBatch', give: res({ wood: 6 }), get: res({ ore: 1 }) }, /4:1/);
+    expectFail(s, 0, { type: 'bankTradeBatch', give: res({ wood: 8 }), get: res({ ore: 1 }) }, /Kurs/);
+    expectFail(s, 0, { type: 'bankTradeBatch', give: res({ wood: 4 }), get: res({ wood: 1 }) }, /beiden Seiten/);
+    // Fehlt der Bank die zweite Karte, wird auch die erste nicht getauscht.
+    s.bank.wheat = 0;
+    expectFail(s, 0, { type: 'bankTradeBatch', give: res({ wood: 8 }), get: res({ ore: 1, wheat: 1 }) }, /kein Getreide/);
+    expect(s.players[0].resources).toEqual(res({ wood: 8 }));
+  });
 });
 
 describe('Handel unter Spielern', () => {
@@ -984,8 +999,31 @@ describe('Handel unter Spielern', () => {
     s = act(s, 0, { type: 'cancelTrade', offerId: counter.id });
     s = act(s, 0, { type: 'cancelTrade', offerId: own.id });
     expect(s.offers).toEqual([]);
-    // unbekanntes Angebot: nichts passiert
-    expect(act(s, 0, { type: 'cancelTrade', offerId: 12345 }).offers).toEqual([]);
+    // unbekanntes Angebot: nichts passiert, auch keine neue Version
+    expect(act(s, 0, { type: 'cancelTrade', offerId: 12345 })).toBe(s);
+  });
+
+  it('Alles zurückziehen mit einer Aktion', () => {
+    let s = tradeGame();
+    s = act(s, 0, { type: 'offerTrade', give: res({ wood: 2 }), want: res({ ore: 1 }) });
+    s = act(s, 1, { type: 'offerTrade', give: res({ ore: 1 }), want: res({ wood: 1 }) });
+    s = act(s, 2, { type: 'offerTrade', give: res({ sheep: 1 }), want: res({ wood: 1 }) });
+    // Ein Mitspieler zieht nur sein eigenes Gegenangebot zurück.
+    const afterOne = act(s, 2, { type: 'withdrawOffers' });
+    expect(afterOne.offers.map((o) => o.from)).toEqual([0, 1]);
+    // Wer am Zug ist, räumt alles ab.
+    const cleared = act(s, 0, { type: 'withdrawOffers' });
+    expect(cleared.offers).toEqual([]);
+    expect(act(cleared, 0, { type: 'withdrawOffers' })).toBe(cleared);
+  });
+
+  it('ein Abschluss lässt alle übrigen Angebote verfallen', () => {
+    let s = tradeGame();
+    s = act(s, 0, { type: 'offerTrade', give: res({ wood: 2 }), want: res({ ore: 1 }) });
+    s = act(s, 2, { type: 'offerTrade', give: res({ sheep: 1 }), want: res({ wood: 1 }) });
+    s = act(s, 1, { type: 'respondTrade', offerId: s.offers[0].id, accept: true });
+    s = act(s, 0, { type: 'confirmTrade', offerId: s.offers[0].id, partner: 1 });
+    expect(s.offers).toEqual([]);
   });
 });
 

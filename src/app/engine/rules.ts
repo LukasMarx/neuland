@@ -105,13 +105,14 @@ export function applyAction(prev: GameState, seat: number, action: Action): Game
   if (!Object.hasOwn(HANDLERS, action?.type)) fail('Unbekannte Aktion.');
   const s = structuredClone(prev);
   s.transfers = [];
-  HANDLERS[action.type](s, seat, action as never);
+  // Ein Handler meldet `false`, wenn die Aktion nichts geändert hat: dann keine neue Version.
+  if (HANDLERS[action.type](s, seat, action as never) === false) return prev;
   s.version = prev.version + 1;
   checkWinner(s);
   return s;
 }
 
-type Handler<T extends Action['type']> = (s: GameState, seat: number, action: Extract<Action, { type: T }>) => void;
+type Handler<T extends Action['type']> = (s: GameState, seat: number, action: Extract<Action, { type: T }>) => void | boolean;
 
 const HANDLERS: { [T in Action['type']]: Handler<T> } = {
   placeSettlement(s, seat, { vertex }) {
@@ -326,6 +327,22 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     log(s, seat, `${name(s, seat)} spielt Monopol auf ${RESOURCE_NAMES[resource]} und bekommt ${total} Karten.`);
   },
 
+  bankTradeBatch(s, seat, { give, get }) {
+    requireTurn(s, seat, 'main');
+    validateCounts(give);
+    validateCounts(get);
+    if (RESOURCES.some((r) => give[r] > 0 && get[r] > 0)) fail('Derselbe Rohstoff kann nicht auf beiden Seiten stehen.');
+    // Jedes Kurs-Paket bringt eine Karte; erst prüfen, dann einzeln tauschen (bei einem Fehler bleibt nichts halb).
+    const lots = RESOURCES.flatMap((r) => {
+      const rate = tradeRate(s, seat, r);
+      if (give[r] % rate) fail(`${RESOURCE_NAMES[r]} tauschst du ${rate}:1.`);
+      return Array<Resource>(give[r] / rate).fill(r);
+    });
+    const wanted = RESOURCES.flatMap((r) => Array<Resource>(get[r]).fill(r));
+    if (!lots.length || lots.length !== wanted.length) fail('Das passt nicht zum Kurs der Bank.');
+    lots.forEach((r, i) => HANDLERS.bankTrade(s, seat, { type: 'bankTrade', give: r, get: wanted[i] }));
+  },
+
   bankTrade(s, seat, { give, get }) {
     requireTurn(s, seat, 'main');
     if (!RESOURCES.includes(give) || !RESOURCES.includes(get) || give === get) fail('Ungültiger Tausch.');
@@ -387,16 +404,25 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     const toSeat = offer.counter ? seat : partner;
     transferAll(s, seatPoint(offer.from), seatPoint(toSeat), offer.give);
     transferAll(s, seatPoint(toSeat), seatPoint(offer.from), offer.want);
-    s.offers = s.offers.filter((o) => o.id !== offerId);
+    // Nach einem Tausch haben sich die Hände geändert: alle übrigen Angebote verfallen.
+    s.offers = [];
     const other = offer.counter ? seat : partner;
     log(s, seat, `${name(s, offer.from)} und ${name(s, other)} handeln: ${formatResources(offer.give)} gegen ${formatResources(offer.want)}.`);
   },
 
   cancelTrade(s, seat, { offerId }) {
     const offer = s.offers.find((o) => o.id === offerId);
-    if (!offer) return;
+    if (!offer) return false;
     if (offer.from !== seat && !(offer.counter && seat === s.current)) fail('Das ist nicht dein Angebot.');
     s.offers = s.offers.filter((o) => o.id !== offerId);
+    return true;
+  },
+
+  withdrawOffers(s, seat) {
+    const keep = s.offers.filter((o) => o.from !== seat && !(o.counter && seat === s.current));
+    if (keep.length === s.offers.length) return false;
+    s.offers = keep;
+    return true;
   },
 
   endTurn(s, seat) {

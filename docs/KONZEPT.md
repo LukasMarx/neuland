@@ -81,8 +81,11 @@ Der Spielstand ist klein (wenige KB). Deshalb schickt der Host nach jeder Aktion
 
 | Nachricht | Richtung | Inhalt |
 |---|---|---|
-| `hello` | Client → alle | Spieler-ID, Name |
-| `room` | Host → alle | Spielerliste, Farben, Einstellungen, Host und Epoche, dazu der vollständige Spielstand mit Version |
+| `hello` | Client → alle | Spieler-ID, Name, Protokollversion |
+| `room` | Host → alle | Spielerliste, Farben, Einstellungen, Host, Epoche und Runde, dazu der vollständige Spielstand mit Partie-ID und Version |
+| `tick` | Host → alle | Lebenszeichen alle 3 Sekunden mit dem Rang des Hosts (Runde, Version, Epoche) |
+| `sync` | Client → Host | „Schick mir den vollen Stand“, wenn das Lebenszeichen zeigt, dass man zurückliegt |
+| `offer` | Client → Host | Neuerer Stand derselben Partie, z. B. aus dem eigenen Speicher oder weil dem neuen Host der letzte Broadcast fehlte |
 | `profile` | Client → Host | Name und Farbe ändern |
 | `action` | Client → Host | Spielaktion |
 | `reject` | Host → Client | Aktion ungültig, mit Grund |
@@ -90,19 +93,35 @@ Der Spielstand ist klein (wenige KB). Deshalb schickt der Host nach jeder Aktion
 
 ### Identität und Wiedereinstieg
 
+Peers mit anderer Protokollversion (`PROTOCOL_VERSION` in `protocol.ts`) spielen nicht zusammen; beide bekommen den Hinweis, die Seite neu zu laden. Die Version wird erhöht, sobald sich Spielstand oder Nachrichten ändern.
+
 Jeder Browser erzeugt beim ersten Besuch eine zufällige Spieler-ID und speichert sie zusammen mit dem Namen im `localStorage`. Die Plätze im Spiel hängen an dieser ID, nicht an der WebRTC-Verbindung. Wer neu lädt, meldet sich mit `hello` und derselben ID und bekommt seinen Platz zurück.
 
 ### Host-Wechsel
 
 Alle Clients haben immer den aktuellen Spielstand. Verlässt der Host den Raum, ernennt sich der verbundene Spieler mit dem kleinsten Sitzplatz zum neuen Host und schickt `room` mit einer um eins erhöhten Epoche. Der Spielstand selbst enthält auch den Zustand des Zufallsgenerators und den Stapel der Entwicklungskarten, deshalb läuft das Spiel ohne Bruch weiter.
 
-Treffen zwei Hosts aufeinander (z. B. weil zwei Leute gleichzeitig einen leeren Raum geöffnet haben), gewinnt das laufende Spiel, dann die höhere Spielstand-Version (ein veralteter Stand darf nie gewinnen), dann die höhere Epoche, dann die größere Spielerzahl, dann die kleinere Spieler-ID.
+Treffen zwei Hosts aufeinander (z. B. weil zwei Leute gleichzeitig einen leeren Raum geöffnet haben), entscheidet der Rang (`roomRank` in `protocol.ts`): zuerst die Runde, dann das laufende Spiel, dann die höhere Spielstand-Version (ein veralteter Stand darf nie gewinnen), dann die höhere Epoche, dann die größere Spielerzahl, dann die kleinere Spieler-ID.
+
+Die Runde zählt jeden Spielstart und jede Rückkehr in die Lobby. So kann ein Stand aus einer früheren Partie, etwa von einem Laptop, der im Ruhezustand war, nie ein laufendes neues Spiel überschreiben, egal wie viele Züge er hatte. Jede Partie hat außerdem eine eigene ID; Versionen werden nur innerhalb derselben Partie verglichen, wenn es ums Nachreichen geht.
+
+Regeln, die den Stand bei allen gleich halten:
+
+- Einen `room` nimmt man nur vom Host selbst an (Absender gleich `hostId`), nie weitergereicht.
+- Ein Client springt nie auf einen älteren Stand zurück. Nachrichten können sich überholen: Trystero schickt Nachrichten über 16 KB in Stücken, kleinere direkt. Ab 5–6 Spielern ist der Stand so groß.
+- Verpasste Stände holt das Lebenszeichen nach: Liegt ein Client zurück, fragt er mit `sync` nach.
+- Kennt ein Client einen neueren Stand derselben Partie als der Host (Speicherstand vom Vorabend, verpasster letzter Broadcast vor einem Host-Wechsel), bietet er ihn mit `offer` an, und der Host übernimmt ihn.
+- Aktionen ohne Wirkung (z. B. ein schon erledigtes Zurückziehen) erzeugen keine neue Version.
+- Dieselbe Aktion kurz hintereinander (Doppelklick) wird nur einmal geschickt.
+- Einen Platz übernehmen kann man nur, wenn der Spieler nicht verbunden ist, auch bei gleichem Namen.
+
+Noch offen (Phase 2 der Prüfung vom 21.10.2026): Bestätigung und erneutes Senden von Aktionen, Host nur mit Mehrheit der verbundenen Spieler (sonst können eine abgetrennte Minderheit oder ein einseitiger Verbindungsabbruch zu zwei Hosts führen), Verbindungsanzeige im Spiel und Überspringen oder Übernehmen von Spielern, die nicht zurückkommen.
 
 Wird ein Tab normal geschlossen, meldet er sich ab und der Wechsel geschieht sofort. Bricht die Verbindung hart ab, erkennt WebRTC das nach etwa 15 Sekunden.
 
 ### Spielstand sichern
 
-Jeder Browser speichert den letzten Stand unter dem Raumcode im `localStorage`. Haben alle den Tab geschlossen, öffnet man einfach wieder den Link. Findet sich nach 12 Sekunden kein Host, macht der Browser automatisch mit dem gespeicherten Stand weiter (oder man klickt vorher auf „Gespeichertes Spiel fortsetzen“).
+Jeder Browser speichert den letzten Stand unter dem Raumcode im `localStorage`. Haben alle den Tab geschlossen, öffnet man einfach wieder den Link. Findet sich nach 12 Sekunden kein Host, macht der Browser automatisch mit dem gespeicherten Stand weiter (oder man klickt vorher auf „Gespeichertes Spiel fortsetzen“). Beendete Spiele werden nicht automatisch fortgesetzt. Hat jemand, der später dazukommt, einen neueren Stand derselben Partie gespeichert, gewinnt dieser (siehe `offer`).
 
 ### Verdeckte Informationen
 

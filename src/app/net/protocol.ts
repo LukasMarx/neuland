@@ -8,19 +8,35 @@ export interface LobbyPlayer {
   peerId: string | null;
 }
 
+/**
+ * Version des Protokolls. Peers mit anderer Version spielen nicht zusammen, weil sich
+ * Spielstand oder Nachrichten unterscheiden können; sie bekommen einen Hinweis zum Neuladen.
+ */
+export const PROTOCOL_VERSION = 2;
+
 export interface RoomInfo {
   code: string;
   hostId: string;
   /** Wird bei jedem Host-Wechsel erhöht. */
   epoch: number;
+  /**
+   * Wird bei jedem Start und jeder Rückkehr in die Lobby erhöht. So verliert ein Stand
+   * aus einer früheren Runde immer gegen die laufende, egal wie weit er fortgeschritten war.
+   */
+  round?: number;
   players: LobbyPlayer[];
   spectators: LobbyPlayer[];
   settings: GameSettings;
 }
 
 export type NetMessage =
-  | { t: 'hello'; id: string; name: string }
+  | { t: 'hello'; id: string; name: string; proto?: number }
   | { t: 'room'; room: RoomInfo; game: GameState | null }
+  /** Lebenszeichen des Hosts mit seinem Rang; wer zurückliegt, fragt per `sync` nach. */
+  | { t: 'tick'; rank: number[]; gameId: string | null }
+  | { t: 'sync' }
+  /** Ein Client kennt einen neueren Stand derselben Partie und bietet ihn dem Host an. */
+  | { t: 'offer'; game: GameState }
   | { t: 'profile'; name: string; color: string }
   | { t: 'claim'; playerId: string }
   | { t: 'action'; action: Action }
@@ -39,17 +55,30 @@ export const PLAYER_COLORS = [
 export const MAX_PLAYERS = 6;
 
 /**
+ * Rang eines Raumzustands: Runde (eine neuere Runde schlägt jeden Stand einer älteren),
+ * laufendes Spiel, Spielstand-Version (ein veralteter Stand darf nie gewinnen), Epoche, Spielerzahl.
+ */
+export function roomRank(x: { room: RoomInfo; game: GameState | null }): number[] {
+  return [x.room.round ?? 0, x.game ? 1 : 0, x.game?.version ?? 0, x.room.epoch, x.room.players.length];
+}
+
+export function compareRank(a: number[], b: number[]): number {
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const d = (a[i] ?? 0) - (b[i] ?? 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
+/**
  * Totale Ordnung über konkurrierende Raumzustände. Treffen zwei Hosts aufeinander,
- * gewinnt der höhere Rang: laufendes Spiel, dann Spielstand-Version (ein veralteter
- * Spielstand darf nie gewinnen), dann Epoche, dann Spielerzahl, dann die kleinere Host-ID.
+ * gewinnt der höhere Rang (siehe `roomRank`), bei Gleichstand die kleinere Host-ID.
  */
 export function compareRoom(
   a: { room: RoomInfo; game: GameState | null },
   b: { room: RoomInfo; game: GameState | null },
 ): number {
-  const keys = (x: typeof a) => [x.game ? 1 : 0, x.game?.version ?? 0, x.room.epoch, x.room.players.length];
-  const ka = keys(a);
-  const kb = keys(b);
-  for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] - kb[i];
+  const d = compareRank(roomRank(a), roomRank(b));
+  if (d) return d;
   return a.room.hostId === b.room.hostId ? 0 : a.room.hostId < b.room.hostId ? 1 : -1;
 }
