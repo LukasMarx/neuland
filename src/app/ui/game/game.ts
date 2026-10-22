@@ -3,6 +3,9 @@ import {
   actingSeats,
   canSpendFish,
   COSTS,
+  deckSize,
+  devCount,
+  handSize,
   DEV_CARD_NAMES,
   DevCard,
   emptyResources,
@@ -266,7 +269,7 @@ export class GameView {
         COSTS.city,
         piecesLeft(g, seat, 'city') <= 0 ? 'Keine Städte mehr' : 'Keine Siedlung zum Ausbauen',
       ),
-      devCard: option(can && afford(COSTS.devCard) && g.devDeck.length > 0, COSTS.devCard, 'Stapel ist leer'),
+      devCard: option(can && afford(COSTS.devCard) && deckSize(g) > 0, COSTS.devCard, 'Stapel ist leer'),
       ship: option(
         can && !!g.ships && afford(COSTS.ship) && piecesLeft(g, seat, 'ship') > 0 && legalShipEdges(g, seat).length > 0,
         COSTS.ship,
@@ -456,8 +459,8 @@ export class GameView {
       name: p.name,
       color: p.color,
       vp: victoryPoints(g, seat, seat === this.seat() || g.phase.kind === 'ended'),
-      cards: totalResources(p.resources),
-      dev: p.devCards.length + p.newDevCards.length,
+      cards: handSize(p),
+      dev: devCount(p),
       knights: p.knights,
       road: g.roadLengths[seat],
       longestRoad: g.longestRoad === seat,
@@ -536,15 +539,15 @@ export class GameView {
       harborMaster: g.harborMaster === i.seat,
       harborPoints: harborPoints(g, i.seat),
       fishing: !!g.fish,
-      fishCount: g.fish?.[i.seat].length ?? 0,
+      fishCount: p.hidden?.fish ?? g.fish?.[i.seat].length ?? 0,
       coins: g.coins?.[i.seat] ?? null,
       coinPoints: coinPoints(g, i.seat),
       anchor: g.anchor === i.seat,
       target: victoryTarget(g, i.seat),
       vpCards: showHidden ? devCards.filter((c) => c === 'victoryPoint').length : null,
-      hiddenDev: devCards.length,
+      hiddenDev: devCount(p),
       total: victoryPoints(g, i.seat, showHidden),
-      cards: totalResources(p.resources),
+      cards: handSize(p),
     };
   });
 
@@ -560,7 +563,7 @@ export class GameView {
   });
   protected readonly fishVictims = computed(() => {
     const g = this.g();
-    return g.players.flatMap((p, i) => (i !== this.seat() && totalResources(p.resources) > 0 ? [i] : []));
+    return g.players.flatMap((p, i) => (i !== this.seat() && handSize(p) > 0 ? [i] : []));
   });
   protected readonly anchorTargets = computed(() => {
     const g = this.g();
@@ -975,6 +978,14 @@ export class GameView {
   protected total(r: ResourceCounts): number {
     return totalResources(r);
   }
+
+  /** Handkarten eines Mitspielers; fremde Hände kennen wir nur als Anzahl. */
+  protected cards(seat: number): number {
+    const p = this.g().players[seat];
+    return p ? handSize(p) : 0;
+  }
+
+  protected readonly deckSize = deckSize;
 
   /** Rohstoffsymbole für die Baukosten, eins pro benötigter Karte. */
   protected costArt(cost: ResourceCounts): { src: string; name: string }[] {

@@ -689,6 +689,8 @@ Nachteile: Handkarten bleiben sichtbar. Der Host selbst kann weiterhin alles seh
 
 ### Maßnahme B: Schwärzen pro Empfänger
 
+> **Umgesetzt am 22.10.2026** (`src/app/engine/secrets.ts`, `room.service.ts`). Der Host hält den vollen Stand und schickt jedem Spieler mit `viewFor` seine Sicht: fremde Rohstoffe, Entwicklungskarten und Fischwerte nur als Anzahl (`PlayerState.hidden`), der Entwicklungsstapel nur als Größe (`hiddenDeck`), der Fischstapel gar nicht, bei Räuber-Transfers die Karte nur für Geber und Nehmer; am Spielende sieht jeder alles. Der Host speichert den vollen Stand, alle anderen ihre Sicht. Neu im Stand: Anfangsvorrat je Rohstoff (`supply`) und die ausgespielten Entwicklungskarten (`playedDev`). Hat ein neuer Host nur eine Sicht (Host-Wechsel, Fortsetzen aus dem Speicher, neuerer Stand per `offer`), fragt er mit `secretRequest` die eigenen Karten aller ab und wartet bis zu 1,5 s; solange ruhen Senden und Züge, die Züge werden danach angewendet. `rebuild` übernimmt eine gemeldete Hand nur, wenn die Anzahlen stimmen und die Karten noch zu haben sind (Vorrang: Meldungen zum aktuellen Stand). Wer fehlt, bekommt aus dem Rest passend neu ausgeteilt, das steht im Verlauf. Tests: Sicht, Wiederaufbau, Erhaltung aller Karten (auch in den Chaos-Läufen), kein fremdes Blatt im Netz.
+
 Der Host hält den vollen Stand, schickt aber jedem eine eigene Sicht: `viewFor(state, seat)` ersetzt fremde Handkarten durch Anzahlen, fremde Einflusskarten durch Rückseiten, geheime Gebote durch „hat geboten“. Jedes Modul liefert seinen Teil über den Hook `redact`.
 
 Folgen:
@@ -731,7 +733,7 @@ Ein kleiner Relay-Dienst (z. B. Durable Objects) hält die Geheimnisse. Löst al
 | 4 | **Seewege I** | Erste Überfahrt, Inselquartett, 3–4 Spieler: Schiffe, Kaperschiff, Goldgrund, Inselbonus, Route mit Schiffen | L | Beliebteste Erweiterung, nutzt das Fundament voll. |
 | 5 | **Seewege II** | Im Dunst (Nebel), Freie Karte, 5–6-Karten | M | Nebel mit Maßnahme A ohne Netzwerkumbau. |
 | 6 | **Fernhandel I** | Fischgründe, Flussläufe, Duell für zwei | M + M + M | Nutzt Sonderfelder und Kantenarten aus 3–5. Duell lohnt sich für kleine Teams. |
-| 7 | **Verdeckte Infos** | Maßnahme B mit Wiederaufbau beim Host-Wechsel | M–L | Pflicht vor Stadtwacht. |
+| 7 | **Verdeckte Infos** | Maßnahme B mit Wiederaufbau beim Host-Wechsel (umgesetzt) | M–L | Pflicht vor Stadtwacht. |
 | 8 | **Stadtwacht** | komplett inkl. 5–6 | XL | Größter Spielwert nach Seewege, aber auch größter Brocken. In Teilschritte zerlegen (Güter + Ausbau → Flotte + Wächter → Einflusskarten). |
 | 9 | **Fernhandel II** | Kamelzüge, Küstenüberfall, Warenzüge | M–L je | Nischig, nach Bedarf. |
 | 10 | **Ferne Küsten** | Land voraus, dann Aufträge | XL | Eigenes System, profitiert von allem davor. |

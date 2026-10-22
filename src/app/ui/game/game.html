@@ -119,7 +119,7 @@
         </span>
       }
       <span class="bstack" data-bank="dev" title="Entwicklungskarten im Stapel">
-        <img class="deck" [src]="cardArt.back" alt="" /> <b>{{ game.devDeck.length }}</b>
+        <img class="deck" [src]="cardArt.back" alt="" /> <b>{{ deckSize(game) }}</b>
       </span>
     </div>
 
@@ -488,7 +488,7 @@
           @for (v of $any(dialog()).victims; track v) {
             <button (click)="chooseVictim(v)">
               <span class="color-dot" [style.background]="game.players[v].color"></span>
-              {{ game.players[v].name }} <span class="muted">({{ total(game.players[v].resources) }} Karten)</span>
+              {{ game.players[v].name }} <span class="muted">({{ cards(v) }} Karten)</span>
             </button>
           }
         </div>
@@ -564,7 +564,7 @@
               @for (v of fishVictims(); track v) {
                 <button (click)="fishSteal(v)">
                   <span class="color-dot" [style.background]="game.players[v].color"></span>
-                  {{ game.players[v].name }} <span class="muted">({{ total(game.players[v].resources) }} Karten)</span>
+                  {{ game.players[v].name }} <span class="muted">({{ cards(v) }} Karten)</span>
                 </button>
               }
             </div>

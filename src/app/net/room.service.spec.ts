@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actingSeats, ResourceCounts } from '../engine';
+import { actingSeats, handSize, isConsistent, ResourceCounts, totalResources } from '../engine';
 import { AWAY_MS } from './room.service';
 import { bySeat, Clock, hostOf, Net, play, resetNet, seeded, setup, Sim } from './testing/fake-net';
 
@@ -412,5 +412,81 @@ describe('Mehrspieler: Chaos', () => {
     play(live, 30, random);
     clock.advance(5000);
     expect(versions(live).size).toBe(1);
+    // Auch nach allen Host-Wechseln geht der volle Stand auf: keine Karte entstanden oder verloren.
+    expect(isConsistent(hosts(live)[0].game)).toBe(true);
+  });
+});
+
+describe('Mehrspieler: verdeckte Karten', () => {
+  /** Eigene Karten eines Tabs, aus seiner Sicht. */
+  const hand = (s: Sim) => s.game.players[s.seat];
+
+  it('niemand bekommt fremde Karten oder den Stapelinhalt zu sehen, nur Anzahlen', () => {
+    const { sims, net } = start(['H', 'A', 'B']);
+    const leaks: string[] = [];
+    net.tamper = (_from, to, msg) => {
+      if (msg.t === 'room' && msg.game && msg.game.phase.kind !== 'ended') {
+        const seat = msg.game.players.findIndex((p) => p.name === to);
+        msg.game.players.forEach((p, i) => {
+          if (i !== seat && (totalResources(p.resources) > 0 || p.devCards.length || p.newDevCards.length)) leaks.push(`${to} sieht ${p.name}`);
+        });
+        if (msg.game.devDeck.length) leaks.push(`${to} sieht den Stapel`);
+      }
+      return 0;
+    };
+    play(sims, 120, seeded(4));
+    net.tamper = null;
+    expect(leaks).toEqual([]);
+    const [H, A] = sims;
+    // Der Host hat den vollen Stand, die anderen ihre Sicht mit den richtigen Anzahlen.
+    expect(H.game.view).toBeUndefined();
+    expect(A.game.view).toBe(A.seat);
+    for (const [i, p] of H.game.players.entries()) expect(handSize(A.game.players[i])).toBe(totalResources(p.resources));
+    expect(hand(A).resources).toEqual(H.game.players[A.seat].resources);
+  });
+
+  it('nach einem Host-Wechsel hat jeder verbundene Spieler wieder genau seine Karten', () => {
+    const { sims, clock } = start(['H', 'A', 'B', 'C']);
+    const [H, A, B, C] = sims;
+    play(sims, 150, seeded(8));
+    const before = new Map([A, B, C].map((s) => [s.name, structuredClone(hand(s))]));
+    const gone = structuredClone(H.game.players[H.seat]);
+    H.close();
+    clock.advance(4000);
+    const [N] = hosts([A, B, C]);
+    expect(N).toBeDefined();
+    expect(N.game.view).toBeUndefined();
+    for (const s of [A, B, C]) {
+      const p = N.game.players[s.seat];
+      expect(p.resources).toEqual(before.get(s.name)!.resources);
+      expect([...p.devCards, ...p.newDevCards].sort()).toEqual([...before.get(s.name)!.devCards, ...before.get(s.name)!.newDevCards].sort());
+    }
+    // Der gegangene Host bekommt eine passende Hand, das steht im Verlauf.
+    const dealt = N.game.players[N.game.players.findIndex((p) => p.id === gone.id)];
+    expect(totalResources(dealt.resources)).toBe(totalResources(gone.resources));
+    expect(N.game.log.at(-1)!.text).toMatch(/neu ausgeteilt/);
+    expect(isConsistent(N.game)).toBe(true);
+    // Und es geht weiter.
+    play([A, B, C], 60, seeded(9));
+    expect(versions([A, B, C]).size).toBe(1);
+    expect(isConsistent(hosts([A, B, C])[0].game)).toBe(true);
+  });
+
+  it('Züge während des Wiederaufbaus gehen nicht verloren', () => {
+    const { sims, clock } = start(['H', 'A', 'B']);
+    const [H, A, B] = sims;
+    playUntilMain(sims, seeded(5));
+    H.close();
+    // Gleich nach dem Ausfall ziehen, während der neue Host noch Karten sammelt.
+    clock.advance(1200);
+    const mover = [A, B].find((s) => s.game.current === s.seat && s.game.phase.kind === 'roll');
+    if (mover) {
+      const v = mover.v!;
+      mover.svc.act({ type: 'roll' });
+      clock.advance(6000);
+      expect(mover.v).toBeGreaterThan(v);
+      expect(mover.svc.pending()).toBe(0);
+    }
+    expect(versions([A, B]).size).toBe(1);
   });
 });

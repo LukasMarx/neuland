@@ -1,4 +1,4 @@
-import { Action, GameSettings, GameState } from '../engine';
+import { Action, GameSettings, GameState, Secret } from '../engine';
 
 export interface LobbyPlayer {
   id: string;
@@ -14,7 +14,7 @@ export interface LobbyPlayer {
  * Version des Protokolls. Peers mit anderer Version spielen nicht zusammen, weil sich
  * Spielstand oder Nachrichten unterscheiden können; sie bekommen einen Hinweis zum Neuladen.
  */
-export const PROTOCOL_VERSION = 10;
+export const PROTOCOL_VERSION = 11;
 
 export interface RoomInfo {
   code: string;
@@ -49,6 +49,9 @@ export type NetMessage =
   | { t: 'follow'; hostId: string | null; rank: number[] }
   /** Für einen nicht verbundenen Spieler einen automatischen Zug machen. */
   | { t: 'standIn'; seat: number }
+  /** Neuer Host mit nur einer Sicht bittet um die eigenen Karten jedes Spielers (siehe engine/secrets.ts). */
+  | { t: 'secretRequest'; gameId: string }
+  | { t: 'secret'; gameId: string; version: number; secret: Secret }
   | { t: 'chat'; id: string; name: string; text: string };
 
 export const PLAYER_COLORS = [

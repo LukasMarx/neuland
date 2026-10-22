@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, InjectionToken, isDevMode, signal } from '@angular/core';
 import * as engine from '../engine';
-import { Action, applyAction, autoAction, createGame, GameSettings, GameState, mapById, RuleError, VARIANTS } from '../engine';
+import { Action, applyAction, autoAction, createGame, GameSettings, GameState, isView, mapById, rebuild, RuleError, Secret, secretOf, VARIANTS, viewFor } from '../engine';
 import { LocalTransport } from './local-transport';
 import {
   compareRank,
@@ -79,6 +79,8 @@ export const AWAY_MS = 20000;
 const DUPLICATE_MS = 1500;
 /** Beim Host ändert sich der Stand sofort; ein Doppelklick ist dann nur noch an der Zeit zu erkennen. */
 const DOUBLE_CLICK_MS = 400;
+/** So lange wartet ein neuer Host mit nur einer Sicht auf die Karten der Mitspieler. */
+const REBUILD_MS = 1500;
 const NO_QUORUM = 'Gerade ist nur ein Teil der Spieler verbunden. Weiter geht es, sobald die Mehrheit wieder da ist.';
 
 const params = new URLSearchParams(globalThis.location?.search ?? '');
@@ -156,6 +158,11 @@ export class RoomService {
   private readonly session = this.env.randomId();
   private seq = 0;
   private outbox: Outgoing[] = [];
+  /**
+   * Neuer Host, der nur seine Sicht hat: Er sammelt kurz die eigenen Karten der Mitspieler (mit dem Stand,
+   * zu dem sie gehören) und baut daraus den vollen Stand. Solange ruhen Senden und Aktionen.
+   */
+  private rebuilding: { base: GameState; secrets: Map<number, { secret: Secret; version: number }>; queue: (() => void)[] } | null = null;
 
   constructor() {
     // Zum Debuggen in der Browser-Konsole, nur im Entwicklungsmodus.
@@ -215,6 +222,7 @@ export class RoomService {
     this.follows.clear();
     this.lastHeard.clear();
     this.lastAction = null;
+    this.rebuilding = null;
     this.clearOutbox();
     this.isHost.set(false);
     this.status.set('idle');
@@ -392,7 +400,8 @@ export class RoomService {
     this.room.set(next);
     this.game.set(game);
     this.updateHostStatus();
-    this.broadcast();
+    if (game && isView(game)) this.startRebuild(game, new Map());
+    else this.broadcast();
     this.startTicking();
     // Eigene Züge, die beim alten Host nicht mehr angekommen sind, wendet der neue Host jetzt selbst an.
     const unsent = this.outbox;
@@ -402,6 +411,7 @@ export class RoomService {
 
   /** Als Host zurücktreten, weil über einen Mitspieler ein Host mit höherem Rang zu sehen ist. */
   private stepDown(): void {
+    this.rebuilding = null;
     this.isHost.set(false);
     this.stopTicking();
     this.hostLost();
@@ -581,6 +591,12 @@ export class RoomService {
         if (this.isHost() && id) this.applyStandIn(id, msg.seat, peer);
         break;
       }
+      case 'secretRequest':
+        this.onSecretRequest(msg.gameId, peer);
+        break;
+      case 'secret':
+        this.onSecret(msg.gameId, msg.version, msg.secret, peer);
+        break;
     }
   }
 
@@ -596,6 +612,7 @@ export class RoomService {
         return;
       }
       this.isHost.set(false);
+      this.rebuilding = null;
       this.stopTicking();
     } else if (order < 0) {
       // Älterer Stand: vom eigenen Host verspätet (Nachrichten können sich überholen) oder von
@@ -697,11 +714,87 @@ export class RoomService {
     const mine = this.game();
     if (!this.isHost() || !mine?.id || !this.peerClients.has(peer)) return;
     if (game?.id !== mine.id || !(game.version > mine.version)) return;
+    if (isView(game)) {
+      // Neuer, aber nur eine Sicht: neu aufbauen. Die eigenen (älteren) Kenntnisse helfen, wo sie noch passen.
+      const known = new Map<number, { secret: Secret; version: number }>();
+      mine.players.forEach((_, seat) => {
+        const secret = secretOf(mine, seat);
+        if (secret) known.set(seat, { secret, version: mine.version });
+      });
+      this.game.set(game);
+      this.startRebuild(game, known);
+      return;
+    }
     this.game.set(game);
     this.broadcast();
   }
 
+  /** Neuer Host mit nur einer Sicht: Geheimnisse anfragen, kurz warten, dann den vollen Stand bauen. */
+  private startRebuild(base: GameState, known: Map<number, { secret: Secret; version: number }>): void {
+    const seat = base.players.findIndex((p) => p.id === this.clientId);
+    const own = seat >= 0 ? secretOf(base, seat) : null;
+    if (own) known.set(seat, { secret: own, version: base.version });
+    this.rebuilding = { base, secrets: known, queue: [] };
+    this.transport?.send({ t: 'secretRequest', gameId: base.id ?? '' });
+    if (this.everyoneReported()) this.finishRebuild();
+    else this.later(REBUILD_MS, () => this.finishRebuild());
+  }
+
+  /** Haben alle verbundenen Spieler ihre Karten zum aktuellen Stand gemeldet? */
+  private everyoneReported(): boolean {
+    const r = this.rebuilding;
+    if (!r) return true;
+    return r.base.players.every(
+      (p, seat) =>
+        p.neutral || !p.hidden || r.secrets.get(seat)?.version === r.base.version || !this.isConnectedId(p.id, PRESENCE_MS),
+    );
+  }
+
+  private onSecretRequest(gameId: string, peer: string): void {
+    const game = this.game();
+    const seat = this.mySeat();
+    if (!game || game.id !== gameId || seat < 0) return;
+    const secret = secretOf(game, seat);
+    if (secret) this.transport?.send({ t: 'secret', gameId, version: game.version, secret }, peer);
+  }
+
+  private onSecret(gameId: string, version: number, secret: Secret, peer: string): void {
+    const r = this.rebuilding;
+    const id = this.peerClients.get(peer);
+    if (!r || !id || gameId !== r.base.id) return;
+    const seat = r.base.players.findIndex((p) => p.id === id);
+    if (seat < 0) return;
+    const had = r.secrets.get(seat);
+    if (!had || version >= had.version) r.secrets.set(seat, { secret, version });
+    if (this.everyoneReported()) this.finishRebuild();
+  }
+
+  /**
+   * Baut den vollen Stand: zuerst nur mit Karten zum aktuellen Stand; ältere Meldungen zählen nur, wenn
+   * danach alles aufgeht. Wer fehlt, bekommt passend neu ausgeteilt, das steht im Verlauf.
+   */
+  private finishRebuild(): void {
+    const r = this.rebuilding;
+    if (!r || !this.isHost()) return;
+    this.rebuilding = null;
+    // Vorrang: Karten zum aktuellen Stand, dann ältere; rebuild nimmt nur, was noch zu haben ist.
+    const ordered = [...r.secrets].sort(([, a], [, b]) => Number(b.version === r.base.version) - Number(a.version === r.base.version));
+    const { state, dealt } = rebuild(r.base, new Map(ordered.map(([seat, s]) => [seat, s.secret])), { rng: this.env.entropy() });
+    if (dealt.length) {
+      const names = dealt.map((seat) => state.players[seat].name).join(', ');
+      // Ohne neue Version: Die Anzahlen bleiben gleich, der Hinweis geht mit dem nächsten Zug an alle.
+      state.log = [...state.log, { seat: null, text: `Neuer Gastgeber: Die Karten von ${names} waren nicht zu erfahren und wurden passend neu ausgeteilt.` }];
+    }
+    this.game.set(state);
+    this.broadcast();
+    for (const run of r.queue) run();
+  }
+
   private applyFrom(clientId: string, action: Action, peer: string | null, env?: { s: string; n: number }): void {
+    if (this.rebuilding) {
+      this.rebuilding.queue.push(() => this.applyFrom(clientId, action, peer, env));
+      return;
+    }
     const game = this.game();
     if (!game) return;
     // Schon angewendet (erneut gesendet, z. B. nach einem Host-Wechsel): nur bestätigen.
@@ -733,6 +826,10 @@ export class RoomService {
 
   /** Automatischer Zug für einen Sitz, dessen Spieler seit AWAY_MS nicht verbunden ist. */
   private applyStandIn(requesterId: string, seat: number, peer: string | null): void {
+    if (this.rebuilding) {
+      this.rebuilding.queue.push(() => this.applyStandIn(requesterId, seat, peer));
+      return;
+    }
     const game = this.game();
     const target = game?.players[seat];
     const entry = this.room()?.players.find((p) => p.id === target?.id);
@@ -836,16 +933,20 @@ export class RoomService {
     this.broadcast();
   }
 
+  /** Jeder bekommt seine eigene Sicht: fremde Karten nur als Anzahl. Gespeichert wird der volle Stand. */
   private broadcast(): void {
     const room = this.room();
-    if (!room || !this.isHost()) return;
-    this.transport?.send({ t: 'room', room, game: this.game() });
+    if (!room || !this.isHost() || this.rebuilding) return;
+    for (const peer of this.connectedPeers()) this.sendRoom(peer);
     save(this.env.storage, room, this.game());
   }
 
   private sendRoom(peer: string): void {
     const room = this.room();
-    if (room) this.transport?.send({ t: 'room', room, game: this.game() }, peer);
+    if (!room || this.rebuilding) return;
+    const game = this.game();
+    const seat = game ? game.players.findIndex((p) => p.id === this.peerClients.get(peer)) : -1;
+    this.transport?.send({ t: 'room', room, game: game && viewFor(game, seat) }, peer);
   }
 
   private sendHello(peer: string): void {

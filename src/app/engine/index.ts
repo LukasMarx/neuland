@@ -4,3 +4,4 @@ export * from './maps';
 export * from './rules';
 export * from './auto';
 export * from './variants';
+export * from './secrets';

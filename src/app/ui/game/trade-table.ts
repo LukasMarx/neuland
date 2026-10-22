@@ -231,13 +231,14 @@ export class TradeTable implements OnInit {
       const counter = g.offers.find((o) => o.counter && o.from === seat);
       const base = { seat, name: p.name, color: p.color };
       if (counter) {
-        const canDeal = covers(this.hand(), counter.want) && covers(p.resources, counter.give);
+        // Fremde Hände sind verdeckt: Ob der andere liefern kann, prüft erst der Host.
+        const canDeal = covers(this.hand(), counter.want) && (!!p.hidden || covers(p.resources, counter.give));
         return [{ ...base, state: 'counter', counter, canDeal }];
       }
       // Ohne eigenes Angebot zeigt der Tisch nur Angebote, die andere von sich aus geschickt haben.
       if (!offer) return [];
       if (offer.accepted.includes(seat)) {
-        return [{ ...base, state: 'accepted', canDeal: covers(this.hand(), offer.give) && covers(p.resources, offer.want) }];
+        return [{ ...base, state: 'accepted', canDeal: covers(this.hand(), offer.give) && (!!p.hidden || covers(p.resources, offer.want)) }];
       }
       return [{ ...base, state: offer.declined.includes(seat) ? 'declined' : 'pending', canDeal: false }];
     });

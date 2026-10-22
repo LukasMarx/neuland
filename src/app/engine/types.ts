@@ -70,6 +70,17 @@ export interface PlayerState {
   knights: number;
   /** Duell: neutraler Mitspieler, der nie am Zug ist; seine Teile setzen die echten Spieler. */
   neutral?: boolean;
+  /**
+   * Nur in der Sicht eines anderen Spielers (siehe secrets.ts): Handkarten, Entwicklungskarten und Fische
+   * sind dann leer, bekannt ist nur, wie viele es sind.
+   */
+  hidden?: HiddenCounts;
+}
+
+export interface HiddenCounts {
+  cards: number;
+  dev: number;
+  fish: number;
 }
 
 export interface TradeOffer {
@@ -136,6 +147,17 @@ export interface LogEntry {
 export interface GameState {
   /** Kennung dieser Partie. Stände verschiedener Partien werden nie über die Version verglichen. */
   id?: string;
+  /**
+   * Gesetzt, wenn dies nur die Sicht eines Spielers ist (Sitz, -1 für Zuschauer): fremde Karten und der
+   * Inhalt des Entwicklungsstapels fehlen. Den vollen Stand hat nur der Host.
+   */
+  view?: number;
+  /** In einer Sicht: Größe des Entwicklungsstapels, dessen Inhalt fehlt. */
+  hiddenDeck?: number;
+  /** Anfangsvorrat je Rohstoff; damit lassen sich verdeckte Hände wieder aufbauen. */
+  supply?: number;
+  /** Ausgespielte Entwicklungskarten, offen für alle. */
+  playedDev?: DevCard[];
   version: number;
   /**
    * Letzte angewendete Aktion je Client (Sitzung und Laufnummer). Wandert beim Host-Wechsel mit,
@@ -277,6 +299,21 @@ export function emptyResources(): ResourceCounts {
 
 export function totalResources(r: ResourceCounts): number {
   return RESOURCES.reduce((sum, k) => sum + r[k], 0);
+}
+
+/** Handkarten eines Spielers, auch wenn sie in dieser Sicht verdeckt sind (siehe secrets.ts). */
+export function handSize(p: PlayerState): number {
+  return p.hidden?.cards ?? totalResources(p.resources);
+}
+
+/** Entwicklungskarten eines Spielers auf der Hand, auch verdeckt. */
+export function devCount(p: PlayerState): number {
+  return p.hidden?.dev ?? p.devCards.length + p.newDevCards.length;
+}
+
+/** Größe des Entwicklungsstapels, auch in einer Sicht. */
+export function deckSize(s: Pick<GameState, 'hiddenDeck' | 'devDeck'>): number {
+  return s.hiddenDeck ?? s.devDeck.length;
 }
 
 export function hasResources(have: ResourceCounts, need: ResourceCounts): boolean {

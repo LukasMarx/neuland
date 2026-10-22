@@ -7,12 +7,14 @@ import {
   COSTS,
   DEV_CARD_NAMES,
   DevCard,
+  deckSize,
   emptyResources,
   FISH_COSTS,
   FishEffect,
   formatResources,
   GameSettings,
   GameState,
+  handSize,
   hasResources,
   PIECE_LIMITS,
   PlayerState,
@@ -33,7 +35,7 @@ function fail(message: string): never {
   throw new RuleError(message);
 }
 
-const DEV_DECK: Record<'base' | 'ext', Record<DevCard, number>> = {
+export const DEV_DECK: Record<'base' | 'ext', Record<DevCard, number>> = {
   base: { knight: 14, roadBuilding: 2, yearOfPlenty: 2, monopoly: 2, victoryPoint: 5 },
   ext: { knight: 20, roadBuilding: 3, yearOfPlenty: 3, monopoly: 3, victoryPoint: 5 },
 };
@@ -66,6 +68,8 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
 
   const state: GameState = {
     version: 0,
+    supply: bankSize,
+    playedDev: [],
     rng: rng.rng,
     settings,
     board,
@@ -856,13 +860,13 @@ export function robberVictims(s: GameState, seat: number, hex: number): number[]
   if (s.board.hexes[hex].terrain === 'sea') {
     for (const e of topo.hexes[hex].edges) {
       const owner = s.ships?.[e];
-      if (owner != null && owner !== seat && totalResources(s.players[owner].resources) > 0) victims.add(owner);
+      if (owner != null && owner !== seat && handSize(s.players[owner]) > 0) victims.add(owner);
     }
     return [...victims];
   }
   for (const v of topo.hexes[hex].corners) {
     const b = s.buildings[v];
-    if (b && b.owner !== seat && totalResources(s.players[b.owner].resources) > 0) victims.add(b.owner);
+    if (b && b.owner !== seat && handSize(s.players[b.owner]) > 0) victims.add(b.owner);
   }
   return [...victims];
 }
@@ -1065,7 +1069,7 @@ export function canSpendTokens(s: GameState, seat: number, effect: TokenEffect):
     const desert = s.board.hexes.findIndex((h) => h.terrain === 'desert');
     return desert >= 0 && s.robber !== desert;
   }
-  return totalResources(s.players[seat].resources) >= 2 && totalResources(s.players[opponentOf(s, seat)].resources) >= 2;
+  return totalResources(s.players[seat].resources) >= 2 && handSize(s.players[opponentOf(s, seat)]) >= 2;
 }
 
 /** Duell: Handelsmarken für eine Siedlung an der Küste und an der Wüste. */
@@ -1195,13 +1199,13 @@ export function canSpendFish(s: GameState, seat: number, effect: FishEffect): bo
     case 'robber':
       return s.robber >= 0;
     case 'steal':
-      return s.players.some((p, i) => i !== seat && totalResources(p.resources) > 0);
+      return s.players.some((p, i) => i !== seat && handSize(p) > 0);
     case 'bank':
       return RESOURCES.some((r) => s.bank[r] > 0);
     case 'road':
       return canLayFreePiece(s, seat);
     case 'devCard':
-      return s.devDeck.length > 0;
+      return deckSize(s) > 0;
   }
 }
 
@@ -1344,6 +1348,7 @@ function playDevCard(s: GameState, seat: number, card: DevCard): ReturnPhase {
   if (index < 0) fail(`Du hast keine spielbare Karte „${DEV_CARD_NAMES[card]}“.`);
   cards.splice(index, 1);
   s.devPlayed = true;
+  s.playedDev = [...(s.playedDev ?? []), card];
   if (card !== 'knight') log(s, seat, `${name(s, seat)} spielt ${DEV_CARD_NAMES[card]}.`);
   else log(s, seat, `${name(s, seat)} spielt einen Ritter.`);
   return phase;
