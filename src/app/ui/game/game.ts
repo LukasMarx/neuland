@@ -13,6 +13,8 @@ import {
   legalSetupRoads,
   harborPoints,
   legalRobberHexes,
+  legalShipEdges,
+  movableShips,
   legalSetupVertices,
   mapById,
   VARIANTS,
@@ -41,7 +43,7 @@ import { FlyLayer } from './fly-layer';
 import { hasOfferView, offerFor, OfferPanel } from './offer-panel';
 import { TradeTable, withdrawOffers } from './trade-table';
 
-type BuildMode = 'road' | 'settlement' | 'city';
+type BuildMode = 'road' | 'settlement' | 'city' | 'ship' | 'moveShip';
 type Dialog = { kind: 'yearOfPlenty' } | { kind: 'monopoly' } | { kind: 'victim'; hex: number; victims: number[] };
 type PrimaryAction = { label: string; run: (() => void) | null };
 
@@ -122,6 +124,9 @@ export class GameView {
   protected readonly isCurrent = computed(() => this.g().current === this.seat());
 
   protected readonly buildMode = signal<BuildMode | null>(null);
+  /** Schiff versetzen: das gewählte Schiff, danach kommt das Ziel. */
+  protected readonly moveFrom = signal<number | null>(null);
+  protected readonly goldPick = signal<ResourceCounts>(emptyResources());
   protected readonly dialog = signal<Dialog | null>(null);
   protected readonly tradeOpen = signal(false);
   /** Vorbefüllung des Tauschtischs, z. B. das gespiegelte Angebot für ein Gegenangebot. */
@@ -198,7 +203,47 @@ export class GameView {
         piecesLeft(g, seat, 'city') <= 0 ? 'Keine Städte mehr' : 'Keine Siedlung zum Ausbauen',
       ),
       devCard: option(can && afford(COSTS.devCard) && g.devDeck.length > 0, COSTS.devCard, 'Stapel ist leer'),
+      ship: option(
+        can && !!g.ships && afford(COSTS.ship) && piecesLeft(g, seat, 'ship') > 0 && legalShipEdges(g, seat).length > 0,
+        COSTS.ship,
+        piecesLeft(g, seat, 'ship') <= 0 ? 'Keine Schiffe mehr' : 'Kein Platz an deinen Küsten und Schiffen',
+      ),
+      moveShip: {
+        enabled: g.phase.kind === 'main' && g.current === seat && movableShips(g, seat).length > 0,
+        reason: g.shipMoved ? 'Schon ein Schiff versetzt' : 'Kein Schiff am offenen Ende einer Linie',
+      },
     };
+  });
+
+  protected readonly buildHint = computed(() => {
+    switch (this.buildMode()) {
+      case 'road':
+        return 'Wähle eine Kante für die Straße';
+      case 'settlement':
+        return 'Wähle eine Ecke für die Siedlung';
+      case 'city':
+        return 'Wähle eine Siedlung für die Stadt';
+      case 'ship':
+        return 'Wähle eine Kante am Meer für das Schiff';
+      case 'moveShip':
+        return this.moveFrom() === null ? 'Wähle das Schiff, das du versetzt' : 'Wähle, wohin das Schiff fährt';
+      default:
+        return '';
+    }
+  });
+
+  /** Seewege: Gibt es auf diesem Brett Schiffe? */
+  protected readonly seafaring = computed(() => !!this.g().ships);
+
+  protected readonly goldDue = computed(() => {
+    const phase = this.g().phase;
+    return phase.kind === 'gold' ? phase.pending[this.seat()] ?? 0 : 0;
+  });
+
+  /** Vorschau an Kanten: Schiff beim Schiffsbau und Versetzen, sonst Straße. */
+  protected readonly edgeGhost = computed(() => {
+    const mode = this.buildMode();
+    return mode === 'ship' || mode === 'moveShip' ? 'ship' : 'road';
   });
 
   protected readonly canTrade = computed(() => this.g().phase.kind === 'main' && this.seat() >= 0);
@@ -215,10 +260,18 @@ export class GameView {
     if (phase.kind === 'robber' && !this.dialog()) {
       return { ...none, hexes: legalRobberHexes(g) };
     }
-    if (phase.kind === 'roadBuilding') return { ...none, edges: legalRoadEdges(g, seat) };
+    if (phase.kind === 'roadBuilding') return { ...none, edges: [...legalRoadEdges(g, seat), ...legalShipEdges(g, seat)] };
     switch (this.buildMode()) {
       case 'road':
         return { ...none, edges: legalRoadEdges(g, seat) };
+      case 'ship':
+        return { ...none, edges: legalShipEdges(g, seat) };
+      case 'moveShip': {
+        const from = this.moveFrom();
+        if (from === null) return { ...none, edges: movableShips(g, seat) };
+        const without = { ...g, ships: g.ships!.map((o, e) => (e === from ? null : o)) };
+        return { ...none, edges: legalShipEdges(without, seat).filter((e) => e !== from) };
+      }
       case 'settlement':
         return { ...none, vertices: legalSettlementVertices(g, seat) };
       case 'city':
@@ -252,7 +305,17 @@ export class GameView {
         const waiting = phase.pending.flatMap((n, i) => (n > 0 ? [name(i)] : []));
         return mine ? `Räuber! Wirf ${phase.pending[this.seat()]} Karten ab` : `Räuber! Warte auf ${waiting.join(', ')}`;
       }
+      case 'gold': {
+        const waiting = phase.pending.flatMap((n, i) => (n > 0 ? [name(i)] : []));
+        const due = phase.pending[this.seat()];
+        return mine ? `Gold! Wähle ${due} Rohstoff${due > 1 ? 'e' : ''}` : `Gold: Warte auf ${waiting.join(', ')}`;
+      }
       case 'robber':
+        if (g.pirate !== undefined) {
+          return this.isCurrent()
+            ? 'Versetze Räuber (Land) oder Kaperschiff (Meer): Klicke auf ein Feld'
+            : `${name(g.current)} versetzt Räuber oder Kaperschiff`;
+        }
         return this.isCurrent() ? 'Versetze den Räuber: Klicke auf ein Feld' : `${name(g.current)} versetzt den Räuber`;
       case 'main':
         return this.isCurrent() ? 'Handeln und bauen' : `${name(g.current)} ist am Zug`;
@@ -375,6 +438,7 @@ export class GameView {
       road: g.roadLengths[i.seat],
       largestArmy: g.largestArmy === i.seat,
       knights: p.knights,
+      islandBonus: g.islandBonus?.[i.seat] ?? null,
       harborVariant: g.harborMaster !== undefined,
       harborMaster: g.harborMaster === i.seat,
       harborPoints: harborPoints(g, i.seat),
@@ -436,6 +500,11 @@ export class GameView {
     effect(() => {
       this.discardDue();
       untracked(() => this.discardPick.set(emptyResources()));
+    });
+
+    effect(() => {
+      this.goldDue();
+      untracked(() => this.goldPick.set(emptyResources()));
     });
 
     let wasMyTurn = false;
@@ -543,6 +612,12 @@ export class GameView {
         tag: from === null ? `+2 Punkte · ${g.roadLengths[g.longestRoad]} Straßen` : `übernimmt von ${g.players[from].name}`,
       });
     }
+    for (const [seat, bonus] of (g.islandBonus ?? []).entries()) {
+      const before = prev.islandBonus?.[seat] ?? 0;
+      if (bonus > before) {
+        this.pushBanner({ kind: 'island', title: 'Neue Insel', ...who(seat), tag: `+${bonus - before} Punkte` });
+      }
+    }
     if (g.harborMaster != null && g.harborMaster !== prev.harborMaster) {
       const from = prev.harborMaster;
       this.pushBanner({
@@ -610,6 +685,7 @@ export class GameView {
   }
 
   protected toggleBuild(mode: BuildMode): void {
+    this.moveFrom.set(null);
     this.buildMode.update((m) => (m === mode ? null : mode));
   }
 
@@ -628,9 +704,28 @@ export class GameView {
 
   protected onEdge(edge: number): void {
     const g = this.g();
-    if (g.phase.kind === 'setup') this.room.act({ type: 'placeRoad', edge });
-    else this.room.act({ type: 'buildRoad', edge });
+    const mode = this.buildMode();
+    if (mode === 'moveShip') {
+      const from = this.moveFrom();
+      if (from === null) {
+        // Erst das Schiff wählen, dann das Ziel.
+        this.moveFrom.set(edge);
+        return;
+      }
+      this.room.act({ type: 'moveShip', from, to: edge });
+    } else if (g.phase.kind === 'setup') {
+      this.room.act({ type: 'placeRoad', edge });
+    } else if (mode === 'ship' || (g.phase.kind === 'roadBuilding' && !legalRoadEdges(g, this.seat()).includes(edge))) {
+      this.room.act({ type: 'buildShip', edge });
+    } else {
+      this.room.act({ type: 'buildRoad', edge });
+    }
+    this.moveFrom.set(null);
     this.buildMode.set(null);
+  }
+
+  protected chooseGold(): void {
+    this.room.act({ type: 'chooseGold', resources: this.goldPick() });
   }
 
   protected onHex(hex: number): void {
@@ -730,6 +825,7 @@ export class GameView {
         break;
       case 'escape':
         this.buildMode.set(null);
+        this.moveFrom.set(null);
         if (this.showTable()) this.closeTrade();
         if (this.dialog()?.kind !== 'victim') this.dialog.set(null);
         break;
@@ -738,6 +834,9 @@ export class GameView {
         break;
       case 'r':
         if (options.road.enabled) this.toggleBuild('road');
+        break;
+      case 'b':
+        if (options.ship.enabled) this.toggleBuild('ship');
         break;
       case 'c':
         if (options.city.enabled) this.toggleBuild('city');

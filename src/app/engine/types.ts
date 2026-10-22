@@ -1,7 +1,8 @@
 export type Resource = 'wood' | 'brick' | 'sheep' | 'wheat' | 'ore';
 export const RESOURCES: readonly Resource[] = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
 
-export type Terrain = Resource | 'desert';
+/** `sea` und `gold` gibt es nur auf Seewege-Karten. Gold liefert einen Rohstoff nach Wahl. */
+export type Terrain = Resource | 'desert' | 'sea' | 'gold';
 export type ResourceCounts = Record<Resource, number>;
 export type DevCard = 'knight' | 'roadBuilding' | 'yearOfPlenty' | 'monopoly' | 'victoryPoint';
 export type HarborType = Resource | 'any';
@@ -70,6 +71,8 @@ export type Phase =
   | { kind: 'roadBuilding'; remaining: number; returnTo: ReturnPhase }
   /** Sonderbauphase (5–6 Spieler): queue[0] ist gerade dran. */
   | { kind: 'specialBuild'; queue: number[] }
+  /** Goldfeld hat geliefert (Seewege): pending[seat] = Rohstoffe, die dieser Spieler noch wählt. */
+  | { kind: 'gold'; pending: number[] }
   | { kind: 'ended' };
 
 /** Wo eine Karte herkommt oder hingeht, für die Flug-Animation. */
@@ -136,8 +139,17 @@ export interface GameState {
   winner: number | null;
   /** Hafenvogt (Variante): Sitz mit der Sonderkarte, sonst null. */
   harborMaster?: number | null;
-  /** Würfelstapel (Variante): verbleibende Karten je Summe. Kein Reihenfolge, gezogen wird erst beim Würfeln. */
+  /** Würfelstapel (Variante): verbleibende Karten je Summe. Keine Reihenfolge, gezogen wird erst beim Würfeln. */
   diceDeck?: Record<number, number>;
+  /** Seewege: Schiffe je Kante (Besitzer), parallel zu `roads`. */
+  ships?: (number | null)[];
+  /** Seewege: Feld des Kaperschiffs (ein Meerfeld). */
+  pirate?: number | null;
+  /** Seewege: in diesem Zug gebaute Schiffe (dürfen nicht versetzt werden) und ob schon versetzt wurde. */
+  shipsBuilt?: number[];
+  shipMoved?: boolean;
+  /** Seewege: Siegpunkte aus dem Inselbonus je Sitz. */
+  islandBonus?: number[];
 }
 
 export type Action =
@@ -163,7 +175,11 @@ export type Action =
   | { type: 'cancelTrade'; offerId: number }
   /** Eigene Angebote zurückziehen; wer am Zug ist, lehnt damit auch alle Gegenangebote ab. */
   | { type: 'withdrawOffers' }
-  | { type: 'endTurn' };
+  | { type: 'endTurn' }
+  /** Seewege */
+  | { type: 'buildShip'; edge: number }
+  | { type: 'moveShip'; from: number; to: number }
+  | { type: 'chooseGold'; resources: ResourceCounts };
 
 export const RESOURCE_NAMES: Record<Resource, string> = {
   wood: 'Holz',
@@ -186,9 +202,10 @@ export const COSTS = {
   settlement: { wood: 1, brick: 1, sheep: 1, wheat: 1, ore: 0 },
   city: { wood: 0, brick: 0, sheep: 0, wheat: 2, ore: 3 },
   devCard: { wood: 0, brick: 0, sheep: 1, wheat: 1, ore: 1 },
+  ship: { wood: 1, brick: 0, sheep: 1, wheat: 0, ore: 0 },
 } satisfies Record<string, ResourceCounts>;
 
-export const PIECE_LIMITS = { road: 15, settlement: 5, city: 4 };
+export const PIECE_LIMITS = { road: 15, settlement: 5, city: 4, ship: 15 };
 
 export function emptyResources(): ResourceCounts {
   return { wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 };

@@ -120,6 +120,15 @@ Referenz (nur zur Orientierung): Varianten aus der Schachtel, die hier als Fernh
 
 Referenz (nur zur Orientierung): „Die Seefahrer“.
 
+> **Umgesetzt am 22.10.2026 (Seewege I):** Szenarien „Erste Überfahrt“ und „Inselquartett“ für 3–4 Spieler (`src/app/engine/maps.ts`).
+> - **Meer und Häfen:** Meerfelder haben eigene Ecken und Kanten, Häfen liegen an allen Inselküsten.
+> - **Schiffe und Kaperschiff:** Schiffe werden gebaut und versetzt, sie gehen auch über die Straßenbau-Karte. Wer am Ende einer Schiffslinie siedelt, ist angeschlossen. Das Kaperschiff wird statt des Räubers über ein Meerfeld versetzt.
+> - **Gold und Inselbonus:** Goldfelder mit Rohstoffwahl (Phase `gold`), Inselbonus 2 Punkte.
+> - **Route:** Längste Route aus Straßen und Schiffen, Wechsel nur an eigenen Gebäuden.
+> - **Vereinfachung:** Gold in der Aufstellung liefert automatisch den Rohstoff, von dem die Bank am meisten hat.
+> - **Grafiken:** Schiff, Kaperschiff und Goldfeld sind SVG-Platzhalter, der Auftrag für den Bild-Agenten liegt in `output/designs/seewege-2026-10-22/grafik-auftrag.md`.
+> - **Noch offen:** Nebel („Im Dunst“), freie Karte, 5–6-Spieler-Karten, weitere Szenarien.
+
 #### Regeln in Kürze
 
 - **Meer auf dem Brett:** Die Karte besteht aus Land- und Meerfeldern. Es gibt eine Hauptinsel und mehrere kleine Inseln. Karten sind je Szenario vorgegeben, teils mit zufälliger Belegung.

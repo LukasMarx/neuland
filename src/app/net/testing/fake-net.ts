@@ -1,6 +1,6 @@
 import { Injector, runInInjectionContext } from '@angular/core';
 import { Action, actingSeats, applyAction, emptyResources, GameState, legalCityVertices, legalRoadEdges } from '../../engine';
-import { legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, RESOURCES, robberVictims } from '../../engine';
+import { autoAction, legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, legalShipEdges, movableShips, RESOURCES, robberVictims } from '../../engine';
 import { NetMessage } from '../protocol';
 import { NET_ENV, NetEnv, RoomService } from '../room.service';
 import { TransportHandlers } from '../transport';
@@ -181,6 +181,8 @@ let pages = 0;
 export class Sim {
   readonly pageId = `p${++pages}`;
   readonly svc: RoomService;
+  /** Hintergrund-Tab: Der Browser lässt Timer höchstens einmal pro Minute laufen. */
+  throttled = false;
 
   constructor(
     readonly name: string,
@@ -194,7 +196,7 @@ export class Sim {
       identity: storage,
       factory: (code, handlers) => net.transport(this, code, handlers),
       now: () => clock.now,
-      setTimeout: (fn, ms) => clock.schedule(fn, ms),
+      setTimeout: (fn, ms) => clock.schedule(fn, this.throttled ? Math.max(ms, 60000) : ms),
       clearTimeout: (handle) => clock.cancel(handle),
       randomId: () => `${this.pageId}-${++ids}-${Math.random().toString(36).slice(2, 8)}`,
       entropy: () => Math.floor(Math.random() * 2 ** 32) | 0,
@@ -295,7 +297,8 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
       return { seat, action: { type: 'moveRobber', hex, victim: robberVictims(g, seat, hex)[0] ?? null } };
     }
     case 'roadBuilding':
-      return { seat, action: { type: 'buildRoad', edge: pick(legalRoadEdges(g, seat)) } };
+    case 'gold':
+      return { seat, action: autoAction(g, seat, random)! };
     case 'specialBuild':
       return { seat, action: { type: 'endTurn' } };
     case 'main': {
@@ -304,6 +307,11 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
         ...legalSettlementVertices(g, seat).map((vertex): Action => ({ type: 'buildSettlement', vertex })),
         ...legalRoadEdges(g, seat).map((edge): Action => ({ type: 'buildRoad', edge })),
         { type: 'buyDevCard' },
+        ...legalShipEdges(g, seat).map((edge): Action => ({ type: 'buildShip', edge })),
+        ...movableShips(g, seat).flatMap((from): Action[] => {
+          const to = legalShipEdges({ ...g, ships: g.ships!.map((o, e) => (e === from ? null : o)) }, seat).filter((e) => e !== from);
+          return to.length ? [{ type: 'moveShip', from, to: pick(to) }] : [];
+        }),
       ];
       const options = candidates.filter(legal);
       return { seat, action: options.length && random() < 0.8 ? pick(options) : { type: 'endTurn' } };

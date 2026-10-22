@@ -28,6 +28,7 @@ describe('Karten im Spiel', () => {
       }
       expect(s.turn).toBeGreaterThan(40);
       expect(s.roads.filter((r) => r !== null).length).toBeGreaterThan(map.players[1] * 2);
+      if (map.seafaring) expect(s.ships!.filter((r) => r !== null).length).toBeGreaterThan(0);
     });
   }
 });

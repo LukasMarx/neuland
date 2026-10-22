@@ -59,7 +59,7 @@ function checkTopology(t: Topology): void {
     for (const n of v.neighbors) expect(t.vertices[n].neighbors).toContain(v.id);
   }
   // Jede Küstenkante gehört zu genau einer geschlossenen Schleife.
-  const coast = t.edges.filter((e) => e.hexes.length === 1).map((e) => e.id);
+  const coast = t.edges.filter((e) => e.hexes.filter((h) => !t.hexes[h].sea).length === 1).map((e) => e.id);
   const looped = t.coastLoops.flatMap((l) => l.edges);
   expect([...looped].sort((a, b) => a - b)).toEqual(coast);
   for (const loop of t.coastLoops) {
@@ -118,7 +118,7 @@ describe('Topologie', () => {
 });
 
 describe('Brettgenerierung', () => {
-  const expected: Record<number, { terrains: Record<Terrain, number>; numbers: Record<number, number>; harbors: Record<string, number> }> = {
+  const expected: Record<number, { terrains: Partial<Record<Terrain, number>>; numbers: Record<number, number>; harbors: Record<string, number> }> = {
     4: {
       terrains: { wood: 4, sheep: 4, wheat: 4, brick: 3, ore: 3, desert: 1 },
       numbers: { 2: 1, 3: 2, 4: 2, 5: 2, 6: 2, 8: 2, 9: 2, 10: 2, 11: 2, 12: 1 },
@@ -157,19 +157,22 @@ describe('Brettgenerierung', () => {
           const { board, robber, bank } = generateBoard(map.id, players, { rng: seed * 104729 + players });
           const t = getTopology(board);
           checkTopology(t);
-          expect(isConnected(t)).toBe(true);
+          // Ohne Schiffe muss alles über Land erreichbar sein; Seewege-Karten bestehen aus Inseln.
+          expect(isConnected(t)).toBe(!map.seafaring);
+          if (map.seafaring) expect(Math.max(...t.islands)).toBeGreaterThan(0);
           expect(board.hexes).toHaveLength(t.hexes.length);
           expect(board.hexes[robber].terrain).toBe('desert');
-          expect(bank).toBe(bankSize(t.hexes.length));
+          for (const [i, h] of board.hexes.entries()) expect(h.terrain === 'sea').toBe(t.hexes[i].sea);
+          expect(bank).toBe(bankSize(t.hexes.filter((h) => !h.sea).length));
           for (const h of t.hexes) {
             const hex = board.hexes[h.id];
-            expect(hex.number === null).toBe(hex.terrain === 'desert');
+            expect(hex.number === null).toBe(hex.terrain === 'desert' || hex.terrain === 'sea');
             if (red(hex.number)) for (const n of h.neighbors) expect(red(board.hexes[n].number)).toBe(false);
           }
           // Häfen an der Küste, nie an derselben oder einer benachbarten Ecke.
           const corners = board.harbors.flatMap((h) => [t.edges[h.edge].a, t.edges[h.edge].b]);
           expect(new Set(corners).size).toBe(corners.length);
-          for (const h of board.harbors) expect(t.edges[h.edge].hexes).toHaveLength(1);
+          for (const h of board.harbors) expect(t.edges[h.edge].hexes.filter((x) => !t.hexes[x].sea)).toHaveLength(1);
           if (!map.evenHarbors) {
             for (const v of corners) {
               for (const w of t.vertices[v].neighbors) expect(corners.filter((c) => c === w).length).toBeLessThanOrEqual(1);

@@ -7,6 +7,8 @@ export const TERRAIN_ICONS: Record<Terrain, string> = {
   wheat: '🌾',
   ore: '⛰️',
   desert: '🌵',
+  sea: '🌊',
+  gold: '✨',
 };
 
 export const TERRAIN_COLORS: Record<Terrain, string> = {
@@ -16,6 +18,8 @@ export const TERRAIN_COLORS: Record<Terrain, string> = {
   wheat: '#e6c24a',
   ore: '#8e98a3',
   desert: '#e2d3a2',
+  sea: '#2c6d8f',
+  gold: '#e0b33c',
 };
 
 export const RESOURCE_ICONS: Record<Resource, string> = {

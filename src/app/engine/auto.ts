@@ -1,4 +1,4 @@
-import { actingSeats, applyAction, legalRobberHexes, legalRoadEdges, legalSetupRoads, legalSetupVertices, robberVictims } from './rules';
+import { actingSeats, applyAction, legalRobberHexes, legalRoadEdges, legalSetupRoads, legalSetupVertices, legalShipEdges, robberVictims } from './rules';
 import { Action, emptyResources, GameState, RESOURCES } from './types';
 
 /**
@@ -21,6 +21,17 @@ export function autoAction(s: GameState, seat: number, random: () => number = Ma
     }
     case 'roll':
       return { type: 'roll' };
+    case 'gold': {
+      // Gold: von dem, was die Bank am meisten hat.
+      const bank = { ...s.bank };
+      const out = emptyResources();
+      for (let i = 0; i < phase.pending[seat]; i++) {
+        const r = [...RESOURCES].sort((a, b) => bank[b] - bank[a])[0];
+        bank[r]--;
+        out[r]++;
+      }
+      return { type: 'chooseGold', resources: out };
+    }
     case 'discard': {
       // Von den größten Stapeln abwerfen, damit möglichst viele Sorten übrig bleiben.
       const left = { ...s.players[seat].resources };
@@ -41,7 +52,9 @@ export function autoAction(s: GameState, seat: number, random: () => number = Ma
     }
     case 'roadBuilding': {
       const edge = pick(legalRoadEdges(s, seat));
-      return edge === undefined ? null : { type: 'buildRoad', edge };
+      if (edge !== undefined) return { type: 'buildRoad', edge };
+      const ship = pick(legalShipEdges(s, seat));
+      return ship === undefined ? null : { type: 'buildShip', edge: ship };
     }
     case 'main':
     case 'specialBuild':

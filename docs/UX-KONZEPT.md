@@ -82,6 +82,15 @@ Umgesetzt nach Entwurf **02b · Nachtbühne, ruhig** (`output/designs/ui-2026-10
 
 In der Lobby schaltet der Gastgeber kleine Varianten zu: milder Räuber, Hafenvogt, Würfelstapel. Jede hat einen Satz Erklärung direkt am Schalter. Der Hafenvogt erhöht das Siegziel um 1, das passiert beim Umschalten automatisch. Im Spiel stehen die Varianten im Spielkopf. Der Hafenvogt erscheint wie die längste Handelsstraße in der Spielerkarte, in der Punkte-Übersicht und als Banner. Neben den Würfeln zeigt der Würfelstapel, wie viele Karten bis zum Mischen bleiben. Mit dem milden Räuber leuchten im Räubermodus nur die erlaubten Felder.
 
+## Seewege
+
+- **Brett:** Meerfelder liegen im Wasser, nur ein zarter Umriss zeigt das Raster. Schiffe liegen quer auf ihrer Kante wie Straßen, das Kaperschiff steht dunkel und größer auf seinem Meerfeld.
+- **Bauleiste:** zwei zusätzliche Knöpfe, „Schiff“ (Taste B) und „Versetzen“. Versetzen geht in zwei Klicks: erst das Schiff am offenen Ende einer Linie wählen (nur diese leuchten), dann das Ziel. Der Hinweis über dem Brett sagt, welcher Schritt dran ist.
+- **Bei einer 7 oder einem Ritter** leuchten Landfelder für den Räuber und Meerfelder für das Kaperschiff zugleich. Ein Klick entscheidet, ohne Extra-Dialog.
+- **Gold:** Wie beim Abwerfen erscheint ein Fenster mit dem Rohstoff-Wähler, „Gold! Wähle 2 Rohstoffe“.
+- **Neue Insel:** Ein Banner meldet den Inselbonus; die Punkte-Übersicht hat eine Zeile „Inselbonus“.
+- **Lobby:** Die Vorschaubilder zeigen Meer blau und Goldfelder gelb.
+
 ## Handel
 
 Prototyp: `output/designs/handel-2026-10-21/index.html`. Gehandelt wird im Dock, nicht in einem Dialog: Das Brett bleibt sichtbar.

@@ -14,6 +14,9 @@ export type MapId = string;
  * | `h l w g e` | Vorliebe für Holz, Lehm, Wolle, Getreide, Erz |
  * | `x` | Wüstenplatz |
  * | `H L W G E X` | festes Gelände |
+ * | `$` | Goldfeld (Seewege) |
+ *
+ * Auf Seewege-Karten ist `~` ein echtes Meerfeld mit eigenen Ecken und Kanten.
  */
 export interface MapDef {
   id: MapId;
@@ -33,6 +36,13 @@ export interface MapDef {
   sea?: 'frame' | 'rect';
   /** Klassisch: Häfen an festen, gleichmäßig verteilten Küstenkanten wie bisher. */
   evenHarbors?: boolean;
+  /** Seewege-Szenario: Meerfelder, Schiffe, Kaperschiff, Gold, Inselbonus. */
+  seafaring?: {
+    /** Siegpunkte für die erste eigene Siedlung auf einer Insel, auf der man noch nichts hat. */
+    islandBonus: number;
+    /** Wo die Startsiedlungen stehen dürfen: nur auf der größten Insel oder überall. */
+    setup: 'largest' | 'any';
+  };
 }
 
 const rowsMask = (rows: number[]) => {
@@ -138,6 +148,47 @@ export const MAPS: MapDef[] = [
     ],
   },
   {
+    id: 'erste-ueberfahrt',
+    name: 'Erste Überfahrt',
+    description: 'Seewege: eine Hauptinsel und drei kleine Inseln mit Gold. Wer als Erster drüben siedelt, bekommt 2 Punkte.',
+    tags: ['Seewege', 'Schiffe', 'Gold'],
+    players: [3, 4],
+    victoryPoints: 13,
+    seafaring: { islandBonus: 2, setup: 'largest' },
+    mask: [
+      '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+      ' ~ . . . ~ ~ . . ~ ~',
+      '~ . . . . ~ ~ $ ~ ~ ~',
+      ' . . x . . ~ ~ ~ ~ ~',
+      '~ . . . . ~ ~ ~ ~ . ~',
+      ' ~ . . . ~ ~ ~ ~ $ .',
+      '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+      ' ~ ~ ~ ~ ~ ~ . . ~ ~',
+      '~ ~ ~ ~ ~ ~ ~ $ ~ ~ ~',
+      ' ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+    ],
+  },
+  {
+    id: 'inselquartett',
+    name: 'Inselquartett',
+    description: 'Seewege: vier gleich große Inseln. Start überall, jede neue Insel bringt 2 Punkte.',
+    tags: ['Seewege', 'Schiffe', 'Gold'],
+    players: [3, 4],
+    victoryPoints: 12,
+    seafaring: { islandBonus: 2, setup: 'any' },
+    mask: [
+      '~ ~ ~ ~ ~ ~ ~ ~ ~',
+      ' ~ . . ~ ~ . . ~',
+      '~ . . . ~ . . $ ~',
+      ' ~ . . ~ ~ . . ~',
+      '~ ~ ~ ~ ~ ~ ~ ~ ~',
+      ' ~ . . ~ ~ . . ~',
+      '~ $ . . ~ . . . ~',
+      ' ~ . . ~ ~ . . ~',
+      '~ ~ ~ ~ ~ ~ ~ ~ ~',
+    ],
+  },
+  {
     id: 'zufallskueste',
     name: 'Zufallsküste',
     description: 'Die Form wächst jedes Spiel neu: kompakt, mit Buchten, manchmal mit Halbinsel oder See.',
@@ -163,8 +214,11 @@ export interface MaskCell {
   ch: string;
 }
 
-/** Liest eine Maske und prüft das Raster. Wasserzeichen `~` sind nur Lesehilfe und fallen weg. */
-export function parseMask(rows: string[]): MaskCell[] {
+/**
+ * Liest eine Maske und prüft das Raster. Wasserzeichen `~` sind nur Lesehilfe und fallen weg,
+ * außer auf Seewege-Karten (`keepSea`): Dort sind sie Meerfelder.
+ */
+export function parseMask(rows: string[], keepSea = false): MaskCell[] {
   const cells: MaskCell[] = [];
   rows.forEach((line, r) => {
     for (let c = 0; c < line.length; c++) if (line[c] !== ' ') cells.push({ c, r, ch: line[c] });
@@ -173,8 +227,8 @@ export function parseMask(rows: string[]): MaskCell[] {
   for (const cell of cells) {
     if (((cell.c + cell.r) & 1) !== parity) throw new Error(`Maske: Feld (${cell.c},${cell.r}) liegt nicht im Raster.`);
   }
-  return cells.filter((cell) => cell.ch !== '~');
+  return keepSea ? cells : cells.filter((cell) => cell.ch !== '~');
 }
 
 export const BIAS: Record<string, Terrain> = { h: 'wood', l: 'brick', w: 'sheep', g: 'wheat', e: 'ore', x: 'desert' };
-export const FIXED: Record<string, Terrain> = { H: 'wood', L: 'brick', W: 'sheep', G: 'wheat', E: 'ore', X: 'desert' };
+export const FIXED: Record<string, Terrain> = { H: 'wood', L: 'brick', W: 'sheep', G: 'wheat', E: 'ore', X: 'desert', $: 'gold' };

@@ -47,7 +47,7 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
   const map = mapById(settings.map);
   if (!mapFits(map, players.length)) fail(`${map.name} ist für ${map.players[0]}–${map.players[1]} Spieler.`);
   const rng: RngState = { rng: seed | 0 };
-  const { board, robber, bank: bankSize } = generateBoard(map.id, players.length, rng);
+  const { board, robber, bank: bankSize, pirate } = generateBoard(map.id, players.length, rng);
   const topo = getTopology(board);
   const seated = shuffle(rng, players);
   const n = seated.length;
@@ -98,6 +98,13 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
     winner: null,
   };
   if (hasVariant(state, 'hafenvogt')) state.harborMaster = null;
+  if (map.seafaring) {
+    state.ships = topo.edges.map(() => null);
+    state.pirate = pirate;
+    state.shipsBuilt = [];
+    state.shipMoved = false;
+    state.islandBonus = state.players.map(() => 0);
+  }
   if (hasVariant(state, 'wuerfelstapel')) state.diceDeck = { ...DICE_DECK };
   log(state, null, `Spiel gestartet mit ${n} Spielern. ${seated[0].name} beginnt mit der Aufbauphase.`);
   return state;
@@ -124,7 +131,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     const phase = s.phase;
     if (phase.kind !== 'setup' || phase.step !== 'settlement') fail('Jetzt wird keine Siedlung gesetzt.');
     if (phase.order[phase.index] !== seat) fail('Du bist nicht dran.');
-    if (!isFreeForSettlement(s, vertex)) fail('Hier darf keine Siedlung stehen.');
+    if (!legalSetupVertices(s).includes(vertex)) fail('Hier darf keine Siedlung stehen.');
     s.buildings[vertex] = { owner: seat, type: 'settlement' };
     const secondRound = phase.index >= s.players.length;
     let text = `${name(s, seat)} setzt eine Siedlung.`;
@@ -132,10 +139,12 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
       const gained = emptyResources();
       for (const h of getTopology(s.board).vertices[vertex].hexes) {
         const terrain = s.board.hexes[h].terrain;
-        if (terrain !== 'desert' && s.bank[terrain] > 0) {
-          s.bank[terrain]--;
-          gained[terrain]++;
-          transfer(s, { kind: 'hex', id: h }, seatPoint(seat), terrain, 1);
+        // Gold liefert in der Aufstellung den Rohstoff, von dem die Bank am meisten hat.
+        const r = terrain === 'gold' ? [...RESOURCES].sort((a, b) => s.bank[b] - s.bank[a])[0] : terrain;
+        if (isResource(r) && s.bank[r] > 0) {
+          s.bank[r]--;
+          gained[r]++;
+          transfer(s, { kind: 'hex', id: h }, seatPoint(seat), r, 1);
         }
       }
       addTo(s.players[seat].resources, gained);
@@ -154,6 +163,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     const e = getTopology(s.board).edges[edge];
     if (!e || s.roads[edge] !== null) fail('Hier ist kein Platz für eine Straße.');
     if (e.a !== phase.settlement && e.b !== phase.settlement) fail('Die Straße muss an deine neue Siedlung grenzen.');
+    if (!edgeTouchesLand(s, edge)) fail('Straßen liegen an Land.');
     s.roads[edge] = seat;
     updateLongestRoad(s);
     log(s, seat, `${name(s, seat)} baut eine Straße.`);
@@ -189,8 +199,24 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
       }
       return;
     }
-    produce(s, sum);
-    s.phase = { kind: 'main' };
+    const gold = produce(s, sum);
+    s.phase = gold.some((n) => n > 0) ? { kind: 'gold', pending: gold } : { kind: 'main' };
+  },
+
+  chooseGold(s, seat, { resources }) {
+    const phase = s.phase;
+    if (phase.kind !== 'gold') fail('Gerade gibt es kein Gold zu verteilen.');
+    const due = phase.pending[seat];
+    if (!due) fail('Du bekommst gerade kein Gold.');
+    validateCounts(resources);
+    if (totalResources(resources) !== due) fail(`Wähle genau ${due} Rohstoffe.`);
+    if (!hasResources(s.bank, resources)) fail('Die Bank hat diese Rohstoffe nicht mehr.');
+    takeFrom(s.bank, resources);
+    addTo(s.players[seat].resources, resources);
+    transferAll(s, BANK, seatPoint(seat), resources);
+    phase.pending[seat] = 0;
+    log(s, seat, `${name(s, seat)} wählt aus dem Gold ${formatResources(resources)}.`);
+    if (phase.pending.every((n) => n === 0)) s.phase = { kind: 'main' };
   },
 
   discard(s, seat, { resources }) {
@@ -215,10 +241,13 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (phase.kind !== 'robber') fail('Der Räuber wird gerade nicht versetzt.');
     if (seat !== s.current) fail('Du bist nicht dran.');
     if (!s.board.hexes[hex]) fail('Unbekanntes Feld.');
-    if (hex === s.robber) fail('Der Räuber muss auf ein anderes Feld.');
+    const pirate = s.board.hexes[hex].terrain === 'sea';
+    if (pirate && s.pirate === undefined) fail('Auf diesem Brett gibt es kein Kaperschiff.');
+    if (hex === (pirate ? s.pirate : s.robber)) fail(pirate ? 'Das Kaperschiff muss auf ein anderes Feld.' : 'Der Räuber muss auf ein anderes Feld.');
     if (!legalRobberHexes(s).includes(hex)) fail('Milder Räuber: Dort stehen Spieler mit höchstens 2 Siegpunkten.');
     const candidates = robberVictims(s, seat, hex);
-    s.robber = hex;
+    if (pirate) s.pirate = hex;
+    else s.robber = hex;
     if (candidates.length > 0) {
       if (victim === null || !candidates.includes(victim)) fail('Wähle einen Spieler, bei dem du ziehst.');
       const pool = RESOURCES.flatMap((r) => Array<Resource>(s.players[victim].resources[r]).fill(r));
@@ -226,9 +255,9 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
       s.players[victim].resources[stolen]--;
       s.players[seat].resources[stolen]++;
       s.transfers.push({ from: seatPoint(victim), to: seatPoint(seat), card: stolen, count: 1, hidden: true });
-      log(s, seat, `${name(s, seat)} versetzt den Räuber und zieht eine Karte bei ${name(s, victim)}.`);
+      log(s, seat, `${name(s, seat)} versetzt ${pirate ? 'das Kaperschiff' : 'den Räuber'} und zieht eine Karte bei ${name(s, victim)}.`);
     } else {
-      log(s, seat, `${name(s, seat)} versetzt den Räuber.`);
+      log(s, seat, `${name(s, seat)} versetzt ${pirate ? 'das Kaperschiff' : 'den Räuber'}.`);
     }
     s.phase = { kind: phase.returnTo };
   },
@@ -241,11 +270,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
       s.roads[edge] = seat;
       updateLongestRoad(s);
       log(s, seat, `${name(s, seat)} baut eine Straße (Straßenbau).`);
-      const remaining = phase.remaining - 1;
-      s.phase =
-        remaining > 0 && legalRoadEdges(s, seat).length > 0
-          ? { ...phase, remaining }
-          : { kind: phase.returnTo };
+      continueRoadBuilding(s, seat);
       return;
     }
     requireBuilder(s, seat);
@@ -262,10 +287,16 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (piecesLeft(s, seat, 'settlement') <= 0) fail('Du hast keine Siedlungen mehr.');
     if (!canBuildSettlement(s, seat, vertex)) fail('Hier kannst du keine Siedlung bauen.');
     pay(s, seat, COSTS.settlement, { kind: 'vertex', id: vertex });
+    const newIsland = s.islandBonus ? !ownsOnIsland(s, seat, vertex) : false;
     s.buildings[vertex] = { owner: seat, type: 'settlement' };
     updateLongestRoad(s);
     log(s, seat, `${name(s, seat)} baut eine Siedlung.`);
     updateHarborMaster(s);
+    if (newIsland) {
+      const bonus = mapById(s.board.map).seafaring?.islandBonus ?? 0;
+      s.islandBonus![seat] += bonus;
+      if (bonus) log(s, seat, `${name(s, seat)} besiedelt eine neue Insel und bekommt ${bonus} Siegpunkte.`);
+    }
   },
 
   buildCity(s, seat, { vertex }) {
@@ -303,8 +334,8 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
   },
 
   playRoadBuilding(s, seat) {
-    const remaining = Math.min(2, piecesLeft(s, seat, 'road'));
-    if (remaining === 0 || legalRoadEdges(s, seat).length === 0) fail('Du kannst gerade keine Straße bauen.');
+    const remaining = Math.min(2, piecesLeft(s, seat, 'road') + (s.ships ? piecesLeft(s, seat, 'ship') : 0));
+    if (remaining === 0 || !canLayFreePiece(s, seat)) fail('Du kannst gerade keine Straße bauen.');
     const returnTo = playDevCard(s, seat, 'roadBuilding');
     s.phase = { kind: 'roadBuilding', remaining, returnTo };
   },
@@ -436,6 +467,38 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     return true;
   },
 
+  buildShip(s, seat, { edge }) {
+    if (!s.ships) fail('Auf diesem Brett gibt es keine Schiffe.');
+    const phase = s.phase;
+    const free = phase.kind === 'roadBuilding';
+    if (free) {
+      if (seat !== s.current) fail('Du bist nicht dran.');
+    } else {
+      requireBuilder(s, seat);
+    }
+    if (piecesLeft(s, seat, 'ship') <= 0) fail('Du hast keine Schiffe mehr.');
+    if (!canBuildShip(s, seat, edge)) fail('Hier kannst du kein Schiff bauen.');
+    if (!free) pay(s, seat, COSTS.ship, { kind: 'edge', id: edge });
+    s.ships[edge] = seat;
+    s.shipsBuilt = [...(s.shipsBuilt ?? []), edge];
+    updateLongestRoad(s);
+    log(s, seat, `${name(s, seat)} baut ein Schiff.`);
+    if (free) continueRoadBuilding(s, seat);
+  },
+
+  moveShip(s, seat, { from, to }) {
+    if (!s.ships) fail('Auf diesem Brett gibt es keine Schiffe.');
+    requireTurn(s, seat, 'main');
+    if (s.shipMoved) fail('Du hast in diesem Zug schon ein Schiff versetzt.');
+    if (!movableShips(s, seat).includes(from)) fail('Dieses Schiff kann nicht versetzt werden.');
+    s.ships[from] = null;
+    if (to === from || !canBuildShip(s, seat, to)) fail('Dorthin kann das Schiff nicht.');
+    s.ships[to] = seat;
+    s.shipMoved = true;
+    updateLongestRoad(s);
+    log(s, seat, `${name(s, seat)} versetzt ein Schiff.`);
+  },
+
   endTurn(s, seat) {
     const phase = s.phase;
     if (phase.kind === 'specialBuild') {
@@ -464,6 +527,7 @@ export function actingSeats(s: GameState): number[] {
     case 'setup':
       return [phase.order[phase.index]];
     case 'discard':
+    case 'gold':
       return phase.pending.flatMap((n, i) => (n > 0 ? [i] : []));
     case 'specialBuild':
       return [phase.queue[0]];
@@ -480,6 +544,7 @@ export function victoryPoints(s: GameState, seat: number, includeHidden: boolean
   if (s.longestRoad === seat) vp += 2;
   if (s.largestArmy === seat) vp += 2;
   if (s.harborMaster === seat) vp += 2;
+  vp += s.islandBonus?.[seat] ?? 0;
   if (includeHidden) {
     const p = s.players[seat];
     vp += [...p.devCards, ...p.newDevCards].filter((c) => c === 'victoryPoint').length;
@@ -489,18 +554,24 @@ export function victoryPoints(s: GameState, seat: number, includeHidden: boolean
 
 export function isFreeForSettlement(s: GameState, vertex: number): boolean {
   const v = getTopology(s.board).vertices[vertex];
-  return !!v && s.buildings[vertex] === null && v.neighbors.every((n) => s.buildings[n] === null);
+  return (
+    !!v &&
+    s.buildings[vertex] === null &&
+    v.neighbors.every((n) => s.buildings[n] === null) &&
+    v.hexes.some((h) => s.board.hexes[h].terrain !== 'sea')
+  );
 }
 
 export function canBuildSettlement(s: GameState, seat: number, vertex: number): boolean {
   if (!isFreeForSettlement(s, vertex)) return false;
-  return getTopology(s.board).vertices[vertex].edges.some((e) => s.roads[e] === seat);
+  // Anschluss über eine eigene Straße oder, bei Seewege, über ein eigenes Schiff.
+  return getTopology(s.board).vertices[vertex].edges.some((e) => s.roads[e] === seat || s.ships?.[e] === seat);
 }
 
 export function canBuildRoad(s: GameState, seat: number, edge: number): boolean {
   const topo = getTopology(s.board);
   const e = topo.edges[edge];
-  if (!e || s.roads[edge] !== null) return false;
+  if (!e || s.roads[edge] !== null || s.ships?.[edge] != null || !edgeTouchesLand(s, edge)) return false;
   return [e.a, e.b].some((v) => {
     const b = s.buildings[v];
     if (b?.owner === seat) return true;
@@ -510,13 +581,23 @@ export function canBuildRoad(s: GameState, seat: number, edge: number): boolean 
 }
 
 export function legalSetupVertices(s: GameState): number[] {
-  return getTopology(s.board).vertices.filter((v) => isFreeForSettlement(s, v.id)).map((v) => v.id);
+  const topo = getTopology(s.board);
+  // Seewege „Erste Überfahrt“: Startsiedlungen nur auf der größten Insel.
+  let home: number | null = null;
+  if (mapById(s.board.map).seafaring?.setup === 'largest') {
+    const sizes = new Map<number, number>();
+    for (const id of topo.islands) if (id >= 0) sizes.set(id, (sizes.get(id) ?? 0) + 1);
+    home = [...sizes].sort((a, b) => b[1] - a[1])[0][0];
+  }
+  return topo.vertices
+    .filter((v) => isFreeForSettlement(s, v.id) && (home === null || v.hexes.some((h) => topo.islands[h] === home)))
+    .map((v) => v.id);
 }
 
 export function legalSetupRoads(s: GameState): number[] {
   const phase = s.phase;
   if (phase.kind !== 'setup' || phase.settlement === null) return [];
-  return getTopology(s.board).vertices[phase.settlement].edges.filter((e) => s.roads[e] === null);
+  return getTopology(s.board).vertices[phase.settlement].edges.filter((e) => s.roads[e] === null && edgeTouchesLand(s, e));
 }
 
 export function legalSettlementVertices(s: GameState, seat: number): number[] {
@@ -527,13 +608,65 @@ export function legalRoadEdges(s: GameState, seat: number): number[] {
   return getTopology(s.board).edges.filter((e) => canBuildRoad(s, seat, e.id)).map((e) => e.id);
 }
 
+/** Seewege: Kanten, an denen ein Schiff gebaut werden darf. */
+export function legalShipEdges(s: GameState, seat: number): number[] {
+  if (!s.ships) return [];
+  return getTopology(s.board).edges.filter((e) => canBuildShip(s, seat, e.id)).map((e) => e.id);
+}
+
+/**
+ * Ein Schiff liegt an einer Kante mit Meer, schließt an ein eigenes Gebäude oder Schiff an
+ * (der Übergang von Straße zu Schiff geht nur über ein Gebäude) und nicht am Kaperschiff.
+ */
+export function canBuildShip(s: GameState, seat: number, edge: number): boolean {
+  if (!s.ships) return false;
+  const topo = getTopology(s.board);
+  const e = topo.edges[edge];
+  if (!e || s.roads[edge] !== null || s.ships[edge] !== null) return false;
+  if (!e.hexes.some((h) => s.board.hexes[h].terrain === 'sea')) return false;
+  if (s.pirate != null && e.hexes.includes(s.pirate)) return false;
+  return [e.a, e.b].some((v) => {
+    const b = s.buildings[v];
+    if (b?.owner === seat) return true;
+    if (b) return false;
+    return topo.vertices[v].edges.some((other) => other !== edge && s.ships![other] === seat);
+  });
+}
+
+/**
+ * Schiffe, die man versetzen darf: am offenen Ende einer Schiffslinie (eine Ecke ohne eigenes
+ * Gebäude und ohne weiteres eigenes Schiff), nicht in diesem Zug gebaut, nicht am Kaperschiff.
+ */
+export function movableShips(s: GameState, seat: number): number[] {
+  if (!s.ships || s.shipMoved) return [];
+  const topo = getTopology(s.board);
+  return s.ships.flatMap((owner, edge) => {
+    if (owner !== seat || s.shipsBuilt?.includes(edge)) return [];
+    const e = topo.edges[edge];
+    if (s.pirate != null && e.hexes.includes(s.pirate)) return [];
+    const open = [e.a, e.b].some(
+      (v) => s.buildings[v]?.owner !== seat && !topo.vertices[v].edges.some((o) => o !== edge && s.ships![o] === seat),
+    );
+    return open ? [edge] : [];
+  });
+}
+
 export function legalCityVertices(s: GameState, seat: number): number[] {
   return s.buildings.flatMap((b, v) => (b?.owner === seat && b.type === 'settlement' ? [v] : []));
 }
 
 export function robberVictims(s: GameState, seat: number, hex: number): number[] {
   const victims = new Set<number>();
-  for (const v of getTopology(s.board).hexes[hex].corners) {
+  const topo = getTopology(s.board);
+  // Das Kaperschiff zieht bei allen, die ein Schiff an diesem Meerfeld haben.
+  if (s.board.hexes[hex].terrain === 'sea') {
+    for (const e of topo.hexes[hex].edges) {
+      const owner = s.ships?.[e];
+      if (owner != null && owner !== seat && totalResources(s.players[owner].resources) > 0) victims.add(owner);
+    }
+    return [...victims];
+  }
+  for (const v of topo.hexes[hex].corners) {
     const b = s.buildings[v];
     if (b && b.owner !== seat && totalResources(s.players[b.owner].resources) > 0) victims.add(b.owner);
   }
@@ -549,7 +682,14 @@ export function hasVariant(s: Pick<GameState, 'settings'>, id: VariantId): boole
  * mit höchstens 2 sichtbaren Siegpunkten baut; bleibt dann nichts, darf er in die Wüste.
  */
 export function legalRobberHexes(s: GameState): number[] {
-  const others = s.board.hexes.map((_, id) => id).filter((id) => id !== s.robber);
+  const sea = (id: number) => s.board.hexes[id].terrain === 'sea';
+  // Seewege: Statt des Räubers darf man das Kaperschiff auf ein anderes Meerfeld setzen.
+  const pirateHexes = s.pirate !== undefined ? s.board.hexes.map((_, id) => id).filter((id) => sea(id) && id !== s.pirate) : [];
+  return [...landRobberHexes(s), ...pirateHexes];
+}
+
+function landRobberHexes(s: GameState): number[] {
+  const others = s.board.hexes.map((_, id) => id).filter((id) => id !== s.robber && s.board.hexes[id].terrain !== 'sea');
   if (!hasVariant(s, 'milderRaeuber')) return others;
   const topo = getTopology(s.board);
   const protectedSeat = s.players.map((_, seat) => victoryPoints(s, seat, false) <= 2);
@@ -608,12 +748,45 @@ export function tradeRate(s: GameState, seat: number, give: Resource): number {
   return rate;
 }
 
-export function piecesLeft(s: GameState, seat: number, piece: 'road' | 'settlement' | 'city'): number {
+export function piecesLeft(s: GameState, seat: number, piece: 'road' | 'settlement' | 'city' | 'ship'): number {
   const used =
     piece === 'road'
       ? s.roads.filter((r) => r === seat).length
-      : s.buildings.filter((b) => b?.owner === seat && b.type === piece).length;
+      : piece === 'ship'
+        ? (s.ships ?? []).filter((r) => r === seat).length
+        : s.buildings.filter((b) => b?.owner === seat && b.type === piece).length;
   return PIECE_LIMITS[piece] - used;
+}
+
+function isResource(t: string): t is Resource {
+  return (RESOURCES as readonly string[]).includes(t);
+}
+
+function edgeTouchesLand(s: GameState, edge: number): boolean {
+  return getTopology(s.board).edges[edge].hexes.some((h) => s.board.hexes[h].terrain !== 'sea');
+}
+
+/** Hat der Spieler schon ein Gebäude auf der Insel dieser Ecke? */
+function ownsOnIsland(s: GameState, seat: number, vertex: number): boolean {
+  const topo = getTopology(s.board);
+  const islandOf = (v: number) => topo.vertices[v].hexes.map((h) => topo.islands[h]).find((i) => i >= 0) ?? -1;
+  const island = islandOf(vertex);
+  return s.buildings.some((b, v) => b?.owner === seat && islandOf(v) === island);
+}
+
+/** Straßenbau-Karte: Gibt es noch eine kostenlose Straße oder ein Schiff zu legen? */
+function canLayFreePiece(s: GameState, seat: number): boolean {
+  return (
+    (piecesLeft(s, seat, 'road') > 0 && legalRoadEdges(s, seat).length > 0) ||
+    (piecesLeft(s, seat, 'ship') > 0 && legalShipEdges(s, seat).length > 0)
+  );
+}
+
+function continueRoadBuilding(s: GameState, seat: number): void {
+  const phase = s.phase;
+  if (phase.kind !== 'roadBuilding') return;
+  const remaining = phase.remaining - 1;
+  s.phase = remaining > 0 && canLayFreePiece(s, seat) ? { ...phase, remaining } : { kind: phase.returnTo };
 }
 
 /** Kann der Spieler in der Sonderbauphase überhaupt irgendetwas bauen oder kaufen? */
@@ -622,6 +795,7 @@ export function canBuildAnything(s: GameState, seat: number): boolean {
   if (hasResources(res, COSTS.devCard) && s.devDeck.length > 0) return true;
   if (hasResources(res, COSTS.city) && piecesLeft(s, seat, 'city') > 0 && legalCityVertices(s, seat).length > 0) return true;
   if (hasResources(res, COSTS.settlement) && piecesLeft(s, seat, 'settlement') > 0 && legalSettlementVertices(s, seat).length > 0) return true;
+  if (s.ships && hasResources(res, COSTS.ship) && piecesLeft(s, seat, 'ship') > 0 && legalShipEdges(s, seat).length > 0) return true;
   return hasResources(res, COSTS.road) && piecesLeft(s, seat, 'road') > 0 && legalRoadEdges(s, seat).length > 0;
 }
 
@@ -708,19 +882,25 @@ function playDevCard(s: GameState, seat: number, card: DevCard): ReturnPhase {
   return phase;
 }
 
-function produce(s: GameState, sum: number): void {
+/** Verteilt den Ertrag; liefert, wie viele Rohstoffe jeder aus Goldfeldern noch selbst wählt. */
+function produce(s: GameState, sum: number): number[] {
   const topo = getTopology(s.board);
   const demand = RESOURCES.map(() => s.players.map(() => 0));
+  const gold = s.players.map(() => 0);
   const sources: { hex: number; seat: number; res: Resource; n: number }[] = [];
   s.board.hexes.forEach((hex, id) => {
-    if (hex.number !== sum || hex.terrain === 'desert' || id === s.robber) return;
-    const r = RESOURCES.indexOf(hex.terrain);
+    const terrain = hex.terrain;
+    if (hex.number !== sum || id === s.robber || (!isResource(terrain) && terrain !== 'gold')) return;
     for (const v of topo.hexes[id].corners) {
       const b = s.buildings[v];
       if (!b) continue;
       const n = b.type === 'city' ? 2 : 1;
-      demand[r][b.owner] += n;
-      sources.push({ hex: id, seat: b.owner, res: hex.terrain, n });
+      if (terrain === 'gold') {
+        gold[b.owner] += n;
+        continue;
+      }
+      demand[RESOURCES.indexOf(terrain)][b.owner] += n;
+      sources.push({ hex: id, seat: b.owner, res: terrain, n });
     }
   });
 
@@ -752,6 +932,13 @@ function produce(s: GameState, sum: number): void {
     addTo(s.players[seat].resources, g);
     log(s, seat, `${name(s, seat)} erhält ${formatResources(g)}.`);
   });
+  // Gold: höchstens so viel, wie die Bank noch hat.
+  let available = totalResources(s.bank);
+  return gold.map((n) => {
+    const take = Math.min(n, available);
+    available -= take;
+    return take;
+  });
 }
 
 function continueSpecialBuild(s: GameState, queue: number[]): void {
@@ -774,6 +961,10 @@ function nextTurn(s: GameState): void {
   s.dice = null;
   s.devPlayed = false;
   s.offers = [];
+  if (s.ships) {
+    s.shipsBuilt = [];
+    s.shipMoved = false;
+  }
   s.phase = { kind: 'roll' };
 }
 
@@ -806,27 +997,36 @@ function updateLongestRoad(s: GameState): void {
   }
 }
 
+/**
+ * Längste Handelsstraße bzw. -route: Straßen und Schiffe zählen zusammen, wechseln dürfen sie aber
+ * nur an einem eigenen Gebäude. Fremde Gebäude unterbrechen.
+ */
 export function longestRoad(s: GameState, seat: number): number {
   const topo = getTopology(s.board);
   const visited = new Set<number>();
   let best = 0;
+  const kindOf = (e: number): 'road' | 'ship' | null =>
+    s.roads[e] === seat ? 'road' : s.ships?.[e] === seat ? 'ship' : null;
 
-  const walk = (vertex: number, length: number) => {
+  const walk = (vertex: number, length: number, via: 'road' | 'ship' | null) => {
     best = Math.max(best, length);
+    const own = s.buildings[vertex]?.owner === seat;
     for (const e of topo.vertices[vertex].edges) {
-      if (s.roads[e] !== seat || visited.has(e)) continue;
+      const kind = kindOf(e);
+      if (!kind || visited.has(e)) continue;
+      if (via && kind !== via && !own) continue;
       const edge = topo.edges[e];
       const next = edge.a === vertex ? edge.b : edge.a;
       visited.add(e);
       const blocker = s.buildings[next];
       if (blocker && blocker.owner !== seat) best = Math.max(best, length + 1);
-      else walk(next, length + 1);
+      else walk(next, length + 1, kind);
       visited.delete(e);
     }
   };
 
   topo.vertices.forEach((v) => {
-    if (v.edges.some((e) => s.roads[e] === seat)) walk(v.id, 0);
+    if (v.edges.some((e) => kindOf(e))) walk(v.id, 0, null);
   });
   return best;
 }

@@ -61,8 +61,14 @@ const RE_ELECT_MS = 8000;
 const TICK_MS = 3000;
 /** Kommt so lange nichts vom Host, gilt er als weg (schneller als WebRTC, das ~15 s braucht). */
 const HOST_SILENCE_MS = 9000;
-/** Eine Meldung „ich folge Host X“ gilt so lange. */
+/** Eine Meldung „ich folge Host X“ gilt so lange; so frisch muss auch sein, wer bei einer Wahl zählt. */
 const FOLLOW_FRESH_MS = 7000;
+/**
+ * Für einen schon bestehenden Host zählt ein Mitspieler länger als erreichbar. Browser drosseln Timer in
+ * Hintergrund-Tabs stark (bis zu einmal pro Minute); wer kurz in ein anderes Fenster wechselt, soll das
+ * Spiel nicht anhalten. Einen harten Abbruch meldet ohnehin die Verbindung selbst.
+ */
+const PRESENCE_MS = 90000;
 /** Ohne Bestätigung wird eine Aktion nach dieser Zeit erneut gesendet. */
 const ACK_TIMEOUT_MS = 4000;
 /** Länger unbestätigte Aktionen verfallen mit Hinweis, statt viel später überraschend zu wirken. */
@@ -440,7 +446,7 @@ export class RoomService {
     const room = this.room();
     if (!room || this.isHost() || this.hostPeer) return;
     const waitedLongEnough = this.env.now() - (this.hostlessSince ?? this.env.now()) >= RE_ELECT_MS;
-    if (!this.liveHostElsewhere() && this.hasQuorum() && (waitedLongEnough || this.isCandidate(room))) {
+    if (!this.liveHostElsewhere() && this.hasQuorum(FOLLOW_FRESH_MS) && (waitedLongEnough || this.isCandidate(room))) {
       this.becomeHost({ ...room, epoch: room.epoch + 1 }, this.game());
       this.showNotice('Der Gastgeber ist weg. Du leitest jetzt das Spiel.');
       return;
@@ -452,7 +458,7 @@ export class RoomService {
     const order = (this.game()?.players.map((p) => p.id) ?? room.players.map((p) => p.id)).concat(
       room.spectators.map((s) => s.id),
     );
-    const candidate = order.find((id) => id !== room.hostId && (id === this.clientId || this.isConnectedId(id)));
+    const candidate = order.find((id) => id !== room.hostId && (id === this.clientId || this.isConnectedId(id, FOLLOW_FRESH_MS)));
     return candidate === this.clientId;
   }
 
@@ -465,20 +471,24 @@ export class RoomService {
   }
 
   /** Mehrheit der Sitzplätze erreichbar (sich selbst eingerechnet), bei Gleichstand die Hälfte mit Sitz 0. */
-  private hasQuorum(): boolean {
+  /**
+   * Mehrheit erreichbar? Für eine Wahl zählt nur, wer gerade etwas geschickt hat (`FOLLOW_FRESH_MS`), damit
+   * sich ein abgeschnittener Spieler nicht selbst zum Host macht; ein bestehender Host ist großzügiger.
+   */
+  private hasQuorum(window = PRESENCE_MS): boolean {
     const game = this.game();
     if (!game) return true;
     const ids = game.players.map((p) => p.id);
-    const reachable = (id: string) => id === this.clientId || this.isConnectedId(id);
+    const reachable = (id: string) => id === this.clientId || this.isConnectedId(id, window);
     const n = ids.filter(reachable).length;
     return 2 * n > ids.length || (2 * n === ids.length && reachable(ids[0]));
   }
 
-  private isConnectedId(id: string): boolean {
+  private isConnectedId(id: string, window: number): boolean {
     const peers = this.connectedPeers();
     const now = this.env.now();
     return [...this.peerClients].some(
-      ([peer, client]) => client === id && peers.has(peer) && now - (this.lastHeard.get(peer) ?? 0) < FOLLOW_FRESH_MS,
+      ([peer, client]) => client === id && peers.has(peer) && now - (this.lastHeard.get(peer) ?? 0) < window,
     );
   }
 
@@ -645,7 +655,11 @@ export class RoomService {
   private onFollow(hostId: string | null, rank: number[], peer: string): void {
     this.follows.set(peer, { hostId, rank, at: this.env.now() });
     const room = this.room();
-    if (!this.isHost() || !room || !hostId || hostId === this.clientId) return;
+    if (!this.isHost() || !room) return;
+    // Antwort sofort aus dem Nachrichtenereignis: So bleibt der Host lebendig, auch wenn sein eigener
+    // Takt im Hintergrund-Tab gedrosselt läuft.
+    this.transport?.send({ t: 'tick', rank: roomRank({ room, game: this.game() }), gameId: this.game()?.id ?? null }, peer);
+    if (!hostId || hostId === this.clientId) return;
     const d = compareRank(rank, roomRank({ room, game: this.game() }));
     if (d > 0 || (d === 0 && hostId < this.clientId)) this.stepDown();
   }

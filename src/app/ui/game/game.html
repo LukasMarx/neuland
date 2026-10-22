@@ -120,6 +120,7 @@
       [highlightNumber]="highlightNumber()"
       [ghost]="ghost()"
       [ghostColor]="myColor()"
+      [edgeGhost]="edgeGhost()"
       (vertexPick)="onVertex($event)"
       (edgePick)="onEdge($event)"
       (hexPick)="onHex($event)"
@@ -127,8 +128,8 @@
 
     @if (buildMode(); as mode) {
       <div class="board-hint">
-        {{ mode === 'road' ? 'Wähle eine Kante für die Straße' : mode === 'settlement' ? 'Wähle eine Ecke für die Siedlung' : 'Wähle eine Siedlung für die Stadt' }}
-        <button class="small" (click)="buildMode.set(null)">Abbrechen <kbd>Esc</kbd></button>
+        {{ buildHint() }}
+        <button class="small" (click)="buildMode.set(null); moveFrom.set(null)">Abbrechen <kbd>Esc</kbd></button>
       </div>
     }
 
@@ -253,6 +254,18 @@
           <span class="label">Entwicklung <kbd>E</kbd></span>
           <span class="cost">@for (c of costArt(costs.devCard); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
         </button>
+        @if (seafaring()) {
+          <button [disabled]="!opts.ship.enabled" [class.selected]="buildMode() === 'ship'" [title]="opts.ship.reason ?? 'Schiff bauen (B)'" (click)="toggleBuild('ship')">
+            <span class="figure"><svg viewBox="-17 -16 34 28"><use href="#ship" [attr.fill]="myColor()" /></svg></span>
+            <span class="label">Schiff <kbd>B</kbd></span>
+            <span class="cost">@for (c of costArt(costs.ship); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
+          </button>
+          <button [disabled]="!opts.moveShip.enabled" [class.selected]="buildMode() === 'moveShip'" [title]="opts.moveShip.reason ?? 'Ein Schiff am Ende einer Linie versetzen'" (click)="toggleBuild('moveShip')">
+            <span class="figure trade">⤳</span>
+            <span class="label">Versetzen</span>
+            <span class="cost text">{{ buildMode() === 'moveShip' ? (moveFrom() === null ? 'Schiff wählen' : 'Ziel wählen') : '1× pro Zug' }}</span>
+          </button>
+        }
         <button [disabled]="!canTrade()" [title]="canTrade() ? 'Handeln (H)' : 'Gehandelt wird nach dem Würfeln'" (click)="openTrade()">
           <span class="figure trade">⇄</span>
           <span class="label">Handeln <kbd>H</kbd></span>
@@ -332,6 +345,10 @@
           <span class="muted">{{ d.knights }} Ritter, ab 3</span><b class="none">–</b>
         }
       </dd>
+      @if (d.islandBonus !== null) {
+        <dt>Inselbonus</dt>
+        <dd><span class="muted">neue Inseln</span><b [class.none]="!d.islandBonus">{{ d.islandBonus || '–' }}</b></dd>
+      }
       @if (d.harborVariant) {
         <dt>Hafenvogt</dt>
         <dd>
@@ -360,6 +377,20 @@
   </section>
 }
 
+
+@if (goldDue() > 0) {
+  <div class="modal-backdrop">
+    <div class="modal">
+      <h3>Gold! Wähle {{ goldDue() }} Rohstoff{{ goldDue() > 1 ? 'e' : '' }}</h3>
+      <p class="muted">Deine Gebäude am Goldfeld bringen Rohstoffe nach Wahl aus der Bank.</p>
+      <app-resource-picker [(value)]="goldPick" [max]="game.bank" [total]="goldDue()" />
+      <div class="row end mt">
+        <span class="muted">{{ total(goldPick()) }} / {{ goldDue() }}</span>
+        <button class="primary" [disabled]="total(goldPick()) !== goldDue()" (click)="chooseGold()">Nehmen</button>
+      </div>
+    </div>
+  </div>
+}
 
 @if (discardDue() > 0 && me(); as self) {
   <div class="modal-backdrop">

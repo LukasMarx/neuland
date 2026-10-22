@@ -259,6 +259,31 @@ describe('Mehrspieler: Netzstörungen', () => {
   });
 });
 
+describe('Mehrspieler: Hintergrund-Tabs', () => {
+  it('Mitspieler im Hintergrund halten das Spiel nicht an', () => {
+    const { sims, clock } = start(['H', 'A', 'B']);
+    const [H, A, B] = sims;
+    A.throttled = true;
+    B.throttled = true;
+    clock.advance(5 * 60000);
+    expect(H.svc.status()).toBe('connected');
+    play(sims, 40, seeded(31));
+    expect(versions(sims).size).toBe(1);
+    expect(hosts(sims)).toEqual([H]);
+  });
+
+  it('ein Host im Hintergrund bleibt Host, die anderen spielen weiter', () => {
+    const { sims, clock } = start(['H', 'A', 'B']);
+    const [H] = sims;
+    H.throttled = true;
+    clock.advance(5 * 60000);
+    expect(hosts(sims)).toEqual([H]);
+    play(sims, 40, seeded(37));
+    expect(versions(sims).size).toBe(1);
+    expect(sims.every((s) => s.svc.status() === 'connected')).toBe(true);
+  });
+});
+
 describe('Mehrspieler: Spieler, die wegbleiben', () => {
   it('nach einer Wartezeit können Mitspieler für einen getrennten Spieler weiterspielen', () => {
     const { sims, clock } = start(['H', 'A', 'B']);

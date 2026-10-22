@@ -328,7 +328,7 @@ export class Lobby {
   protected readonly map = computed(() => mapById(this.room.room()?.settings.map));
   /** Verbundene Spieler; mit ihnen wird gestartet. */
   protected readonly present = computed(() => this.room.room()?.players.filter((p) => p.peerId).length ?? 0);
-  protected readonly tiles = computed(() => mapShape(this.map(), Math.max(2, this.present()), { rng: 7 }).length);
+  protected readonly tiles = computed(() => mapShape(this.map(), Math.max(2, this.present()), { rng: 7 }).filter((c) => c.ch !== '~').length);
   /** Gestartet wird mit allen, die verbunden sind; wer die Lobby verlassen hat, bleibt draußen. */
   protected readonly canStart = computed(() => {
     const n = this.present();

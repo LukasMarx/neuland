@@ -14,6 +14,8 @@ export const BANK_SIZE: Record<Layout, number> = { base: bankSize(19), ext: bank
 
 export interface TopoHex {
   id: number;
+  /** Meerfeld (Seewege): hat Ecken und Kanten, liefert aber nichts und zählt nicht als Land. */
+  sea: boolean;
   /** Feld in „doubled coordinates“ (siehe maps.ts). */
   c: number;
   r: number;
@@ -58,7 +60,12 @@ export interface Topology {
   coastLoops: CoastLoop[];
   /** Wasserfelder rund ums Land, als „c,r“: Meer (von außen erreichbar) und Binnenseen. */
   water: { sea: Set<string>; lake: Set<string> };
+  /** Insel je Feld (zusammenhängendes Land), -1 für Meerfelder. */
+  islands: number[];
 }
+
+/** Woraus die Topologie entsteht: Felder und, auf Seewege-Karten, welche davon Meer sind. */
+export type TopologySource = Pick<BoardState, 'cells' | 'layout'> & { hexes?: HexState[]; sea?: number[] };
 
 /** Die sechs Nachbarn eines Felds in „doubled coordinates“. */
 export const NEIGHBOR_STEPS: readonly [number, number][] = [
@@ -80,18 +87,20 @@ export function boardCells(board: Pick<BoardState, 'cells' | 'layout'>): [number
 }
 
 /** Die Geometrie hängt nur von den Feldern ab und wird deshalb nicht im Spielstand gespeichert. */
-export function getTopology(board: Pick<BoardState, 'cells' | 'layout'> | Layout): Topology {
-  const cells = boardCells(typeof board === 'string' ? { layout: board } : board);
-  const key = cells.map(([c, r]) => cellKey(c, r)).join(';');
+export function getTopology(board: TopologySource | Layout): Topology {
+  const source: TopologySource = typeof board === 'string' ? { layout: board } : board;
+  const cells = boardCells(source);
+  const sea = source.sea ?? (source.hexes ?? []).flatMap((h, i) => (h.terrain === 'sea' ? [i] : []));
+  const key = cells.map(([c, r]) => cellKey(c, r)).join(';') + (sea.length ? `|${sea.join(',')}` : '');
   let topo = cache.get(key);
   if (!topo) {
-    topo = buildTopology(cells, key);
+    topo = buildTopology(cells, key, new Set(sea));
     cache.set(key, topo);
   }
   return topo;
 }
 
-function buildTopology(cells: [number, number][], key: string): Topology {
+function buildTopology(cells: [number, number][], key: string, sea: Set<number>): Topology {
   const hexes: TopoHex[] = [];
   const vertices: TopoVertex[] = [];
   const edges: TopoEdge[] = [];
@@ -132,7 +141,8 @@ function buildTopology(cells: [number, number][], key: string): Topology {
   // Zeilenweise, links nach rechts: so bleiben die IDs des klassischen Bretts dieselben wie früher.
   const sorted = [...cells].sort((p, q) => p[1] - q[1] || p[0] - q[0]);
   for (const [c, r] of sorted) {
-    const hex: TopoHex = { id: hexes.length, c, r, x: (c * SQ3) / 2, y: r * 1.5, corners: [], edges: [], neighbors: [] };
+    const id = hexes.length;
+    const hex: TopoHex = { id, sea: sea.has(id), c, r, x: (c * SQ3) / 2, y: r * 1.5, corners: [], edges: [], neighbors: [] };
     for (const [dx, dy] of CORNERS) {
       const v = vertexAt(c + dx, 3 * r + dy);
       hex.corners.push(v);
@@ -157,10 +167,31 @@ function buildTopology(cells: [number, number][], key: string): Topology {
     }
   }
 
-  const water = classifyWater(hexes);
+  const water = classifyWater(hexes.filter((h) => !h.sea));
   const coastLoops = findCoastLoops(hexes, vertices, edges, water.lake);
   const outer = coastLoops.filter((l) => !l.lake).sort((a, b) => b.edges.length - a.edges.length)[0];
-  return { key, hexes, vertices, edges, coast: outer?.edges ?? [], coastLoops, water };
+  return { key, hexes, vertices, edges, coast: outer?.edges ?? [], coastLoops, water, islands: findIslands(hexes) };
+}
+
+/** Inseln: zusammenhängende Landfelder bekommen dieselbe Nummer, Meerfelder -1. */
+function findIslands(hexes: TopoHex[]): number[] {
+  const island = hexes.map(() => -1);
+  let next = 0;
+  for (const start of hexes) {
+    if (start.sea || island[start.id] >= 0) continue;
+    const stack = [start.id];
+    island[start.id] = next;
+    while (stack.length) {
+      for (const n of hexes[stack.pop()!].neighbors) {
+        if (!hexes[n].sea && island[n] < 0) {
+          island[n] = next;
+          stack.push(n);
+        }
+      }
+    }
+    next++;
+  }
+  return island;
 }
 
 /** Wasserfelder rund ums Land: Meer (von außen erreichbar) und Binnenseen (eingeschlossen). */
@@ -198,9 +229,12 @@ function classifyWater(hexes: TopoHex[]): { sea: Set<string>; lake: Set<string> 
   return { sea, lake };
 }
 
-/** Küstenkanten als geschlossene Schleifen. Jede Küstenecke hat genau zwei Küstenkanten, deshalb geht das immer auf. */
+/**
+ * Küstenkanten (genau ein Landfeld) als geschlossene Schleifen. Jede Küstenecke hat genau zwei
+ * Küstenkanten, deshalb geht das immer auf, auch mit Meerfeldern und Inseln.
+ */
 function findCoastLoops(hexes: TopoHex[], vertices: TopoVertex[], edges: TopoEdge[], lake: Set<string>): CoastLoop[] {
-  const isCoast = (e: number) => edges[e].hexes.length === 1;
+  const isCoast = (e: number) => edges[e].hexes.filter((h) => !hexes[h].sea).length === 1;
   const seen = new Set<number>();
   const loops: CoastLoop[] = [];
   for (const start of edges) {
@@ -219,7 +253,7 @@ function findCoastLoops(hexes: TopoHex[], vertices: TopoVertex[], edges: TopoEdg
     }
     // Liegt das Wasser hinter der ersten Kante in einem Binnensee? Spiegelt das Feld an der Kantenmitte.
     const e = edges[ordered[0]];
-    const h = hexes[e.hexes[0]];
+    const h = hexes[e.hexes.find((id) => !hexes[id].sea)!];
     const mx = (vertices[e.a].x + vertices[e.b].x) / 2;
     const my = (vertices[e.a].y + vertices[e.b].y) / 2;
     const wc = Math.round(((2 * mx - h.x) * 2) / SQ3);
@@ -229,20 +263,9 @@ function findCoastLoops(hexes: TopoHex[], vertices: TopoVertex[], edges: TopoEdg
   return loops;
 }
 
-/** Jedes Landfeld über Land erreichbar (ohne Schiffe Pflicht). */
+/** Jedes Landfeld über Land erreichbar (ohne Schiffe Pflicht): genau eine Insel. */
 export function isConnected(topo: Topology): boolean {
-  if (!topo.hexes.length) return false;
-  const seen = new Set([0]);
-  const stack = [0];
-  while (stack.length) {
-    for (const n of topo.hexes[stack.pop()!].neighbors) {
-      if (!seen.has(n)) {
-        seen.add(n);
-        stack.push(n);
-      }
-    }
-  }
-  return seen.size === topo.hexes.length;
+  return topo.hexes.some((h) => !h.sea) && Math.max(...topo.islands) === 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -290,7 +313,7 @@ function harborTypes(count: number): HarborType[] {
 }
 
 function placeTerrain(topo: Topology, marks: string[], pool: Record<Terrain, number>, rng: RngState): Terrain[] {
-  const terrain: (Terrain | null)[] = topo.hexes.map(() => null);
+  const terrain: (Terrain | null)[] = topo.hexes.map((h) => (h.sea ? 'sea' : null));
   const left = { ...pool };
   for (const h of topo.hexes) {
     const t = FIXED[marks[h.id]];
@@ -341,7 +364,7 @@ function placeTerrain(topo: Topology, marks: string[], pool: Record<Terrain, num
 function placeNumbers(topo: Topology, terrain: Terrain[], pool: number[], rng: RngState, strict: boolean): (number | null)[] | null {
   for (let attempt = 0; attempt < 400; attempt++) {
     const numbers: (number | null)[] = topo.hexes.map(() => null);
-    const open = new Set(topo.hexes.filter((h) => terrain[h.id] !== 'desert').map((h) => h.id));
+    const open = new Set(topo.hexes.filter((h) => terrain[h.id] !== 'desert' && terrain[h.id] !== 'sea').map((h) => h.id));
     const sequence = [...shuffle(rng, pool.filter(isRed)), ...shuffle(rng, pool.filter((x) => !isRed(x)))];
     let ok = true;
     for (const num of sequence) {
@@ -456,7 +479,7 @@ function score(topo: Topology, terrain: Terrain[], numbers: (number | null)[], p
   let cluster = 1;
   const seen = new Set<number>();
   for (const h of topo.hexes) {
-    if (seen.has(h.id) || terrain[h.id] === 'desert') continue;
+    if (seen.has(h.id) || terrain[h.id] === 'desert' || terrain[h.id] === 'sea') continue;
     let size = 0;
     const stack = [h.id];
     seen.add(h.id);
@@ -481,7 +504,7 @@ function score(topo: Topology, terrain: Terrain[], numbers: (number | null)[], p
   const skew = Math.max(...perTile.map((p) => Math.abs(p - mean) / mean));
   // Startrunde: Schlangenauswahl, jeder nimmt gierig die beste freie Ecke
   const value = topo.vertices.map((v) => {
-    const kinds = new Set(v.hexes.map((id) => terrain[id]).filter((t) => t !== 'desert'));
+    const kinds = new Set(v.hexes.map((id) => terrain[id]).filter((t) => t !== 'desert' && t !== 'sea'));
     const p = v.hexes.reduce((a, id) => a + pips(numbers[id]), 0);
     return { p, score: p + 0.6 * Math.max(0, kinds.size - 1) };
   });
@@ -577,9 +600,9 @@ function growShape(size: number, rng: RngState): MaskCell[] {
   return [...land.values()];
 }
 
-/** Form einer Karte für eine Spielerzahl. */
+/** Form einer Karte für eine Spielerzahl; auf Seewege-Karten mit Meerfeldern (`~`). */
 export function mapShape(map: MapDef, players: number, rng: RngState): MaskCell[] {
-  if (map.mask) return parseMask(typeof map.mask === 'function' ? map.mask(players) : map.mask);
+  if (map.mask) return parseMask(typeof map.mask === 'function' ? map.mask(players) : map.mask, !!map.seafaring);
   return growShape(map.randomSize!(players), rng);
 }
 
@@ -588,18 +611,26 @@ export function generateBoard(
   mapId: string | undefined,
   players: number,
   rng: RngState,
-): { board: BoardState; robber: number; bank: number } {
+): { board: BoardState; robber: number; bank: number; pirate: number | null } {
   const map = mapById(mapId);
   const shape = mapShape(map, players, rng);
   // Felder in Brett-Reihenfolge (zeilenweise), die Maskenzeichen dazu.
   const sortedShape = [...shape].sort((p, q) => p.r - q.r || p.c - q.c);
   const cells = sortedShape.map((m): [number, number] => [m.c, m.r]);
   const marks = sortedShape.map((m) => m.ch);
-  const topo = getTopology({ cells });
-  const n = topo.hexes.length;
+  const sea = marks.flatMap((m, i) => (m === '~' ? [i] : []));
+  const topo = getTopology({ cells, sea });
+  // Vorräte richten sich nach den Landfeldern; Meer liefert nichts.
+  const n = topo.hexes.length - sea.length;
 
   const deserts = Math.max(1, Math.round(n / 15));
-  const terrainPool = { ...largestRemainder(n - deserts, TERRAIN_WEIGHT, rng), desert: deserts } as Record<Terrain, number>;
+  const gold = marks.filter((m) => m === '$').length;
+  const terrainPool = {
+    ...largestRemainder(n - deserts - gold, TERRAIN_WEIGHT, rng),
+    desert: deserts,
+    gold,
+    sea: 0,
+  } as Record<Terrain, number>;
   const counts = largestRemainder(n - deserts, NUMBER_WEIGHT, rng);
   const numberPool = Object.entries(counts).flatMap(([k, c]) => Array<number>(c).fill(Number(k)));
   const coastLength = topo.coastLoops.reduce((a, l) => a + l.edges.length, 0);
@@ -617,6 +648,9 @@ export function generateBoard(
   if (!best) throw new Error(`Für die Karte ${map.name} ließ sich kein gültiges Brett erzeugen.`);
 
   const types = shuffle(rng, harborTypes(best.harborEdges.length));
+  // Das Kaperschiff startet auf einem Meerfeld an der Küste.
+  const coastalSea = topo.hexes.filter((h) => h.sea && h.neighbors.some((m) => !topo.hexes[m].sea));
+  const pirate = coastalSea.length ? coastalSea[randomInt(rng, coastalSea.length)].id : null;
   const board: BoardState = {
     map: map.id,
     cells,
@@ -625,7 +659,7 @@ export function generateBoard(
   };
   // Das klassische Brett behält sein Layout zusätzlich, so bleiben alte Werkzeuge und Tests gültig.
   if (map.id === 'klassisch') board.layout = n > 19 ? 'ext' : 'base';
-  return { board, robber: best.hexes.findIndex((h) => h.terrain === 'desert'), bank: bankSize(n) };
+  return { board, robber: best.hexes.findIndex((h) => h.terrain === 'desert'), bank: bankSize(n), pirate };
 }
 
 /** Klassisch: Häfen gleichmäßig um die Außenküste wie bisher. */

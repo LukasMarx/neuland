@@ -9,7 +9,7 @@ const SQ3 = Math.sqrt(3);
   template: `
     <svg [attr.viewBox]="shape().viewBox" aria-hidden="true">
       @for (h of shape().hexes; track $index) {
-        <polygon [attr.points]="h.points" [class.desert]="h.desert" />
+        <polygon [attr.points]="h.points" [class.desert]="h.desert" [class.gold]="h.gold" [class.sea]="h.sea" />
       }
     </svg>
   `,
@@ -30,6 +30,13 @@ const SQ3 = Math.sqrt(3);
     .desert {
       fill: #d9b878;
     }
+    .gold {
+      fill: #e0b33c;
+    }
+    .sea {
+      fill: #2c6d8f;
+      stroke: #24576f;
+    }
   `,
 })
 export class MapThumb {
@@ -44,7 +51,12 @@ export class MapThumb {
         const a = ((60 * k - 90) * Math.PI) / 180;
         return `${(cx + Math.cos(a)).toFixed(2)},${(cy + Math.sin(a)).toFixed(2)}`;
       }).join(' ');
-    const hexes = cells.map((m) => ({ points: corners((m.c * SQ3) / 2, m.r * 1.5), desert: m.ch === 'x' || m.ch === 'X' }));
+    const hexes = cells.map((m) => ({
+      points: corners((m.c * SQ3) / 2, m.r * 1.5),
+      desert: m.ch === 'x' || m.ch === 'X',
+      gold: m.ch === '$',
+      sea: m.ch === '~',
+    }));
     const xs = cells.map((m) => (m.c * SQ3) / 2);
     const ys = cells.map((m) => m.r * 1.5);
     const minX = Math.min(...xs) - 1.2;

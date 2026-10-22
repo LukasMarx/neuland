@@ -99,6 +99,8 @@ export class Board {
   });
   protected readonly ghostSize = computed(() => BUILDING_SIZE[this.ghost() ?? 'settlement'] * this.k());
   protected readonly ghostRoadImage = computed(() => pieceImage('road', this.ghostColor()));
+  /** Was im Baumodus an Kanten als Vorschau erscheint: Straße oder Schiff. */
+  readonly edgeGhost = input<'road' | 'ship'>('road');
 
   protected readonly topo = computed(() => getTopology(this.game().board));
   private readonly map = computed(() => mapById(this.game().board.map));
@@ -182,6 +184,7 @@ export class Board {
         y: h.y * S,
         points: h.corners.map((c) => this.point(c)).join(' '),
         terrain: state.terrain,
+        sea: state.terrain === 'sea',
         image: tileImage(state.terrain, h.id),
         // Jedes zweite Feld gespiegelt, damit gleiche Gelände nicht wie gestempelt aussehen.
         transform: `translate(${(h.x * S).toFixed(1)},${(h.y * S).toFixed(1)})${h.id % 2 ? ' scale(-1,1)' : ''}`,
@@ -199,7 +202,8 @@ export class Board {
   protected readonly harbors = computed(() =>
     this.game().board.harbors.map((harbor) => {
       const e = this.topo().edges[harbor.edge];
-      const hex = this.topo().hexes[e.hexes[0]];
+      // Das Landfeld der Kante (bei Seewege liegt auf der anderen Seite ein Meerfeld).
+      const hex = this.topo().hexes[e.hexes.find((h) => !this.topo().hexes[h].sea) ?? e.hexes[0]];
       const a = this.topo().vertices[e.a];
       const b = this.topo().vertices[e.b];
       const mx = (a.x + b.x) / 2;
@@ -234,6 +238,24 @@ export class Board {
         image: pieceImage('road', player.color), title: `${player.name}: Straße`,
       }];
     });
+  });
+
+  /** Seewege: Schiffe liegen quer auf ihrer Kante wie Straßen, gedreht nach der Kante. */
+  protected readonly ships = computed(() => {
+    const g = this.game();
+    return (g.ships ?? []).flatMap((owner, id) => {
+      if (owner === null) return [];
+      const player = g.players[owner];
+      const line = this.edgeLine(id, 0.08);
+      return [{ id, transform: `${line.transform} scale(${this.k()})`, color: player.color, title: `${player.name}: Schiff` }];
+    });
+  });
+
+  protected readonly pirate = computed(() => {
+    const g = this.game();
+    if (g.pirate == null) return null;
+    const h = this.topo().hexes[g.pirate];
+    return { transform: `translate(${h.x * S},${h.y * S}) scale(${1.25 * this.k()})` };
   });
 
   protected readonly buildings = computed(() => {
