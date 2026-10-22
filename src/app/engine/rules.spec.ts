@@ -18,7 +18,7 @@ import {
   tradeRate,
   victoryPoints,
 } from './rules';
-import { Action, COSTS, DevCard, GameState, RESOURCES, ResourceCounts, emptyResources, totalResources } from './types';
+import { Action, COSTS, DevCard, GameState, Resource, RESOURCES, ResourceCounts, emptyResources, totalResources } from './types';
 
 // ---------------------------------------------------------------------------
 // Hilfsfunktionen
@@ -85,7 +85,7 @@ function expectFail(s: GameState, seat: number, action: Action, message?: RegExp
   if (message) expect((error as Error).message).toMatch(message);
 }
 
-function totalOf(s: GameState, k: keyof ResourceCounts): number {
+function totalOf(s: GameState, k: Resource): number {
   return s.bank[k] + s.players.reduce((sum, p) => sum + p.resources[k], 0);
 }
 

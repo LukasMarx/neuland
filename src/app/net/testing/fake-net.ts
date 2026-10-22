@@ -1,6 +1,6 @@
 import { Injector, runInInjectionContext } from '@angular/core';
 import { Action, actingSeats, applyAction, emptyResources, GameState, legalCityVertices, legalRoadEdges } from '../../engine';
-import { autoAction, legalBridgeEdges, legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, legalShipEdges, movableShips, RESOURCES, robberVictims } from '../../engine';
+import { autoAction, canImprove, CARDS, count, legalBridgeEdges, legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, legalShipEdges, legalWallVertices, metropolisCandidates, movableShips, RESOURCES, robberVictims, setCount, TRACKS } from '../../engine';
 import { NetMessage } from '../protocol';
 import { NET_ENV, NetEnv, RoomService } from '../room.service';
 import { TransportHandlers } from '../transport';
@@ -293,9 +293,9 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
       const left = { ...g.players[seat].resources };
       const out = emptyResources();
       for (let i = 0; i < p.pending[seat]; i++) {
-        const r = RESOURCES.find((k) => left[k] > 0)!;
-        left[r]--;
-        out[r]++;
+        const r = CARDS.find((k) => count(left, k) > 0)!;
+        setCount(left, r, count(left, r) - 1);
+        setCount(out, r, count(out, r) + 1);
       }
       return { seat, action: { type: 'discard', resources: out } };
     }
@@ -318,6 +318,13 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
         ...legalRoadEdges(g, seat).map((edge) => () => ({ type: 'buildRoad', edge }) as Action),
         () => ({ type: 'buyDevCard' }),
         ...legalShipEdges(g, seat).map((edge) => () => ({ type: 'buildShip', edge }) as Action),
+        // Stadtwacht: Stadt ausbauen (Prachtstadt auf die erste mögliche Stadt) und Palisaden.
+        ...(g.improvements
+          ? TRACKS.filter((track) => canImprove(g, seat, track)).map(
+              (track) => () => ({ type: 'improveCity', track, vertex: metropolisCandidates(g, seat)[0] }) as Action,
+            )
+          : []),
+        ...legalWallVertices(g, seat).map((vertex) => () => ({ type: 'buildWall', vertex }) as Action),
         // Flussläufe: Brücken bauen und Münzen tauschen.
         ...legalBridgeEdges(g, seat).map((edge) => () => ({ type: 'buildBridge', edge }) as Action),
         ...(g.coins && g.coins[seat] >= 2 ? [() => ({ type: 'tradeCoins', resource: pick([...RESOURCES]) }) as Action] : []),

@@ -2,7 +2,12 @@ import { afterRenderEffect, Component, computed, DestroyRef, effect, ElementRef,
 import {
   actingSeats,
   canSpendFish,
+  Card,
+  CARD_NAMES,
+  CARDS,
+  count,
   COSTS,
+  isCommodity,
   deckSize,
   devCount,
   handSize,
@@ -34,6 +39,11 @@ import {
   robberVictims,
   canSpendTokens,
   coinPoints,
+  legalWallVertices,
+  metropolisCandidates,
+  Track,
+  TRACK_NAMES,
+  TRACKS,
   legalBridgeEdges,
   TokenEffect,
   tokenCost,
@@ -56,8 +66,9 @@ import { BannerEvent, EventBanner } from './event-banner';
 import { FlyLayer } from './fly-layer';
 import { hasOfferView, offerFor, OfferPanel } from './offer-panel';
 import { TradeTable, withdrawOffers } from './trade-table';
+import { CityPanel } from './city-panel';
 
-type BuildMode = 'road' | 'settlement' | 'city' | 'ship' | 'moveShip' | 'bridge';
+type BuildMode = 'road' | 'settlement' | 'city' | 'ship' | 'moveShip' | 'bridge' | 'wall' | 'metropolis';
 type Dialog =
   | { kind: 'yearOfPlenty' }
   | { kind: 'monopoly' }
@@ -80,7 +91,7 @@ const HIGHLIGHT_MS = 2600;
 
 @Component({
   selector: 'app-game',
-  imports: [Board, CardFace, CardInspector, ChatBox, DiceTray, EventBanner, FlyLayer, OfferPanel, ResourcePicker, TradeTable],
+  imports: [Board, CardFace, CardInspector, ChatBox, CityPanel, DiceTray, EventBanner, FlyLayer, OfferPanel, ResourcePicker, TradeTable],
   templateUrl: './game.html',
   styleUrl: './game.scss',
   host: { '(document:keydown)': 'onKey($event)' },
@@ -90,9 +101,12 @@ export class GameView {
   readonly leave = output<void>();
 
   protected readonly resources = RESOURCES;
+  /** Karten auf der Hand und in der Bank: Rohstoffe, mit Stadtwacht auch Güter. */
+  protected readonly handCards = computed((): readonly Card[] => (this.g().improvements ? CARDS : RESOURCES));
+  protected readonly n = count;
   protected readonly cardArt = CARD_ART;
   protected readonly resourceArt = RESOURCE_ART;
-  protected readonly resourceNames = RESOURCE_NAMES;
+  protected readonly resourceNames = CARD_NAMES;
   protected readonly devNames = DEV_CARD_NAMES;
   protected readonly devHelp = DEV_CARD_HELP;
   protected readonly costs = COSTS;
@@ -157,6 +171,10 @@ export class GameView {
   protected readonly goldPick = signal<ResourceCounts>(emptyResources());
   protected readonly dialog = signal<Dialog | null>(null);
   protected readonly tradeOpen = signal(false);
+  /** Stadtwacht: Ausbau-Tafel im Dock und die Richtung, für die gerade eine Prachtstadt gewählt wird. */
+  protected readonly cityOpen = signal(false);
+  protected readonly metroTrack = signal<Track | null>(null);
+  protected readonly cityWatch = computed(() => !!this.g().improvements);
   /** Vorbefüllung des Tauschtischs, z. B. das gespiegelte Angebot für ein Gegenangebot. */
   protected readonly tradePrefill = signal<{ give: ResourceCounts; want: ResourceCounts } | null>(null);
   /** Der Tisch bleibt offen, solange für den aktiven Spieler Angebote laufen, auch nach dem Neuladen. */
@@ -225,7 +243,7 @@ export class GameView {
   /** Der Siegerdialog erscheint erst, wenn das Sieg-Banner durchgelaufen ist. */
   protected readonly winnerReady = signal(false);
   /** Kurz eingeblendete Änderungen an der eigenen Hand („+2“, „−1“). */
-  protected readonly handDelta = signal<{ values: Partial<Record<Resource, number>>; id: number } | null>(null);
+  protected readonly handDelta = signal<{ values: Partial<Record<Card, number>>; id: number } | null>(null);
 
   private readonly logList = viewChild<ElementRef<HTMLElement>>('logList');
   private readonly fly = viewChild(FlyLayer);
@@ -275,6 +293,11 @@ export class GameView {
         COSTS.ship,
         piecesLeft(g, seat, 'ship') <= 0 ? 'Keine Schiffe mehr' : 'Kein Platz an deinen Küsten und Schiffen',
       ),
+      wall: option(
+        can && !!g.walls && afford(COSTS.wall) && legalWallVertices(g, seat).length > 0,
+        COSTS.wall,
+        'Keine Stadt ohne Palisade (höchstens 3)',
+      ),
       bridge: option(
         can && !!g.coins && afford(COSTS.bridge) && piecesLeft(g, seat, 'bridge') > 0 && legalBridgeEdges(g, seat).length > 0,
         COSTS.bridge,
@@ -300,6 +323,10 @@ export class GameView {
         return 'Wähle eine Kante am Meer für das Schiff';
       case 'bridge':
         return 'Wähle eine Flusskante für die Brücke';
+      case 'wall':
+        return 'Wähle eine eigene Stadt für die Palisade';
+      case 'metropolis':
+        return `Wähle die Stadt, die Prachtstadt ${TRACK_NAMES[this.metroTrack() ?? 'market']} wird`;
       case 'moveShip':
         return this.moveFrom() === null ? 'Wähle das Schiff, das du versetzt' : 'Wähle, wohin das Schiff fährt';
       default:
@@ -348,6 +375,10 @@ export class GameView {
         return { ...none, edges: legalShipEdges(g, seat) };
       case 'bridge':
         return { ...none, edges: legalBridgeEdges(g, seat) };
+      case 'wall':
+        return { ...none, vertices: legalWallVertices(g, seat) };
+      case 'metropolis':
+        return { ...none, vertices: metropolisCandidates(g, seat) };
       case 'moveShip': {
         const from = this.moveFrom();
         if (from === null) return { ...none, edges: movableShips(g, seat) };
@@ -541,6 +572,8 @@ export class GameView {
       fishing: !!g.fish,
       fishCount: p.hidden?.fish ?? g.fish?.[i.seat].length ?? 0,
       coins: g.coins?.[i.seat] ?? null,
+      improvements: g.improvements?.[i.seat] ?? null,
+      metropolises: g.metropolis ? TRACKS.filter((t) => g.metropolis![t] !== null && g.buildings[g.metropolis![t]!]?.owner === i.seat).length : 0,
       coinPoints: coinPoints(g, i.seat),
       anchor: g.anchor === i.seat,
       target: victoryTarget(g, i.seat),
@@ -689,8 +722,8 @@ export class GameView {
         lastGame = g;
 
         if (current && previous) {
-          const values: Partial<Record<Resource, number>> = {};
-          for (const r of RESOURCES) if (current[r] !== previous[r]) values[r] = current[r] - previous[r];
+          const values: Partial<Record<Card, number>> = {};
+          for (const r of CARDS) if (count(current, r) !== count(previous, r)) values[r] = count(current, r) - count(previous, r);
           if (Object.keys(values).length) {
             clearTimeout(deltaTimer);
             // Das „+n“ erscheint, wenn die Karten ankommen.
@@ -767,7 +800,8 @@ export class GameView {
     const allTo = target !== null && t.every((x) => x.to.kind === 'player' && x.to.seat === target);
     if (allTo && t.every((x) => x.from.kind === 'player' && !x.hidden && x.card === t[0].card) && t[0].card !== 'dev') {
       const total = t.reduce((n, x) => n + x.count, 0);
-      this.pushBanner({ kind: 'monopoly', title: `Monopol auf ${RESOURCE_NAMES[t[0].card]}`, ...who(target), tag: `bekommt ${total} Karten`, resource: t[0].card });
+      const card = t[0].card;
+      this.pushBanner({ kind: 'monopoly', title: `Monopol auf ${CARD_NAMES[card]}`, ...who(target), tag: `bekommt ${total} Karten`, resource: isCommodity(card) ? undefined : card });
     } else if (allTo && t.every((x) => x.from.kind === 'bank' && x.card !== 'dev') && t.reduce((n, x) => n + x.count, 0) === 2 && prev.devPlayed !== g.devPlayed) {
       const resources = t.flatMap((x) => Array<Resource>(x.count).fill(x.card as Resource));
       this.pushBanner({ kind: 'plenty', title: 'Erfindung', ...who(target), tag: resources.map((r) => RESOURCE_NAMES[r]).join(' und '), resources });
@@ -822,6 +856,11 @@ export class GameView {
     const g = this.g();
     const nc = this.neutralChoice();
     if (nc) this.room.act({ type: 'placeNeutral', owner: nc.active.owner, vertex });
+    else if (this.buildMode() === 'wall') this.room.act({ type: 'buildWall', vertex });
+    else if (this.buildMode() === 'metropolis' && this.metroTrack()) {
+      this.room.act({ type: 'improveCity', track: this.metroTrack()!, vertex });
+      this.metroTrack.set(null);
+    }
     else if (g.phase.kind === 'setup') this.room.act({ type: 'placeSettlement', vertex });
     else if (this.buildMode() === 'settlement') this.room.act({ type: 'buildSettlement', vertex });
     else if (this.buildMode() === 'city') this.room.act({ type: 'buildCity', vertex });
@@ -900,6 +939,13 @@ export class GameView {
         this.dialog.set({ kind: 'monopoly' });
         break;
     }
+  }
+
+  /** Prachtstadt: Die Ausbau-Tafel schließt, die Wahl der Stadt passiert auf dem Brett. */
+  protected chooseMetropolis(track: Track): void {
+    this.metroTrack.set(track);
+    this.cityOpen.set(false);
+    this.buildMode.set('metropolis');
   }
 
   protected tradeCoins(resource: Resource): void {
@@ -989,7 +1035,7 @@ export class GameView {
 
   /** Rohstoffsymbole für die Baukosten, eins pro benötigter Karte. */
   protected costArt(cost: ResourceCounts): { src: string; name: string }[] {
-    return RESOURCES.flatMap((r) => Array.from({ length: cost[r] }, () => ({ src: RESOURCE_ART[r], name: RESOURCE_NAMES[r] })));
+    return CARDS.flatMap((r) => Array.from({ length: count(cost, r) }, () => ({ src: RESOURCE_ART[r], name: CARD_NAMES[r] })));
   }
 
   protected deltaLabel(n: number | undefined): string {
@@ -1014,6 +1060,7 @@ export class GameView {
         this.primary().run?.();
         break;
       case 'escape':
+        this.cityOpen.set(false);
         this.buildMode.set(null);
         this.moveFrom.set(null);
         if (this.showTable()) this.closeTrade();
@@ -1055,14 +1102,14 @@ export class GameView {
   }
 
   /** Klick auf eine Handkarte öffnet den Tauschtisch mit dieser Karte auf „Du gibst“. */
-  protected handClick(r: Resource): void {
-    if (!this.canTrade() || !this.isCurrent() || !this.me()?.resources[r]) return;
+  protected handClick(r: Card): void {
+    if (!this.canTrade() || !this.isCurrent() || !count(this.me()?.resources ?? emptyResources(), r)) return;
     this.openTrade({ give: { ...emptyResources(), [r]: 1 }, want: emptyResources() });
   }
 
   private missing(cost: ResourceCounts): string {
     const have = this.me()?.resources ?? emptyResources();
-    const parts = RESOURCES.filter((r) => cost[r] > have[r]).map((r) => `${cost[r] - have[r]} ${RESOURCE_NAMES[r]}`);
+    const parts = CARDS.filter((r) => count(cost, r) > count(have, r)).map((r) => `${count(cost, r) - count(have, r)} ${CARD_NAMES[r]}`);
     return `Fehlt: ${parts.join(', ')}`;
   }
 

@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import { DEV_CARD_NAMES, RESOURCE_NAMES } from '../../engine';
+import { CARD_NAMES, DEV_CARD_NAMES } from '../../engine';
 import { CARD_ART, CARD_ART_LARGE, CardKind } from './card-art';
 
 /** Shared, non-interactive card face for the hand and selection dialogs. */
@@ -24,5 +24,5 @@ export class CardFace {
   readonly large = input(false);
   protected readonly artLarge = CARD_ART_LARGE;
   protected readonly art = CARD_ART;
-  protected readonly name = computed(() => ({ ...RESOURCE_NAMES, ...DEV_CARD_NAMES, back: 'Neuland' })[this.kind()]);
+  protected readonly name = computed(() => ({ ...CARD_NAMES, ...DEV_CARD_NAMES, back: 'Neuland' })[this.kind()]);
 }

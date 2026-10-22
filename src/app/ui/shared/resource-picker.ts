@@ -1,5 +1,5 @@
 import { Component, input, model } from '@angular/core';
-import { RESOURCE_NAMES, RESOURCES, Resource, ResourceCounts } from '../../engine';
+import { Card, CARD_NAMES, count, RESOURCES, ResourceCounts } from '../../engine';
 import { CardFace } from './card-face';
 
 /** Mengenauswahl je Rohstoff mit −/+. `max` begrenzt pro Rohstoff, `total` die Summe. */
@@ -7,16 +7,16 @@ import { CardFace } from './card-face';
   selector: 'app-resource-picker',
   imports: [CardFace],
   template: `
-    @for (r of resources; track r) {
+    @for (r of cards(); track r) {
       <div class="cell" [title]="names[r]">
         <app-card-face [kind]="r" />
         <div class="controls">
-          <button class="small" type="button" [disabled]="value()[r] <= 0" (click)="change(r, -1)" [attr.aria-label]="names[r] + ' weniger'">−</button>
-          <span class="count">{{ value()[r] }}</span>
+          <button class="small" type="button" [disabled]="n(value(), r) <= 0" (click)="change(r, -1)" [attr.aria-label]="names[r] + ' weniger'">−</button>
+          <span class="count">{{ n(value(), r) }}</span>
           <button class="small" type="button" [disabled]="!canAdd(r)" (click)="change(r, 1)" [attr.aria-label]="names[r] + ' mehr'">+</button>
         </div>
         @if (max(); as m) {
-          <span class="muted have">von {{ m[r] }}</span>
+          <span class="muted have">von {{ n(m, r) }}</span>
         }
       </div>
     }
@@ -24,7 +24,7 @@ import { CardFace } from './card-face';
   styles: `
     :host {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr));
       gap: 6px;
     }
     .cell {
@@ -67,24 +67,27 @@ import { CardFace } from './card-face';
       }
     }
   `,
+  host: { '[style.--cols]': 'cards().length > 5 ? 4 : 5' },
 })
 export class ResourcePicker {
   readonly value = model.required<ResourceCounts>();
   readonly max = input<ResourceCounts | null>(null);
   readonly total = input<number | null>(null);
 
-  protected readonly resources = RESOURCES;
-  protected readonly names = RESOURCE_NAMES;
+  /** Welche Karten zur Wahl stehen: Rohstoffe, beim Abwerfen mit Stadtwacht auch Güter. */
+  readonly cards = input<readonly Card[]>(RESOURCES);
+  protected readonly names = CARD_NAMES;
+  protected readonly n = count;
 
-  protected canAdd(r: Resource): boolean {
+  protected canAdd(r: Card): boolean {
     const max = this.max();
-    if (max && this.value()[r] >= max[r]) return false;
+    if (max && count(this.value(), r) >= count(max, r)) return false;
     const total = this.total();
-    if (total !== null && RESOURCES.reduce((sum, k) => sum + this.value()[k], 0) >= total) return false;
+    if (total !== null && this.cards().reduce((sum, k) => sum + count(this.value(), k), 0) >= total) return false;
     return true;
   }
 
-  protected change(r: Resource, delta: number): void {
-    this.value.update((v) => ({ ...v, [r]: Math.max(0, v[r] + delta) }));
+  protected change(r: Card, delta: number): void {
+    this.value.update((v) => ({ ...v, [r]: Math.max(0, count(v, r) + delta) }));
   }
 }

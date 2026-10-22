@@ -1,8 +1,8 @@
 import { bankSize, getTopology } from './board';
 import { shuffle, RngState } from './rng';
 import { DEV_DECK, humanCount } from './rules';
-import { FISH_POOL } from './variants';
-import { DevCard, emptyResources, GameState, HiddenCounts, Resource, RESOURCES, ResourceCounts, totalResources, Transfer } from './types';
+import { FISH_POOL, GOODS_SUPPLY } from './variants';
+import { Card, CARDS, count, DevCard, emptyResources, GameState, HiddenCounts, isCommodity, ResourceCounts, setCount, totalResources, Transfer } from './types';
 
 /**
  * Verdeckte Informationen (docs/ERWEITUNGEN.md, Abschnitt 4, Maßnahme B): Der Host hält den vollen Stand
@@ -80,7 +80,7 @@ export function rebuild(view: GameState, secrets: ReadonlyMap<number, Secret>, r
 
   // Rohstoffe: Was weder in der Bank noch in bekannten Händen liegt, verteilt sich auf die Fehlenden.
   const left = remaining(s);
-  const unknownCards = shuffle(rng, RESOURCES.flatMap((r) => Array<Resource>(Math.max(0, left.resources[r])).fill(r)));
+  const unknownCards = shuffle(rng, CARDS.flatMap((r) => Array<Card>(Math.max(0, left.resources[r])).fill(r)));
   // Entwicklungskarten: Was übrig ist, liegt im Stapel oder bei den Fehlenden.
   const unknownDev = shuffle(rng, (Object.keys(left.dev) as DevCard[]).flatMap((c) => Array<DevCard>(Math.max(0, left.dev[c])).fill(c)));
   // Fische: Stapel minus bekannte Plättchen; der Anker liegt beim Inhaber oder im Stapel.
@@ -93,7 +93,7 @@ export function rebuild(view: GameState, secrets: ReadonlyMap<number, Secret>, r
   for (const { seat, counts } of missing) {
     const p = s.players[seat];
     p.resources = emptyResources();
-    for (const r of unknownCards.splice(0, counts.cards)) p.resources[r]++;
+    for (const r of unknownCards.splice(0, counts.cards)) setCount(p.resources, r, count(p.resources, r) + 1);
     p.devCards = unknownDev.splice(0, counts.dev);
     p.newDevCards = [];
     if (s.fish) s.fish[seat] = unknownFish.splice(0, counts.fish);
@@ -113,16 +113,21 @@ export function rebuild(view: GameState, secrets: ReadonlyMap<number, Secret>, r
 /** Geht der volle Stand auf? Je Rohstoff Bank plus alle Hände gleich dem Anfangsvorrat. */
 export function isConsistent(s: GameState): boolean {
   if (s.supply === undefined) return true;
-  return RESOURCES.every((r) => s.bank[r] + s.players.reduce((n, p) => n + p.resources[r], 0) === s.supply);
+  return CARDS.every((r) => count(s.bank, r) + s.players.reduce((n, p) => n + count(p.resources, r), 0) === supplyOf(s, r));
+}
+
+/** Anfangsvorrat einer Kartenart: Rohstoffe nach Karte, Güter nur mit Stadtwacht. */
+function supplyOf(s: GameState, card: Card): number {
+  if (isCommodity(card)) return s.improvements ? GOODS_SUPPLY : 0;
+  return s.supply ?? bankSize(getTopology(s.board).hexes.filter((h) => !h.sea).length);
 }
 
 /** Was noch nicht in Bank, bekannten Händen, Ablage oder (bei Fischen) beim Ankerinhaber liegt. */
-function remaining(s: GameState): { resources: Record<Resource, number>; dev: Record<DevCard, number>; fish: Record<number, number> } {
-  const supply = s.supply ?? bankSize(getTopology(s.board).hexes.filter((h) => !h.sea).length);
+function remaining(s: GameState): { resources: Record<Card, number>; dev: Record<DevCard, number>; fish: Record<number, number> } {
   const known = s.players.filter((p) => !p.hidden);
   const resources = Object.fromEntries(
-    RESOURCES.map((r) => [r, supply - s.bank[r] - known.reduce((n, p) => n + p.resources[r], 0)]),
-  ) as Record<Resource, number>;
+    CARDS.map((r) => [r, supplyOf(s, r) - count(s.bank, r) - known.reduce((n, p) => n + count(p.resources, r), 0)]),
+  ) as Record<Card, number>;
   const dev: Record<DevCard, number> = { ...DEV_DECK[humanCount(s) > 4 ? 'ext' : 'base'] };
   for (const c of [...(s.playedDev ?? []), ...known.flatMap((p) => [...p.devCards, ...p.newDevCards])]) dev[c]--;
   // Ohne Liste der ausgespielten Karten (alte Spielstände) zählen wenigstens die Ritter.
@@ -140,7 +145,7 @@ function available(s: GameState, secret: Secret): boolean {
   const need = (counts: Record<string, number>, items: (string | number)[]) =>
     items.every((x) => (counts[x] = (counts[x] ?? 0) - 1) >= 0);
   return (
-    RESOURCES.every((r) => secret.resources[r] <= left.resources[r]) &&
+    CARDS.every((r) => count(secret.resources, r) <= left.resources[r]) &&
     need(left.dev, [...secret.devCards, ...secret.newDevCards]) &&
     need(left.fish, secret.fish)
   );
@@ -148,7 +153,8 @@ function available(s: GameState, secret: Secret): boolean {
 
 function fits(secret: Secret, counts: HiddenCounts): boolean {
   return (
-    RESOURCES.every((r) => Number.isInteger(secret.resources?.[r]) && secret.resources[r] >= 0) &&
+    !!secret.resources &&
+    CARDS.every((r) => Number.isInteger(count(secret.resources, r)) && count(secret.resources, r) >= 0) &&
     totalResources(secret.resources) === counts.cards &&
     (secret.devCards?.length ?? 0) + (secret.newDevCards?.length ?? 0) === counts.dev &&
     (secret.fish?.length ?? 0) === counts.fish &&
@@ -158,6 +164,6 @@ function fits(secret: Secret, counts: HiddenCounts): boolean {
 
 function pick(r: ResourceCounts): ResourceCounts {
   const out = emptyResources();
-  for (const k of RESOURCES) out[k] = r[k];
+  for (const k of CARDS) setCount(out, k, count(r, k));
   return out;
 }

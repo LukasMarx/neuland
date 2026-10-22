@@ -1,5 +1,5 @@
 import { Component, computed, inject, input, output } from '@angular/core';
-import { emptyResources, GameState, RESOURCE_NAMES, RESOURCES, Resource, ResourceCounts, TradeOffer } from '../../engine';
+import { Card, CARD_NAMES, CARDS, count, emptyResources, GameState, ResourceCounts, TradeOffer } from '../../engine';
 import { RoomService } from '../../net/room.service';
 import { CardFace } from '../shared/card-face';
 
@@ -20,7 +20,7 @@ import { CardFace } from '../shared/card-face';
               <span class="slotwrap">
                 <span class="slot on static" [attr.data-hand]="v.mineSent ? r : null">
                   <app-card-face [kind]="r" />
-                  <span class="count">{{ v.top[r] }}</span>
+                  <span class="count">{{ n(v.top, r) }}</span>
                 </span>
                 <small>&nbsp;</small>
               </span>
@@ -31,18 +31,18 @@ import { CardFace } from '../shared/card-face';
           <b>{{ v.mineSent ? 'Du bekommst' : v.from + ' will' }}@if (!v.mineSent) {<small>von dir</small>}</b>
           <div class="slots">
             @for (r of present(v.bottom); track r) {
-              @let lack = v.mineSent ? 0 : Math.max(0, v.bottom[r] - hand()[r]);
+              @let lack = v.mineSent ? 0 : Math.max(0, n(v.bottom, r) - n(hand(), r));
               <span class="slotwrap">
                 <span class="slot on static" [class.short]="lack > 0" [attr.data-hand]="v.mineSent ? null : r">
                   <app-card-face [kind]="r" />
-                  <span class="count">{{ v.bottom[r] }}</span>
+                  <span class="count">{{ n(v.bottom, r) }}</span>
                 </span>
                 @if (v.mineSent) {
                   <small>&nbsp;</small>
                 } @else if (lack) {
                   <small class="lack">dir fehlt {{ lack }}</small>
                 } @else {
-                  <small>du hast {{ hand()[r] }}</small>
+                  <small>du hast {{ n(hand(), r) }}</small>
                 }
               </span>
             }
@@ -125,7 +125,7 @@ export class OfferPanel {
   protected readonly missing = computed(() => {
     const offer = this.offer();
     if (!offer) return [];
-    return RESOURCES.filter((r) => offer.want[r] > this.hand()[r]).map((r) => `${offer.want[r] - this.hand()[r]} ${RESOURCE_NAMES[r]}`);
+    return CARDS.filter((r) => count(offer.want, r) > count(this.hand(), r)).map((r) => `${count(offer.want, r) - count(this.hand(), r)} ${CARD_NAMES[r]}`);
   });
 
   /** Was die übrigen Mitspieler auf das Angebot des aktiven Spielers antworten. */
@@ -146,8 +146,10 @@ export class OfferPanel {
     });
   });
 
-  protected present(c: ResourceCounts): Resource[] {
-    return RESOURCES.filter((r) => c[r] > 0);
+  protected readonly n = count;
+
+  protected present(c: ResourceCounts): Card[] {
+    return CARDS.filter((r) => count(c, r) > 0);
   }
 
   protected respond(accept: boolean): void {

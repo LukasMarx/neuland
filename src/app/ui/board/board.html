@@ -146,6 +146,9 @@
   @for (b of buildings(); track b.id) {
     <g class="building" [attr.data-vertex]="b.id" [attr.transform]="'translate(' + b.x + ',' + b.y + ')'">
       <title>{{ b.title }}</title>
+      @if (b.wall) {
+        <circle class="wall" [attr.r]="b.size * 0.48" />
+      }
       @if (b.image) {
         <image class="piece-art" [attr.href]="b.image" [attr.x]="-b.size / 2" [attr.y]="-b.size / 2"
           [attr.width]="b.size" [attr.height]="b.size" />
@@ -153,6 +156,12 @@
         <path [attr.fill]="b.color" d="M-16,11 L16,11 L16,-4 L4,-4 L4,-10 L-6,-19 L-16,-10 Z" />
       } @else {
         <path [attr.fill]="b.color" d="M-10,9 L10,9 L10,-3 L0,-12 L-10,-3 Z" />
+      }
+      @if (b.metro) {
+        <g class="metro" [attr.data-track]="b.metro" [attr.transform]="'translate(' + b.size * 0.32 + ',' + -b.size * 0.42 + ')'">
+          <circle r="8.5" />
+          <text>{{ b.metroLabel }}</text>
+        </g>
       }
     </g>
   }

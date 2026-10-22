@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actingSeats, handSize, isConsistent, ResourceCounts, totalResources } from '../engine';
+import { actingSeats, handSize, isConsistent, Resource, ResourceCounts, totalResources } from '../engine';
 import { AWAY_MS } from './room.service';
 import { bySeat, Clock, hostOf, Net, play, resetNet, seeded, setup, Sim } from './testing/fake-net';
 
@@ -24,7 +24,7 @@ function playUntilMain(sims: Sim[], random: () => number): void {
   throw new Error('Hauptphase nicht erreicht');
 }
 
-function one(r: keyof ResourceCounts): ResourceCounts {
+function one(r: Resource): ResourceCounts {
   return { wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0, [r]: 1 };
 }
 
@@ -142,7 +142,7 @@ describe('Mehrspieler: Netzstörungen', () => {
       play(sims, 1, random);
     }
     const cur = bySeat(sims, H.game, H.game.current)!;
-    const have = (Object.keys(cur.game.players[cur.seat].resources) as (keyof ResourceCounts)[]).find(
+    const have = (Object.keys(cur.game.players[cur.seat].resources) as Resource[]).find(
       (r) => cur.game.players[cur.seat].resources[r] > 0,
     )!;
     cur.svc.act({ type: 'offerTrade', give: one(have), want: one(have === 'ore' ? 'wood' : 'ore') });
@@ -335,7 +335,7 @@ describe('Mehrspieler: Identität und Bedienung', () => {
       if (sims[0].game.phase.kind !== 'main') play(sims, 1, random);
       if (bySeat(sims, sims[0].game, sims[0].game.current) !== who || sims[0].game.phase.kind !== 'main') continue;
       const res = who.game.players[who.seat].resources;
-      const have = (Object.keys(res) as (keyof ResourceCounts)[]).find((r) => res[r] > 0);
+      const have = (Object.keys(res) as Resource[]).find((r) => res[r] > 0);
       if (!have) continue;
       const before = hostOf(sims)!.v!;
       const offer = { type: 'offerTrade', give: one(have), want: one(have === 'ore' ? 'wood' : 'ore') } as const;

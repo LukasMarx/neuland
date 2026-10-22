@@ -1,5 +1,5 @@
 import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, input, linkedSignal, output, signal } from '@angular/core';
-import { GameState, getTopology, LAKE_NUMBERS, mapById, NEIGHBOR_STEPS, RESOURCE_NAMES, Terrain, Topology } from '../../engine';
+import { GameState, getTopology, LAKE_NUMBERS, mapById, NEIGHBOR_STEPS, RESOURCE_NAMES, Terrain, Topology, TRACK_NAMES, TRACKS } from '../../engine';
 import { harborLabel } from '../shared/labels';
 import { RESOURCE_ART } from '../shared/resource-art';
 import { TerrainDefs } from './terrain-defs';
@@ -344,10 +344,15 @@ export class Board {
       if (!b) return [];
       const v = this.topo().vertices[id];
       const player = g.players[b.owner];
+      // Stadtwacht: Palisade unter der Stadt, Prachtstadt mit einem Abzeichen in der Farbe der Richtung.
+      const metro = TRACKS.find((t) => g.metropolis?.[t] === id) ?? null;
+      const wall = g.walls?.includes(id) ?? false;
+      const what = metro ? `Prachtstadt ${TRACK_NAMES[metro]}` : b.type === 'city' ? 'Stadt' : 'Siedlung';
       return [{
         id, x: v.x * S, y: v.y * S, city: b.type === 'city', color: player.color,
         size: BUILDING_SIZE[b.type] * this.k(), image: pieceImage(b.type, player.color),
-        title: `${player.name}: ${b.type === 'city' ? 'Stadt' : 'Siedlung'}`,
+        title: `${player.name}: ${what}${wall ? ' mit Palisade' : ''}`,
+        wall, metro, metroLabel: metro ? TRACK_NAMES[metro][0] : '',
       }];
     });
   });

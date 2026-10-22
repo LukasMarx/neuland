@@ -1,10 +1,12 @@
 import { Component, computed, effect, inject, input, OnInit, output, signal, untracked } from '@angular/core';
 import {
+  Card,
+  CARD_NAMES,
+  CARDS,
+  count,
   emptyResources,
   GameState,
-  RESOURCE_NAMES,
   RESOURCES,
-  Resource,
   ResourceCounts,
   totalResources,
   TradeOffer,
@@ -43,8 +45,8 @@ interface Answer {
             <small>{{ row.side === 'give' ? (mine() ? 'aus deiner Hand' : 'an ' + targetName()) : (mine() ? 'von Bank oder Mitspielern' : 'von ' + targetName()) }}</small>
           </b>
           <div class="slots">
-            @for (r of resources; track r) {
-              @let n = shown()[row.side][r];
+            @for (r of resources(); track r) {
+              @let n = num(shown()[row.side], r);
               <span class="slotwrap">
                 <button
                   type="button"
@@ -69,9 +71,9 @@ interface Answer {
                 </button>
                 <small>
                   @if (row.side === 'give') {
-                    du hast {{ hand()[r] }}
+                    du hast {{ num(hand(), r) }}
                   } @else if (mine()) {
-                    Bank {{ g.bank[r] }}
+                    Bank {{ num(g.bank, r) }}
                   } @else {
                     &nbsp;
                   }
@@ -147,8 +149,10 @@ export class TradeTable implements OnInit {
   readonly prefill = input<{ give: ResourceCounts; want: ResourceCounts } | null>(null);
   readonly close = output<void>();
 
-  protected readonly resources = RESOURCES;
-  protected readonly names = RESOURCE_NAMES;
+  /** Handelbare Karten: Rohstoffe, mit Stadtwacht auch Güter. */
+  protected readonly resources = computed((): readonly Card[] => (this.game().improvements ? CARDS : RESOURCES));
+  protected readonly names = CARD_NAMES;
+  protected readonly num = count;
   protected readonly art = CARD_ART;
   protected readonly rows: { side: Side }[] = [{ side: 'give' }, { side: 'want' }];
   protected readonly total = totalResources;
@@ -168,8 +172,8 @@ export class TradeTable implements OnInit {
   });
 
   protected readonly rates = computed(() => {
-    const result = {} as Record<Resource, number>;
-    for (const r of RESOURCES) result[r] = tradeRate(this.game(), this.seat(), r);
+    const result = {} as Record<Card, number>;
+    for (const r of CARDS) result[r] = tradeRate(this.game(), this.seat(), r);
     return result;
   });
 
@@ -178,15 +182,15 @@ export class TradeTable implements OnInit {
     const give = this.give();
     const want = this.want();
     let lots = 0;
-    const off: { r: Resource; rest: number; add: number }[] = [];
-    for (const r of RESOURCES) {
-      if (!give[r]) continue;
-      const rest = give[r] % this.rates()[r];
+    const off: { r: Card; rest: number; add: number }[] = [];
+    for (const r of CARDS) {
+      if (!count(give, r)) continue;
+      const rest = count(give, r) % this.rates()[r];
       if (rest) off.push({ r, rest, add: this.rates()[r] - rest });
-      else lots += give[r] / this.rates()[r];
+      else lots += count(give, r) / this.rates()[r];
     }
-    const overlap = RESOURCES.some((r) => give[r] > 0 && want[r] > 0);
-    const bankHas = RESOURCES.every((r) => this.game().bank[r] >= want[r]);
+    const overlap = CARDS.some((r) => count(give, r) > 0 && count(want, r) > 0);
+    const bankHas = CARDS.every((r) => count(this.game().bank, r) >= count(want, r));
     return { lots, off, overlap, ok: !overlap && !off.length && lots > 0 && totalResources(want) === lots && bankHas };
   });
 
@@ -211,10 +215,10 @@ export class TradeTable implements OnInit {
     if (!g) return { html: 'Lege noch fest, was du dafür gibst.' };
     if (b.off.length) {
       const o = b.off[0];
-      const canAdd = this.hand()[o.r] - give[o.r] >= o.add;
-      const fix = canAdd ? `${o.add} ${RESOURCE_NAMES[o.r]} mehr` : `${o.rest} ${RESOURCE_NAMES[o.r]} weniger`;
+      const canAdd = count(this.hand(), o.r) - count(give, o.r) >= o.add;
+      const fix = canAdd ? `${o.add} ${CARD_NAMES[o.r]} mehr` : `${o.rest} ${CARD_NAMES[o.r]} weniger`;
       return {
-        html: `Bank und Häfen tauschen ${RESOURCE_NAMES[o.r]} <b>${this.rates()[o.r]}:1</b>. Mit ${fix} ginge es über die Bank.${w ? ' An Mitspieler kannst du es so anbieten.' : ''}`,
+        html: `Bank und Häfen tauschen ${CARD_NAMES[o.r]} <b>${this.rates()[o.r]}:1</b>. Mit ${fix} ginge es über die Bank.${w ? ' An Mitspieler kannst du es so anbieten.' : ''}`,
       };
     }
     if (w < b.lots) return { html: `Die Bank gibt dir dafür <b>${b.lots} ${b.lots === 1 ? 'Karte' : 'Karten'}</b>. Wähle noch ${b.lots - w} aus, die du bekommst.` };
@@ -260,33 +264,33 @@ export class TradeTable implements OnInit {
     const p = this.prefill();
     if (!p) return;
     // Nur was man auch hat, landet auf „Du gibst“.
-    this.give.set(Object.fromEntries(RESOURCES.map((r) => [r, Math.min(p.give[r], this.hand()[r])])) as ResourceCounts);
+    this.give.set(Object.fromEntries(CARDS.map((r) => [r, Math.min(count(p.give, r), count(this.hand(), r))])) as ResourceCounts);
     this.want.set({ ...p.want });
   }
 
-  protected max(side: Side, r: Resource): number {
+  protected max(side: Side, r: Card): number {
     // Wie viel man bekommen kann, prüfen Bank-Kurs bzw. die Mitspieler; die Grenze ist nur der Kartenvorrat.
-    return side === 'give' ? this.hand()[r] : 19;
+    return side === 'give' ? count(this.hand(), r) : 19;
   }
 
-  protected add(side: Side, r: Resource): void {
+  protected add(side: Side, r: Card): void {
     if (this.locked()) return;
-    const current = this[side]()[r];
+    const current = count(this[side](), r);
     if (current >= this.max(side, r)) return;
-    this[side].update((c) => ({ ...c, [r]: c[r] + 1 }));
+    this[side].update((c) => ({ ...c, [r]: count(c, r) + 1 }));
     // Ein Rohstoff liegt nur auf einer Seite: wer ihn auf die andere legt, nimmt ihn hier weg.
     const other: Side = side === 'give' ? 'want' : 'give';
-    if (this[other]()[r]) this[other].update((c) => ({ ...c, [r]: 0 }));
+    if (count(this[other](), r)) this[other].update((c) => ({ ...c, [r]: 0 }));
   }
 
   /** Von außen, z. B. beim Klick auf eine Handkarte. */
-  addGive(r: Resource): void {
+  addGive(r: Card): void {
     this.add('give', r);
   }
 
-  protected remove(side: Side, r: Resource): void {
+  protected remove(side: Side, r: Card): void {
     if (this.locked()) return;
-    this[side].update((c) => ({ ...c, [r]: Math.max(0, c[r] - 1) }));
+    this[side].update((c) => ({ ...c, [r]: Math.max(0, count(c, r) - 1) }));
   }
 
   protected clear(): void {
@@ -325,8 +329,8 @@ export class TradeTable implements OnInit {
     this.clearAfter = this.game().version;
   }
 
-  protected cards(c: ResourceCounts): Resource[] {
-    return RESOURCES.flatMap((r) => Array<Resource>(c[r]).fill(r));
+  protected cards(c: ResourceCounts): Card[] {
+    return CARDS.flatMap((r) => Array<Card>(count(c, r)).fill(r));
   }
 }
 
@@ -336,12 +340,12 @@ export function withdrawOffers(room: RoomService, g: GameState, seat: number): v
 }
 
 function covers(have: ResourceCounts, need: ResourceCounts): boolean {
-  return RESOURCES.every((r) => have[r] >= need[r]);
+  return CARDS.every((r) => count(have, r) >= count(need, r));
 }
 
 function words(c: ResourceCounts): string {
-  return RESOURCES.filter((r) => c[r])
-    .map((r) => `${c[r]} ${RESOURCE_NAMES[r]}`)
+  return CARDS.filter((r) => count(c, r))
+    .map((r) => `${count(c, r)} ${CARD_NAMES[r]}`)
     .join(', ');
 }
 

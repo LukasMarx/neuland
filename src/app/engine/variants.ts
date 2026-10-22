@@ -1,5 +1,5 @@
 /** Kleine Varianten, in der Lobby zuschaltbar (docs/ERWEITUNGEN.md, Abschnitt 2.1). */
-export type VariantId = 'milderRaeuber' | 'hafenvogt' | 'wuerfelstapel' | 'fischgruende' | 'duell' | 'flusslaeufe';
+export type VariantId = 'milderRaeuber' | 'hafenvogt' | 'wuerfelstapel' | 'fischgruende' | 'duell' | 'flusslaeufe' | 'stadtwacht';
 
 export interface VariantDef {
   id: VariantId;
@@ -51,7 +51,19 @@ export const VARIANTS: VariantDef[] = [
     description:
       'Zwei Flüsse laufen zur Küste. Über den Fluss geht es nur mit Brücken (2 Lehm, 1 Holz). Bauen am Fluss bringt Münzen, 2 Münzen sind ein Rohstoff. Die meisten Münzen geben +1 Punkt, die wenigsten −2.',
   },
+  {
+    id: 'stadtwacht',
+    name: 'Stadtwacht (in Arbeit)',
+    victoryPoints: 3,
+    description:
+      'Städte auf Wald, Weide und Gebirge liefern Güter (Schriften, Stoff, Silber). Damit baut man die Stadt in drei Richtungen aus; wer zuerst Stufe 4 erreicht, bekommt eine Prachtstadt (+2). Palisaden erhöhen das Handkartenlimit. Zweite Startfigur ist eine Stadt, keine Entwicklungskarten. Flotte, Wächter und Einflusskarten folgen.',
+  },
 ];
+
+/** Stadtwacht: Güter in der Bank je Sorte, Palisaden je Spieler, Punkte für eine Prachtstadt. */
+export const GOODS_SUPPLY = 12;
+export const MAX_WALLS = 3;
+export const METROPOLIS_POINTS = 2;
 
 /** Flussläufe: Münzen für eine Brücke und für Straße oder Siedlung am Fluss. */
 export const BRIDGE_COINS = 3;

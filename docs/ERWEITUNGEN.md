@@ -232,6 +232,8 @@ Empfehlung: zuerst nur „Erste Überfahrt“ und „Inselquartett“, dann „I
 
 Referenz (nur zur Orientierung): „Städte & Ritter“.
 
+> **Umgesetzt am 22.10.2026 (Stadtwacht I, Variante `stadtwacht`, in der Lobby „Stadtwacht (in Arbeit)“):** Güter Schriften, Stoff, Silber (`Commodity`, in `ResourceCounts` als optionale Felder, damit das Grundspiel und alte Stände unverändert bleiben); Städte auf Wald, Weide, Gebirge liefern 1 Rohstoff + 1 Gut. Güter zählen zum Limit, werden abgeworfen, geraubt und gehandelt (Bank 4:1, 3:1-Häfen, mit Markt ab Stufe 3 2:1). Stadtausbau in drei Richtungen mit fünf Stufen (Stufe n kostet n Güter, braucht eine Stadt), Prachtstadt für den Ersten auf Stufe 4, Übernahme mit Stufe 5 gegen einen Inhaber auf Stufe 4 (+2 Punkte), Gelehrte ab Stufe 3 (Rohstoff nach Wahl, wenn man sonst nichts bekommt). Palisade (2 Lehm, unter eigener Stadt, höchstens 3, Limit je +2). Zweite Startfigur ist eine Stadt, keine Entwicklungskarten, Siegziel +3. Verdeckte Hände und Wiederaufbau kennen die Güter. Noch offen: Rat Stufe 3, Flotte, Wächter, Räuber erst nach dem ersten Angriff (Stadtwacht II), Ereigniswürfel und Einflusskarten (Stadtwacht III). Grafik-Auftrag: `output/designs/stadtwacht-2026-10-22/grafik-auftrag.md`.
+
 #### Regeln in Kürze
 
 - **Drei Würfel:** zwei Zahlenwürfel (einer davon farbig markiert) und ein Ereigniswürfel. Der Ereigniswürfel zeigt auf drei Seiten ein Schiff, auf den anderen je ein Stadttor in Gelb, Blau oder Grün.
@@ -777,7 +779,7 @@ Bedarf nach Paket (Details in den Abschnitten 2.x):
 | Fernhandel II | Oase, Burg/Sonderstätten | Kamel, Kantenritter ×8, Plünderer, Wagen 3 Stufen ×8 | Waren (4), Aufträge | – |
 | Ferne Küsten | Schlupfwinkel, Fischgrund-Feld, Dorf, Inselrat | großes Schiff ×8, Siedlertrupp ×8, Matrose ×8, Hafenort ×8 | Gold, Fisch, Gewürz, Auftragsleisten | Land entdeckt, Schlupfwinkel |
 
-Konkrete Aufträge mit Dateinamen, Formaten und Einbindung: Seewege (mit Nebel und Inselbonus) in `output/designs/seewege-2026-10-22/grafik-auftrag.md`, Fischgründe, Duell, Flussläufe, Hafenvogt und Würfelstapel in `output/designs/fernhandel-2026-10-22/grafik-auftrag.md`.
+Konkrete Aufträge mit Dateinamen, Formaten und Einbindung: Seewege (mit Nebel und Inselbonus) in `output/designs/seewege-2026-10-22/grafik-auftrag.md`, Fischgründe, Duell, Flussläufe, Hafenvogt und Würfelstapel in `output/designs/fernhandel-2026-10-22/grafik-auftrag.md`, Stadtwacht I in `output/designs/stadtwacht-2026-10-22/grafik-auftrag.md`.
 
 ---
 

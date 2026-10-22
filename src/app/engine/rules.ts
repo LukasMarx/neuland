@@ -1,6 +1,6 @@
 import { generateBoard, getTopology, placeFishingGrounds, placeRivers, vertexHarbors } from './board';
 import { mapById, mapFits } from './maps';
-import { BRIDGE_COINS, DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, HARBOR_MASTER_POINTS, LAKE_NUMBERS, NEUTRALS, RIVER_COINS, VariantId } from './variants';
+import { BRIDGE_COINS, DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, GOODS_SUPPLY, HARBOR_MASTER_POINTS, LAKE_NUMBERS, MAX_WALLS, METROPOLIS_POINTS, NEUTRALS, RIVER_COINS, VariantId } from './variants';
 import { randomInt, RngState, shuffle } from './rng';
 import {
   Action,
@@ -22,6 +22,18 @@ import {
   RESOURCES,
   Resource,
   ResourceCounts,
+  Card,
+  CARD_NAMES,
+  CARDS,
+  COMMODITIES,
+  Commodity,
+  count,
+  isCommodity,
+  setCount,
+  Track,
+  TRACK_GOODS,
+  TRACK_NAMES,
+  TRACKS,
   ReturnPhase,
   Terrain,
   TokenEffect,
@@ -117,6 +129,14 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
     if (fog) state.fog = fog;
   }
   if (hasVariant(state, 'duell')) setUpDuel(state);
+  if (hasVariant(state, 'stadtwacht')) {
+    for (const c of COMMODITIES) setCount(state.bank, c, GOODS_SUPPLY);
+    state.improvements = state.players.map(() => ({ market: 0, council: 0, scholars: 0 }));
+    state.metropolis = { market: null, council: null, scholars: null };
+    state.walls = [];
+    // Keine Entwicklungskarten; die Einflusskarten kommen später.
+    state.devDeck = [];
+  }
   if (hasVariant(state, 'wuerfelstapel')) state.diceDeck = { ...DICE_DECK };
   if (hasVariant(state, 'fischgruende')) setUpFishing(state);
   if (hasVariant(state, 'flusslaeufe')) {
@@ -150,10 +170,13 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (phase.order[phase.index] !== seat) fail('Du bist nicht dran.');
     if (!legalSetupVertices(s).includes(vertex)) fail('Hier darf keine Siedlung stehen.');
     const owner = phase.owners?.[phase.index] ?? seat;
-    s.buildings[vertex] = { owner, type: 'settlement' };
     const humans = humanCount(s);
     const secondRound = owner === seat && phase.index >= humans && phase.index < 2 * humans;
-    let text = owner === seat ? `${name(s, seat)} setzt eine Siedlung.` : `${name(s, seat)} setzt eine Siedlung für ${name(s, owner)}.`;
+    // Stadtwacht: Die zweite Startfigur ist eine Stadt.
+    const city = secondRound && !!s.improvements;
+    s.buildings[vertex] = { owner, type: city ? 'city' : 'settlement' };
+    const what = city ? 'eine Stadt' : 'eine Siedlung';
+    let text = owner === seat ? `${name(s, seat)} setzt ${what}.` : `${name(s, seat)} setzt ${what} für ${name(s, owner)}.`;
     if (secondRound) {
       const gained = emptyResources();
       for (const h of getTopology(s.board).vertices[vertex].hexes) {
@@ -167,7 +190,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
         }
       }
       addTo(s.players[seat].resources, gained);
-      text = `${name(s, seat)} setzt eine Siedlung und erhält ${formatResources(gained)}.`;
+      text = `${name(s, seat)} setzt ${what} und erhält ${formatResources(gained)}.`;
     }
     s.phase = { ...phase, step: 'road', settlement: vertex };
     updateLongestRoad(s);
@@ -210,9 +233,9 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     const sum = dice[0] + dice[1];
     log(s, seat, `${name(s, seat)} würfelt ${sum} (${dice[0]} + ${dice[1]}).`);
     if (sum === 7) {
-      const pending = s.players.map((p) => {
+      const pending = s.players.map((p, i) => {
         const total = totalResources(p.resources);
-        return total > 7 ? Math.floor(total / 2) : 0;
+        return total > handLimit(s, i) ? Math.floor(total / 2) : 0;
       });
       if (pending.some((n) => n > 0)) {
         s.phase = { kind: 'discard', pending };
@@ -223,8 +246,18 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
       }
       return;
     }
-    const gold = produce(s, sum);
+    const { gold, got } = produce(s, sum);
     if (s.fish) catchFish(s, sum);
+    // Stadtwacht, Gelehrte ab Stufe 3: Wer nichts bekommt, nimmt sich einen Rohstoff nach Wahl.
+    if (s.improvements) {
+      let left = RESOURCES.reduce((n, r) => n + s.bank[r], 0) - gold.reduce((a, b) => a + b, 0);
+      s.players.forEach((p, i) => {
+        if (p.neutral || got[i] || s.improvements![i].scholars < 3 || left <= 0) return;
+        gold[i]++;
+        left--;
+        log(s, i, `${name(s, i)} bekommt nichts und nimmt sich dank der Gelehrten einen Rohstoff.`);
+      });
+    }
     s.phase = gold.some((n) => n > 0) ? { kind: 'gold', pending: gold } : { kind: 'main' };
   },
 
@@ -276,10 +309,10 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     else s.robber = hex;
     if (candidates.length > 0) {
       if (victim === null || !candidates.includes(victim)) fail('Wähle einen Spieler, bei dem du ziehst.');
-      const pool = RESOURCES.flatMap((r) => Array<Resource>(s.players[victim].resources[r]).fill(r));
+      const pool = cardList(s.players[victim].resources);
       const stolen = pool[randomInt(s, pool.length)];
-      s.players[victim].resources[stolen]--;
-      s.players[seat].resources[stolen]++;
+      addCard(s.players[victim].resources, stolen, -1);
+      addCard(s.players[seat].resources, stolen, 1);
       s.transfers.push({ from: seatPoint(victim), to: seatPoint(seat), card: stolen, count: 1, hidden: true });
       log(s, seat, `${name(s, seat)} versetzt ${pirate ? 'das Kaperschiff' : 'den Räuber'} und zieht eine Karte bei ${name(s, victim)}.`);
     } else {
@@ -411,32 +444,32 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     requireTurn(s, seat, 'main');
     validateCounts(give);
     validateCounts(get);
-    if (RESOURCES.some((r) => give[r] > 0 && get[r] > 0)) fail('Derselbe Rohstoff kann nicht auf beiden Seiten stehen.');
+    if (CARDS.some((r) => count(give, r) > 0 && count(get, r) > 0)) fail('Derselbe Rohstoff kann nicht auf beiden Seiten stehen.');
     // Jedes Kurs-Paket bringt eine Karte; erst prüfen, dann einzeln tauschen (bei einem Fehler bleibt nichts halb).
-    const lots = RESOURCES.flatMap((r) => {
+    const lots = CARDS.flatMap((r) => {
       const rate = tradeRate(s, seat, r);
-      if (give[r] % rate) fail(`${RESOURCE_NAMES[r]} tauschst du ${rate}:1.`);
-      return Array<Resource>(give[r] / rate).fill(r);
+      if (count(give, r) % rate) fail(`${CARD_NAMES[r]} tauschst du ${rate}:1.`);
+      return Array<Card>(count(give, r) / rate).fill(r);
     });
-    const wanted = RESOURCES.flatMap((r) => Array<Resource>(get[r]).fill(r));
+    const wanted = cardList(get);
     if (!lots.length || lots.length !== wanted.length) fail('Das passt nicht zum Kurs der Bank.');
     lots.forEach((r, i) => HANDLERS.bankTrade(s, seat, { type: 'bankTrade', give: r, get: wanted[i] }));
   },
 
   bankTrade(s, seat, { give, get }) {
     requireTurn(s, seat, 'main');
-    if (!RESOURCES.includes(give) || !RESOURCES.includes(get) || give === get) fail('Ungültiger Tausch.');
+    if (!CARDS.includes(give) || !CARDS.includes(get) || give === get) fail('Ungültiger Tausch.');
     const rate = tradeRate(s, seat, give);
     const player = s.players[seat];
-    if (player.resources[give] < rate) fail(`Du brauchst ${rate} ${RESOURCE_NAMES[give]}.`);
-    if (s.bank[get] < 1) fail(`Die Bank hat kein ${RESOURCE_NAMES[get]} mehr.`);
-    player.resources[give] -= rate;
-    s.bank[give] += rate;
-    s.bank[get]--;
-    player.resources[get]++;
+    if (count(player.resources, give) < rate) fail(`Du brauchst ${rate} ${CARD_NAMES[give]}.`);
+    if (count(s.bank, get) < 1) fail(`Die Bank hat kein ${CARD_NAMES[get]} mehr.`);
+    addCard(player.resources, give, -rate);
+    addCard(s.bank, give, rate);
+    addCard(s.bank, get, -1);
+    addCard(player.resources, get, 1);
     transfer(s, seatPoint(seat), BANK, give, rate);
     transfer(s, BANK, seatPoint(seat), get, 1);
-    log(s, seat, `${name(s, seat)} tauscht ${rate} ${RESOURCE_NAMES[give]} gegen 1 ${RESOURCE_NAMES[get]} mit der Bank.`);
+    log(s, seat, `${name(s, seat)} tauscht ${rate} ${CARD_NAMES[give]} gegen 1 ${CARD_NAMES[get]} mit der Bank.`);
   },
 
   offerTrade(s, seat, { give, want }) {
@@ -444,7 +477,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     validateCounts(give);
     validateCounts(want);
     if (totalResources(give) === 0 || totalResources(want) === 0) fail('Ein Angebot braucht beide Seiten.');
-    if (RESOURCES.some((r) => give[r] > 0 && want[r] > 0)) fail('Derselbe Rohstoff kann nicht auf beiden Seiten stehen.');
+    if (CARDS.some((r) => count(give, r) > 0 && count(want, r) > 0)) fail('Derselbe Rohstoff kann nicht auf beiden Seiten stehen.');
     if (!hasResources(s.players[seat].resources, give)) fail('Du hast diese Rohstoffe nicht.');
     const counter = seat !== s.current;
     s.offers = s.offers.filter((o) => o.from !== seat);
@@ -556,10 +589,10 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
         if (victim == null || victim === seat || !s.players[victim]) fail('Wähle einen Mitspieler.');
         if (totalResources(s.players[victim].resources) === 0) fail(`${name(s, victim)} hat keine Karten.`);
         payFish(s, seat, cost);
-        const pool = RESOURCES.flatMap((r) => Array<Resource>(s.players[victim].resources[r]).fill(r));
+        const pool = cardList(s.players[victim].resources);
         const stolen = pool[randomInt(s, pool.length)];
-        s.players[victim].resources[stolen]--;
-        s.players[seat].resources[stolen]++;
+        addCard(s.players[victim].resources, stolen, -1);
+        addCard(s.players[seat].resources, stolen, 1);
         s.transfers.push({ from: seatPoint(victim), to: seatPoint(seat), card: stolen, count: 1, hidden: true });
         log(s, seat, `${name(s, seat)} gibt ${cost} Fische ab und zieht eine Karte bei ${name(s, victim)}.`);
         break;
@@ -641,10 +674,10 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
       if (totalResources(s.players[opponent].resources) < 2) fail(`${name(s, opponent)} hat keine 2 Karten.`);
       // Erst zwei zufällige Karten nehmen, dann die gewählten abgeben.
       for (let i = 0; i < 2; i++) {
-        const pool = RESOURCES.flatMap((r) => Array<Resource>(s.players[opponent].resources[r]).fill(r));
+        const pool = cardList(s.players[opponent].resources);
         const taken = pool[randomInt(s, pool.length)];
-        s.players[opponent].resources[taken]--;
-        s.players[seat].resources[taken]++;
+        addCard(s.players[opponent].resources, taken, -1);
+        addCard(s.players[seat].resources, taken, 1);
         s.transfers.push({ from: seatPoint(opponent), to: seatPoint(seat), card: taken, count: 1, hidden: true });
       }
       takeFrom(s.players[seat].resources, giving);
@@ -680,6 +713,47 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     s.players[seat].resources[resource]++;
     transfer(s, BANK, seatPoint(seat), resource, 1);
     log(s, seat, `${name(s, seat)} tauscht 2 Münzen gegen 1 ${RESOURCE_NAMES[resource]}.`);
+  },
+
+  improveCity(s, seat, { track, vertex }) {
+    if (!s.improvements || !s.metropolis) fail('Stadtausbau gibt es nur mit Stadtwacht.');
+    requireBuilder(s, seat);
+    if (!TRACKS.includes(track)) fail('Unbekannte Ausbaurichtung.');
+    const level = s.improvements[seat][track];
+    if (level >= 5) fail(`${TRACK_NAMES[track]} ist schon voll ausgebaut.`);
+    const cities = s.buildings.flatMap((b, v) => (b?.owner === seat && b.type === 'city' ? [v] : []));
+    if (!cities.length) fail('Für den Ausbau brauchst du eine Stadt.');
+    const next = level + 1;
+    const cost = emptyResources();
+    setCount(cost, TRACK_GOODS[track], next);
+    const target = metropolisGain(s, seat, track, next) ? metropolisCity(s, seat, cities, vertex) : null;
+    pay(s, seat, cost);
+    s.improvements[seat][track] = next;
+    log(s, seat, `${name(s, seat)} baut ${TRACK_NAMES[track]} auf Stufe ${next} aus.`);
+    if (target !== null) {
+      const before = s.metropolis[track];
+      const from = before === null ? null : (s.buildings[before]?.owner ?? null);
+      s.metropolis[track] = target;
+      log(
+        s,
+        seat,
+        from === null
+          ? `${name(s, seat)} hat die erste Prachtstadt der Richtung ${TRACK_NAMES[track]}.`
+          : `${name(s, seat)} übernimmt die Prachtstadt ${TRACK_NAMES[track]} von ${name(s, from)}.`,
+      );
+    }
+  },
+
+  buildWall(s, seat, { vertex }) {
+    if (!s.walls) fail('Palisaden gibt es nur mit Stadtwacht.');
+    requireBuilder(s, seat);
+    const b = s.buildings[vertex];
+    if (b?.owner !== seat || b.type !== 'city') fail('Eine Palisade kommt nur unter eine eigene Stadt.');
+    if (s.walls.includes(vertex)) fail('Diese Stadt hat schon eine Palisade.');
+    if (wallsOf(s, seat) >= MAX_WALLS) fail(`Mehr als ${MAX_WALLS} Palisaden gibt es nicht.`);
+    pay(s, seat, COSTS.wall, { kind: 'vertex', id: vertex });
+    s.walls.push(vertex);
+    log(s, seat, `${name(s, seat)} baut eine Palisade (Handkartenlimit ${handLimit(s, seat)}).`);
   },
 
   endTurn(s, seat) {
@@ -729,6 +803,7 @@ export function victoryPoints(s: GameState, seat: number, includeHidden: boolean
   if (s.harborMaster === seat) vp += 2;
   vp += s.islandBonus?.[seat] ?? 0;
   vp += coinPoints(s, seat);
+  if (s.metropolis) vp += TRACKS.filter((t) => s.metropolis![t] !== null && s.buildings[s.metropolis![t]!]?.owner === seat).length * METROPOLIS_POINTS;
   if (includeHidden) {
     const p = s.players[seat];
     vp += [...p.devCards, ...p.newDevCards].filter((c) => c === 'victoryPoint').length;
@@ -935,9 +1010,11 @@ function drawDiceCard(s: GameState): [number, number] {
   return [first, sum - first];
 }
 
-export function tradeRate(s: GameState, seat: number, give: Resource): number {
+export function tradeRate(s: GameState, seat: number, give: Card): number {
   const harbors = vertexHarbors(s.board);
   let rate = 4;
+  // Stadtwacht, Markt ab Stufe 3: Güter 2:1 mit der Bank.
+  if (isCommodity(give) && (s.improvements?.[seat]?.market ?? 0) >= 3) rate = 2;
   s.buildings.forEach((b, v) => {
     if (b?.owner !== seat) return;
     if (harbors[v] === give) rate = Math.min(rate, 2);
@@ -1136,6 +1213,61 @@ export function coinPoints(s: GameState, seat: number): number {
   return s.coins[seat] === max ? 1 : s.coins[seat] === min ? -2 : 0;
 }
 
+/** Handkartenlimit beim Würfeln einer 7: 7, mit Palisaden (Stadtwacht) je 2 mehr. */
+export function handLimit(s: GameState, seat: number): number {
+  return 7 + 2 * wallsOf(s, seat);
+}
+
+/** Kann der Spieler diese Richtung jetzt ausbauen (Stadt, Güter, nicht voll, Platz für eine Prachtstadt)? */
+export function canImprove(s: GameState, seat: number, track: Track): boolean {
+  if (!s.improvements) return false;
+  const next = s.improvements[seat][track] + 1;
+  if (next > 5 || count(s.players[seat].resources, TRACK_GOODS[track]) < next) return false;
+  const cities = s.buildings.some((b) => b?.owner === seat && b.type === 'city');
+  if (!cities) return false;
+  return !metropolisGain(s, seat, track, next) || metropolisCandidates(s, seat).length > 0;
+}
+
+/** Städte ohne Palisade, solange der Spieler noch Palisaden hat. */
+export function legalWallVertices(s: GameState, seat: number): number[] {
+  if (!s.walls || wallsOf(s, seat) >= MAX_WALLS) return [];
+  return s.buildings.flatMap((b, v) => (b?.owner === seat && b.type === 'city' && !s.walls!.includes(v) ? [v] : []));
+}
+
+function wallsOf(s: GameState, seat: number): number {
+  return (s.walls ?? []).filter((v) => s.buildings[v]?.owner === seat).length;
+}
+
+export function isMetropolis(s: GameState, vertex: number): boolean {
+  return !!s.metropolis && TRACKS.some((t) => s.metropolis![t] === vertex);
+}
+
+/**
+ * Bringt diese Ausbaustufe eine Prachtstadt? Als Erster auf Stufe 4, oder als Erster auf Stufe 5, wenn der
+ * Inhaber nur Stufe 4 hat.
+ */
+export function metropolisGain(s: GameState, seat: number, track: Track, level: number): boolean {
+  const at = s.metropolis?.[track];
+  if (at === undefined) return false;
+  if (level === 4) return at === null;
+  if (level !== 5 || at === null) return false;
+  const holder = s.buildings[at]?.owner;
+  return holder !== undefined && holder !== seat && s.improvements![holder][track] < 5;
+}
+
+/** Städte, die Prachtstadt werden können: eigene Städte, die noch keine sind. */
+export function metropolisCandidates(s: GameState, seat: number): number[] {
+  return s.buildings.flatMap((b, v) => (b?.owner === seat && b.type === 'city' && !isMetropolis(s, v) ? [v] : []));
+}
+
+function metropolisCity(s: GameState, seat: number, cities: number[], vertex: number | undefined): number {
+  const free = cities.filter((v) => !isMetropolis(s, v));
+  if (!free.length) fail('Für die Prachtstadt brauchst du eine Stadt, die noch keine ist.');
+  const target = vertex ?? (free.length === 1 ? free[0] : undefined);
+  if (target === undefined || !free.includes(target)) fail('Wähle die Stadt, die Prachtstadt wird.');
+  return target;
+}
+
 /** Siegziel eines Spielers: Wer den Rostigen Anker hat, braucht einen Punkt mehr. */
 export function victoryTarget(s: GameState, seat: number): number {
   return s.settings.victoryPoints + (s.anchor === seat ? 1 : 0);
@@ -1267,6 +1399,8 @@ export function canBuildAnything(s: GameState, seat: number): boolean {
   if (hasResources(res, COSTS.settlement) && piecesLeft(s, seat, 'settlement') > 0 && legalSettlementVertices(s, seat).length > 0) return true;
   if (s.ships && hasResources(res, COSTS.ship) && piecesLeft(s, seat, 'ship') > 0 && legalShipEdges(s, seat).length > 0) return true;
   if (s.coins && hasResources(res, COSTS.bridge) && piecesLeft(s, seat, 'bridge') > 0 && legalBridgeEdges(s, seat).length > 0) return true;
+  if (s.improvements && TRACKS.some((t) => canImprove(s, seat, t))) return true;
+  if (s.walls && hasResources(res, COSTS.wall) && legalWallVertices(s, seat).length > 0) return true;
   return hasResources(res, COSTS.road) && piecesLeft(s, seat, 'road') > 0 && legalRoadEdges(s, seat).length > 0;
 }
 
@@ -1283,22 +1417,32 @@ function log(s: GameState, seat: number | null, text: string): void {
 }
 
 function addTo(target: ResourceCounts, add: ResourceCounts): void {
-  for (const r of RESOURCES) target[r] += add[r];
+  for (const k of CARDS) setCount(target, k, count(target, k) + count(add, k));
 }
 
 function takeFrom(target: ResourceCounts, take: ResourceCounts): void {
-  for (const r of RESOURCES) target[r] -= take[r];
+  for (const k of CARDS) setCount(target, k, count(target, k) - count(take, k));
 }
 
-/** Nur die Rohstofffelder übernehmen, damit keine fremden Felder im Spielstand landen. */
+/** Eine Karte mehr oder weniger. */
+function addCard(target: ResourceCounts, card: Card, delta: number): void {
+  setCount(target, card, count(target, card) + delta);
+}
+
+/** Nur die Kartenfelder übernehmen, damit keine fremden Felder im Spielstand landen. */
 function pick(r: ResourceCounts): ResourceCounts {
   const result = emptyResources();
-  for (const k of RESOURCES) result[k] = r[k];
+  for (const k of CARDS) setCount(result, k, count(r, k));
   return result;
 }
 
 function validateCounts(r: ResourceCounts): void {
-  if (!r || RESOURCES.some((k) => !Number.isInteger(r[k]) || r[k] < 0)) fail('Ungültige Rohstoffangabe.');
+  if (!r || CARDS.some((k) => !Number.isInteger(count(r, k)) || count(r, k) < 0)) fail('Ungültige Rohstoffangabe.');
+}
+
+/** Alle Karten einer Hand als Liste, z. B. um zufällig eine zu ziehen. */
+function cardList(r: ResourceCounts): Card[] {
+  return CARDS.flatMap((k) => Array<Card>(count(r, k)).fill(k));
 }
 
 /** Bezahlen an die Bank. `to` ist der Bauplatz, zu dem die Karten in der Animation fliegen. */
@@ -1316,12 +1460,12 @@ function seatPoint(seat: number): TransferPoint {
   return { kind: 'player', seat };
 }
 
-function transfer(s: GameState, from: TransferPoint, to: TransferPoint, card: Resource | 'dev', count: number): void {
-  if (count > 0) s.transfers.push({ from, to, card, count });
+function transfer(s: GameState, from: TransferPoint, to: TransferPoint, card: Card | 'dev', n: number): void {
+  if (n > 0) s.transfers.push({ from, to, card, count: n });
 }
 
 function transferAll(s: GameState, from: TransferPoint, to: TransferPoint, counts: ResourceCounts): void {
-  for (const r of RESOURCES) transfer(s, from, to, r, counts[r]);
+  for (const k of CARDS) transfer(s, from, to, k, count(counts, k));
 }
 
 function requireTurn(s: GameState, seat: number, phase: 'roll' | 'main'): void {
@@ -1355,11 +1499,19 @@ function playDevCard(s: GameState, seat: number, card: DevCard): ReturnPhase {
 }
 
 /** Verteilt den Ertrag; liefert, wie viele Rohstoffe jeder aus Goldfeldern noch selbst wählt. */
-function produce(s: GameState, sum: number): number[] {
+/**
+ * Verteilt den Ertrag; liefert, wie viele Rohstoffe jeder aus Goldfeldern noch selbst wählt, und wer
+ * überhaupt etwas bekam. Stadtwacht: Städte auf Wald, Weide und Gebirge liefern 1 Rohstoff und 1 Gut.
+ */
+function produce(s: GameState, sum: number): { gold: number[]; got: boolean[] } {
   const topo = getTopology(s.board);
-  const demand = RESOURCES.map(() => s.players.map(() => 0));
+  const demand = new Map<Card, number[]>(CARDS.map((c) => [c, s.players.map(() => 0)]));
   const gold = s.players.map(() => 0);
-  const sources: { hex: number; seat: number; res: Resource; n: number }[] = [];
+  const sources: { hex: number; seat: number; card: Card; n: number }[] = [];
+  const add = (hex: number, seat: number, card: Card, n: number) => {
+    demand.get(card)![seat] += n;
+    sources.push({ hex, seat, card, n });
+  };
   s.board.hexes.forEach((hex, id) => {
     const terrain = hex.terrain;
     if (hex.number !== sum || id === s.robber || (!isResource(terrain) && terrain !== 'gold')) return;
@@ -1372,31 +1524,36 @@ function produce(s: GameState, sum: number): number[] {
         gold[b.owner] += n;
         continue;
       }
-      demand[RESOURCES.indexOf(terrain)][b.owner] += n;
-      sources.push({ hex: id, seat: b.owner, res: terrain, n });
+      const good = s.improvements && b.type === 'city' ? TERRAIN_GOODS[terrain] : undefined;
+      if (good) {
+        add(id, b.owner, terrain, 1);
+        add(id, b.owner, good, 1);
+      } else {
+        add(id, b.owner, terrain, n);
+      }
     }
   });
 
   const gained = s.players.map(() => emptyResources());
-  RESOURCES.forEach((res, r) => {
-    const total = demand[r].reduce((a, b) => a + b, 0);
-    if (total === 0) return;
-    const receivers = demand[r].flatMap((n, seat) => (n > 0 ? [seat] : []));
-    if (total <= s.bank[res]) {
-      receivers.forEach((seat) => (gained[seat][res] = demand[r][seat]));
+  for (const [card, wants] of demand) {
+    const total = wants.reduce((a, b) => a + b, 0);
+    if (total === 0) continue;
+    const receivers = wants.flatMap((n, seat) => (n > 0 ? [seat] : []));
+    if (total <= count(s.bank, card)) {
+      receivers.forEach((seat) => setCount(gained[seat], card, wants[seat]));
     } else if (receivers.length === 1) {
-      gained[receivers[0]][res] = s.bank[res];
+      setCount(gained[receivers[0]], card, count(s.bank, card));
     } else {
-      log(s, null, `Die Bank hat nicht genug ${RESOURCE_NAMES[res]}, niemand bekommt welches.`);
+      log(s, null, `Die Bank hat nicht genug ${CARD_NAMES[card]}, niemand bekommt welches.`);
     }
-  });
+  }
 
   // Für die Animation: Karten fliegen von den liefernden Feldern, höchstens so viele wie tatsächlich ausgezahlt.
   const left = gained.map((g) => ({ ...g }));
-  for (const { hex, seat, res, n } of sources) {
-    const count = Math.min(n, left[seat][res]);
-    left[seat][res] -= count;
-    transfer(s, { kind: 'hex', id: hex }, seatPoint(seat), res, count);
+  for (const { hex, seat, card, n } of sources) {
+    const k = Math.min(n, count(left[seat], card));
+    addCard(left[seat], card, -k);
+    transfer(s, { kind: 'hex', id: hex }, seatPoint(seat), card, k);
   }
 
   gained.forEach((g, seat) => {
@@ -1405,14 +1562,18 @@ function produce(s: GameState, sum: number): number[] {
     addTo(s.players[seat].resources, g);
     log(s, seat, `${name(s, seat)} erhält ${formatResources(g)}.`);
   });
-  // Gold: höchstens so viel, wie die Bank noch hat.
-  let available = totalResources(s.bank);
-  return gold.map((n) => {
+  // Gold: höchstens so viel, wie die Bank noch an Rohstoffen hat.
+  let available = RESOURCES.reduce((n, r) => n + s.bank[r], 0);
+  const golds = gold.map((n) => {
     const take = Math.min(n, available);
     available -= take;
     return take;
   });
+  return { gold: golds, got: gained.map((g, seat) => totalResources(g) > 0 || golds[seat] > 0) };
 }
+
+/** Stadtwacht: welches Gut eine Stadt auf diesem Gelände zusätzlich liefert. */
+const TERRAIN_GOODS: Partial<Record<Resource, Commodity>> = { wood: 'paper', sheep: 'cloth', ore: 'coin' };
 
 function continueSpecialBuild(s: GameState, queue: number[]): void {
   const remaining = [...queue];

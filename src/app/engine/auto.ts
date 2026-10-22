@@ -1,5 +1,5 @@
 import { actingSeats, applyAction, legalRobberHexes, legalRoadEdges, legalSetupRoads, legalSetupVertices, legalShipEdges, neutralSpots, robberVictims } from './rules';
-import { Action, emptyResources, GameState, RESOURCES } from './types';
+import { Action, CARDS, count, emptyResources, GameState, RESOURCES, setCount } from './types';
 
 /**
  * Ein zurückhaltender, legaler Zug für einen Sitz, dessen Spieler nicht verbunden ist.
@@ -37,9 +37,9 @@ export function autoAction(s: GameState, seat: number, random: () => number = Ma
       const left = { ...s.players[seat].resources };
       const out = emptyResources();
       for (let i = 0; i < phase.pending[seat]; i++) {
-        const r = [...RESOURCES].sort((a, b) => left[b] - left[a])[0];
-        left[r]--;
-        out[r]++;
+        const r = [...CARDS].sort((a, b) => count(left, b) - count(left, a))[0];
+        setCount(left, r, count(left, r) - 1);
+        setCount(out, r, count(out, r) + 1);
       }
       return { type: 'discard', resources: out };
     }

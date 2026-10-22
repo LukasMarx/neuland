@@ -1,6 +1,7 @@
-import { DevCard, Resource } from '../../engine';
+import { Card, DevCard } from '../../engine';
+import { GOODS_CARD } from './goods-art';
 
-export type CardKind = Resource | DevCard | 'back';
+export type CardKind = Card | DevCard | 'back';
 
 /** Text is rendered by the UI; the illustrations contain no labels or counters. */
 export const CARD_ART: Record<CardKind, string> = {
@@ -15,6 +16,7 @@ export const CARD_ART: Record<CardKind, string> = {
   monopoly: 'web/cards/symbolstark/monopoly.jpg',
   victoryPoint: 'web/cards/symbolstark/victoryPoint.jpg',
   back: 'web/cards/symbolstark/back.jpg',
+  ...GOODS_CARD,
 };
 
 /** Große Fassungen (900 px) für die vergrößerte Kartenansicht, werden erst bei Bedarf geladen. */

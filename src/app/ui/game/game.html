@@ -113,14 +113,16 @@
 
     <div class="bank" data-anchor="bank" title="Vorrat der Bank">
       <small>Bank</small>
-      @for (r of resources; track r) {
-        <span class="bstack" [attr.data-bank]="r" [class.low]="game.bank[r] < 4" [title]="resourceNames[r] + ': ' + game.bank[r]">
-          <img [src]="resourceArt[r]" alt="" /> <b>{{ game.bank[r] }}</b>
+      @for (r of handCards(); track r) {
+        <span class="bstack" [attr.data-bank]="r" [class.low]="n(game.bank, r) < 4" [title]="resourceNames[r] + ': ' + n(game.bank, r)">
+          <img [src]="resourceArt[r]" alt="" /> <b>{{ n(game.bank, r) }}</b>
         </span>
       }
-      <span class="bstack" data-bank="dev" title="Entwicklungskarten im Stapel">
-        <img class="deck" [src]="cardArt.back" alt="" /> <b>{{ deckSize(game) }}</b>
-      </span>
+      @if (!cityWatch()) {
+        <span class="bstack" data-bank="dev" title="Entwicklungskarten im Stapel">
+          <img class="deck" [src]="cardArt.back" alt="" /> <b>{{ deckSize(game) }}</b>
+        </span>
+      }
     </div>
 
     <app-board
@@ -207,12 +209,17 @@
       <app-trade-table [game]="game" [seat]="seat()" [prefill]="tradePrefill()" (close)="closeTrade()" />
     } @else if (offerView()) {
       <app-offer-panel [game]="game" [seat]="seat()" (counter)="openTrade($event)" />
+    } @else if (cityOpen() && seat() >= 0) {
+      <app-city-panel [game]="game" [seat]="seat()" (close)="cityOpen.set(false)" (chooseCity)="chooseMetropolis($event)" />
     } @else {
     @if (me(); as self) {
       <div class="hand" data-hand="dev">
-        @for (r of resources; track r) {
-          <div class="rcard" [attr.data-hand]="r" [class.zero]="!self.resources[r]" [class.tradable]="canTrade() && isCurrent() && self.resources[r] > 0" [title]="resourceNames[r] + (canTrade() && isCurrent() ? ' · Klick zum Handeln' : '')" (click)="handClick(r)">
-            <app-card-face [kind]="r" [badge]="self.resources[r]" />
+        @for (r of handCards(); track r; let i = $index) {
+          @if (i === 5) {
+            <span class="divider" title="Güter"></span>
+          }
+          <div class="rcard" [attr.data-hand]="r" [class.zero]="!n(self.resources, r)" [class.tradable]="canTrade() && isCurrent() && n(self.resources, r) > 0" [title]="resourceNames[r] + (canTrade() && isCurrent() ? ' · Klick zum Handeln' : '')" (click)="handClick(r)">
+            <app-card-face [kind]="r" [badge]="n(self.resources, r)" />
             @if (handDelta(); as d) {
               @for (id of [d.id]; track id) {
                 @if (d.values[r]) {
@@ -300,11 +307,24 @@
           <span class="label">Stadt <kbd>C</kbd></span>
           <span class="cost">@for (c of costArt(costs.city); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
         </button>
-        <button [disabled]="!opts.devCard.enabled" [title]="opts.devCard.reason ?? 'Entwicklungskarte kaufen (E)'" (click)="buyDevCard()">
-          <span class="figure"><img class="deck" [src]="cardArt.back" alt="" /></span>
-          <span class="label">Entwicklung <kbd>E</kbd></span>
-          <span class="cost">@for (c of costArt(costs.devCard); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
-        </button>
+        @if (cityWatch()) {
+          <button [disabled]="!opts.wall.enabled" [class.selected]="buildMode() === 'wall'" [title]="opts.wall.reason ?? 'Palisade unter eine Stadt: Handkartenlimit +2'" (click)="toggleBuild('wall')">
+            <span class="figure"><svg viewBox="-14 -14 28 28" aria-hidden="true"><circle r="11" fill="none" stroke="#8a5a2b" stroke-width="5" stroke-dasharray="3 1.5" /></svg></span>
+            <span class="label">Palisade</span>
+            <span class="cost">@for (c of costArt(costs.wall); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
+          </button>
+          <button [class.selected]="cityOpen()" title="Stadtausbau: Markt, Rat und Gelehrte" (click)="cityOpen.set(!cityOpen())">
+            <span class="figure trade">▲</span>
+            <span class="label">Ausbau</span>
+            <span class="cost text">mit Gütern</span>
+          </button>
+        } @else {
+          <button [disabled]="!opts.devCard.enabled" [title]="opts.devCard.reason ?? 'Entwicklungskarte kaufen (E)'" (click)="buyDevCard()">
+            <span class="figure"><img class="deck" [src]="cardArt.back" alt="" /></span>
+            <span class="label">Entwicklung <kbd>E</kbd></span>
+            <span class="cost">@for (c of costArt(costs.devCard); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
+          </button>
+        }
         @if (seafaring()) {
           <button [disabled]="!opts.ship.enabled" [class.selected]="buildMode() === 'ship'" [title]="opts.ship.reason ?? 'Schiff bauen (B)'" (click)="toggleBuild('ship')">
             <span class="figure"><svg viewBox="-17 -16 34 28"><use href="#ship" [attr.fill]="myColor()" /></svg></span>
@@ -417,6 +437,12 @@
           }
         </dd>
       }
+      @if (d.improvements; as imp) {
+        <dt>Stadtausbau</dt>
+        <dd><span class="muted">Markt {{ imp.market }} · Rat {{ imp.council }} · Gelehrte {{ imp.scholars }}</span><b class="none">–</b></dd>
+        <dt>Prachtstädte</dt>
+        <dd><span class="muted">{{ d.metropolises }} × 2</span><b [class.none]="!d.metropolises">{{ d.metropolises * 2 || '–' }}</b></dd>
+      }
       @if (d.coins !== null) {
         <dt>Münzen</dt>
         <dd>
@@ -454,8 +480,10 @@
 @if (goldDue() > 0) {
   <div class="modal-backdrop">
     <div class="modal">
-      <h3>Gold! Wähle {{ goldDue() }} Rohstoff{{ goldDue() > 1 ? 'e' : '' }}</h3>
-      <p class="muted">Deine Gebäude am Goldfeld bringen Rohstoffe nach Wahl aus der Bank.</p>
+      <h3>{{ cityWatch() ? 'Nach Wahl' : 'Gold!' }} Wähle {{ goldDue() }} Rohstoff{{ goldDue() > 1 ? 'e' : '' }}</h3>
+      <p class="muted">
+        {{ cityWatch() ? 'Goldfeld oder Gelehrte (ab Stufe 3, wenn du sonst nichts bekommst): ' : '' }}Rohstoffe nach Wahl aus der Bank.
+      </p>
       <app-resource-picker [(value)]="goldPick" [max]="game.bank" [total]="goldDue()" />
       <div class="row end mt">
         <span class="muted">{{ total(goldPick()) }} / {{ goldDue() }}</span>
@@ -470,7 +498,7 @@
     <div class="modal">
       <h3>Räuber! Wirf {{ discardDue() }} Karten ab</h3>
       <p class="muted">Du hast {{ total(self.resources) }} Karten und musst die Hälfte abgeben.</p>
-      <app-resource-picker [(value)]="discardPick" [max]="self.resources" [total]="discardDue()" />
+      <app-resource-picker [(value)]="discardPick" [max]="self.resources" [total]="discardDue()" [cards]="handCards()" />
       <div class="row end mt">
         <span class="muted">{{ total(discardPick()) }} / {{ discardDue() }}</span>
         <button class="primary" [disabled]="total(discardPick()) !== discardDue()" (click)="discard()">Abwerfen</button>
@@ -533,7 +561,7 @@
           <h3>Tausch erzwingen: Welche 2 Karten gibst du ab?</h3>
           <p class="muted">Du nimmst zuerst 2 zufällige Karten vom Gegner, dann gehen diese beiden an ihn.</p>
           @if (me(); as self) {
-            <app-resource-picker [(value)]="tokenPick" [max]="self.resources" [total]="2" />
+            <app-resource-picker [(value)]="tokenPick" [max]="self.resources" [total]="2" [cards]="handCards()" />
           }
           <div class="row end mt">
             <button (click)="dialog.set(null)">Abbrechen</button>

@@ -1,13 +1,25 @@
 export type Resource = 'wood' | 'brick' | 'sheep' | 'wheat' | 'ore';
 export const RESOURCES: readonly Resource[] = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
 
+/** Stadtwacht: Güter aus Städten auf Wald (Schriften), Weide (Stoff) und Gebirge (Silber). */
+export type Commodity = 'paper' | 'cloth' | 'coin';
+export const COMMODITIES: readonly Commodity[] = ['paper', 'cloth', 'coin'];
+
+/** Alles, was man auf der Hand halten, tauschen, abwerfen und verlieren kann. */
+export type Card = Resource | Commodity;
+export const CARDS: readonly Card[] = [...RESOURCES, ...COMMODITIES];
+
 /**
  * `sea`, `gold` und `fog` gibt es nur auf Seewege-Karten. Gold liefert einen Rohstoff nach Wahl,
  * `fog` ist ein noch verdecktes Feld (Land oder Meer, entschieden erst beim Aufdecken).
  * `lake` ist der See der Fischgründe: Land statt Wüste, liefert Fische bei 2, 3, 11 und 12.
  */
 export type Terrain = Resource | 'desert' | 'sea' | 'gold' | 'fog' | 'lake';
-export type ResourceCounts = Record<Resource, number>;
+/**
+ * Karten auf der Hand oder in der Bank. Güter sind optional: Wo sie fehlen, zählen sie als 0. So bleibt
+ * der Stand ohne Stadtwacht genau wie bisher, und alte Spielstände passen weiter.
+ */
+export type ResourceCounts = Record<Resource, number> & Partial<Record<Commodity, number>>;
 export type DevCard = 'knight' | 'roadBuilding' | 'yearOfPlenty' | 'monopoly' | 'victoryPoint';
 export type HarborType = Resource | 'any';
 
@@ -125,7 +137,7 @@ export type TransferPoint =
 export interface Transfer {
   from: TransferPoint;
   to: TransferPoint;
-  card: Resource | 'dev';
+  card: Card | 'dev';
   count: number;
   /** Nur Geber und Nehmer sehen, welche Karte es ist (Räuber). */
   hidden?: boolean;
@@ -213,7 +225,18 @@ export interface GameState {
   tokens?: number[];
   /** Flussläufe: Münzen je Sitz. */
   coins?: number[];
+  /** Stadtwacht: Ausbaustufen je Sitz, Prachtstädte je Richtung (Ecke) und Palisaden (Ecken mit Stadt). */
+  improvements?: Improvements[];
+  metropolis?: Record<Track, number | null>;
+  walls?: number[];
 }
+
+/** Stadtwacht: die drei Ausbaurichtungen, bezahlt mit Stoff, Silber und Schriften. */
+export type Track = 'market' | 'council' | 'scholars';
+export const TRACKS: readonly Track[] = ['market', 'council', 'scholars'];
+export type Improvements = Record<Track, number>;
+export const TRACK_GOODS: Record<Track, Commodity> = { market: 'cloth', council: 'coin', scholars: 'paper' };
+export const TRACK_NAMES: Record<Track, string> = { market: 'Markt', council: 'Rat', scholars: 'Gelehrte' };
 
 /** Duell: wofür man Handelsmarken ausgibt. */
 export type TokenEffect = 'trade' | 'robber';
@@ -242,7 +265,7 @@ export type Action =
   | { type: 'playRoadBuilding' }
   | { type: 'playYearOfPlenty'; resources: [Resource, Resource] }
   | { type: 'playMonopoly'; resource: Resource }
-  | { type: 'bankTrade'; give: Resource; get: Resource }
+  | { type: 'bankTrade'; give: Card; get: Card }
   /** Mehrere Bank- und Hafentausche auf einmal, ganz oder gar nicht. */
   | { type: 'bankTradeBatch'; give: ResourceCounts; get: ResourceCounts }
   | { type: 'offerTrade'; give: ResourceCounts; want: ResourceCounts }
@@ -264,7 +287,10 @@ export type Action =
   | { type: 'spendTokens'; effect: TokenEffect; give?: ResourceCounts }
   /** Flussläufe */
   | { type: 'buildBridge'; edge: number }
-  | { type: 'tradeCoins'; resource: Resource };
+  | { type: 'tradeCoins'; resource: Resource }
+  /** Stadtwacht */
+  | { type: 'improveCity'; track: Track; vertex?: number }
+  | { type: 'buildWall'; vertex: number };
 
 export const RESOURCE_NAMES: Record<Resource, string> = {
   wood: 'Holz',
@@ -289,16 +315,40 @@ export const COSTS = {
   devCard: { wood: 0, brick: 0, sheep: 1, wheat: 1, ore: 1 },
   ship: { wood: 1, brick: 0, sheep: 1, wheat: 0, ore: 0 },
   bridge: { wood: 1, brick: 2, sheep: 0, wheat: 0, ore: 0 },
+  wall: { wood: 0, brick: 2, sheep: 0, wheat: 0, ore: 0 },
 } satisfies Record<string, ResourceCounts>;
 
 export const PIECE_LIMITS = { road: 15, settlement: 5, city: 4, ship: 15, bridge: 3 };
+
+export const COMMODITY_NAMES: Record<Commodity, string> = {
+  paper: 'Schriften',
+  cloth: 'Stoff',
+  coin: 'Silber',
+};
+
+export const CARD_NAMES: Record<Card, string> = { ...RESOURCE_NAMES, ...COMMODITY_NAMES };
 
 export function emptyResources(): ResourceCounts {
   return { wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 };
 }
 
+/** Anzahl einer Kartenart; fehlende Güter zählen als 0. */
+export function count(r: ResourceCounts, card: Card): number {
+  return r[card] ?? 0;
+}
+
+export function isCommodity(card: string): card is Commodity {
+  return (COMMODITIES as readonly string[]).includes(card);
+}
+
+/** Setzt eine Anzahl; ein Gut, das es in diesem Zählwerk noch nicht gibt, kommt erst bei mehr als 0 dazu. */
+export function setCount(r: ResourceCounts, card: Card, value: number): void {
+  if (isCommodity(card) && value === 0 && !(card in r)) return;
+  r[card] = value;
+}
+
 export function totalResources(r: ResourceCounts): number {
-  return RESOURCES.reduce((sum, k) => sum + r[k], 0);
+  return CARDS.reduce((sum, k) => sum + count(r, k), 0);
 }
 
 /** Handkarten eines Spielers, auch wenn sie in dieser Sicht verdeckt sind (siehe secrets.ts). */
@@ -317,10 +367,10 @@ export function deckSize(s: Pick<GameState, 'hiddenDeck' | 'devDeck'>): number {
 }
 
 export function hasResources(have: ResourceCounts, need: ResourceCounts): boolean {
-  return RESOURCES.every((k) => have[k] >= need[k]);
+  return CARDS.every((k) => count(have, k) >= count(need, k));
 }
 
 export function formatResources(r: ResourceCounts): string {
-  const parts = RESOURCES.filter((k) => r[k] > 0).map((k) => `${r[k]} ${RESOURCE_NAMES[k]}`);
+  const parts = CARDS.filter((k) => count(r, k) > 0).map((k) => `${count(r, k)} ${CARD_NAMES[k]}`);
   return parts.length ? parts.join(', ') : 'nichts';
 }

@@ -242,6 +242,42 @@ text {
   stroke-width: 1.4;
 }
 
+// Stadtwacht: Palisade als Pfahlring unter der Stadt, Prachtstadt mit Abzeichen der Richtung.
+.building .wall {
+  fill: rgb(70 45 20 / 0.35);
+  stroke: #8a5a2b;
+  stroke-width: 4;
+  stroke-dasharray: 3 1.6;
+}
+
+.building .metro {
+  circle {
+    fill: var(--mc);
+    stroke: #1b2832;
+    stroke-width: 1.6;
+  }
+
+  text {
+    font-size: 10px;
+    font-weight: 900;
+    fill: #1b2832;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+
+  &[data-track='market'] {
+    --mc: #e3b84f;
+  }
+
+  &[data-track='council'] {
+    --mc: #5b8bd8;
+  }
+
+  &[data-track='scholars'] {
+    --mc: #5aa66a;
+  }
+}
+
 // Ohne Aufhellung des Bretts hält ein dünner, leicht transparenter dunkler Rand
 // die Figuren auf jedem Gelände lesbar (Variante E1, output/designs/board-kontrast-2026-10-21).
 .piece-art {
