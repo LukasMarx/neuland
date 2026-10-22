@@ -800,6 +800,8 @@ Aufwand M1: ca. 1–1,5 Wochen. Danach ist klar, ob die Hook-Struktur trägt, be
 
 ## 6. Grafiken: Arbeitsauftrag für den Bild-Agenten
 
+**Liefernachtrag 22.10.2026:** Flussläufe, Stadtwacht I/II und die Bedienelemente sind als Grafiken samt Farbvarianten und Web-Fassungen fertig; die Einbindung folgt separat. [Lieferübersicht](../output/designs/stadtwacht-2026-10-22/LIEFERUNG.md). Neu eingegangen und noch offen: Stadtwacht III mit 25 Einflusskarten-Motiven, drei Rückseiten und der Händlerfigur.
+
 Für alle neuen Motive gilt, was [GRAFIKEN.md](GRAFIKEN.md) festlegt: Papiercollage-Stil, Licht von oben links, Gelände als spitze Sechsecke mit freier Mitte, Figuren als transparente PNGs mit Grundbild + Maske für die acht Spielerfarben (`scripts/build-piece-assets.py`), Karten textfrei im Design „Symbolstark“, Web-Fassungen über `node scripts/optimize-images.mjs`. Prompts und Vorschauen kommen wie bisher nach `output/designs/<thema>-<datum>/`.
 
 Ergänzende Regeln:

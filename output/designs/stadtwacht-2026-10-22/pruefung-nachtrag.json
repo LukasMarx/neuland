@@ -1,0 +1,164 @@
+[
+  {
+    "path": "public/banner/papiercollage/raiders.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/cards/symbolstark/cloth.png",
+    "size": [
+      1024,
+      1536
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/symbolstark/paper.png",
+    "size": [
+      1024,
+      1536
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/symbolstark/silver.png",
+    "size": [
+      1024,
+      1536
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/icons/city/council.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/city/event-council.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/city/event-market.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/city/event-scholars.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/city/event-ship.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/city/honor.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/city/improve.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/city/market.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/pieces/papiercollage/raiders.png",
+    "size": [
+      512,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/resources/cloth.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/resources/coin.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/resources/paper.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/city/scholars.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/pieces/papiercollage/wall.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "validated": true
+  }
+]

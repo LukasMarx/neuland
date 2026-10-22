@@ -2,15 +2,9 @@
 
 ## Stand (22.10.2026)
 
-**Alles offen.** Stadtwacht ist seit heute komplett spielbar (in der Lobby „Stadtwacht“), geliefert wurde dafür noch nichts. Im Spiel stehen Platzhalter:
+**Geliefert (22.10.2026):** Stadtwacht I und II und das Symbol „Ausbau“, als Originale, Farbvarianten und Web-Dateien. Übersicht und Dateizuordnung: [LIEFERUNG.md](LIEFERUNG.md).
 
-- Güterkarten und -symbole als schlichte SVGs
-- Prachtstadt als Abzeichen mit Anfangsbuchstaben, Palisade als Ring
-- Wächter als runde Marken, Händler als Marke mit „H“
-- Flotte und Ereigniswürfel als einfache Formen
-- Einflusskarten als farbige Karten mit Namen, ohne Motiv
-
-Zuletzt dazugekommen: die neun Motive für Stadtwacht III-b (Wanderhändler bis Flurbereinigung) und die Händlerfigur. Wenn nicht alles auf einmal geht, ist die Reihenfolge nach Nutzen: Güterkarten und -symbole, Wächter, Rückseiten der Einflusskarten, Prachtstadt und Palisade, dann der Rest.
+**Offen:** Stadtwacht III, also drei Rückseiten und 25 Motive der Einflusskarten sowie die Händlerfigur. Optional die Symbole für die Wächter-Aktionen. Im Spiel stehen dafür Platzhalter: Einflusskarten als farbige Karten mit Namen ohne Motiv, der Händler als Marke mit „H“.
 
 ## Worum es geht
 

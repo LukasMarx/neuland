@@ -1,0 +1,265 @@
+{
+  "assets": [
+    {
+      "name": "banner-raiders",
+      "path": "public/banner/papiercollage/raiders.png",
+      "width": 1024,
+      "height": 1024,
+      "group": "stadtwacht",
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/output/designs/organic-pieces-2026-10-22/sources/city.png"
+      ],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Banner illustration: dark charcoal sailed wooden longship in front of a short cream city wall with two red-roofed towers, a few small layered teal wave shapes connecting ship and wall. Cohesive single compact scene, no enclosing badge. Calm board-game miniature, no violence. Occupies 85% square. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-17ef8a61-a174-4b12-9981-35b91e0fddb8.png",
+      "refinement": {
+        "source": "C:/Users/marxl/.codex/generated_images/01a15efa-8db3-7691-acf7-efdc86401013/exec-007f764a-9c27-4596-ba36-7ddcb1a78de4.png",
+        "prompt": "Use case: precise-object-edit. Change ONLY the ship sail and its red mast-top pennant in this Neuland banner illustration to dark charcoal gray paper. The whole sail must be dark charcoal, with subtle lighter charcoal paper strip seams; remove red and cream stripes from the sail. Keep cream city walls, RED city roofs and city flags, ship hull, shields, waves, composition, paper texture and genuine transparent background exactly unchanged. No text or added objects."
+      }
+    },
+    {
+      "name": "card-cloth",
+      "path": "public/cards/symbolstark/cloth.png",
+      "width": 1024,
+      "height": 1536,
+      "group": "stadtwacht",
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Stoff goods card: two large vivid red rolled fabric bolts and a folded length of woven red cloth, visible simple weave. Warm red palette and subdued paper-cut workshop background. Large foreground motif. Full-bleed portrait artwork 2:3, no text panel. Match the reference card's material and composition, changing its subject.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-c453936d-01d4-4b3d-ada1-10fb751db117.png"
+    },
+    {
+      "name": "card-paper",
+      "path": "public/cards/symbolstark/paper.png",
+      "width": 1024,
+      "height": 1536,
+      "group": "stadtwacht",
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Schriften goods card: a large blank parchment scroll beside a bound brown book on layered parchment sheets. Warm parchment palette; atmospheric paper-cut study shelves in background, large foreground symbol. Full-bleed portrait artwork 2:3, no text panel. Match the reference card's material and composition, changing its subject.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-234c122a-b02b-4d3d-b079-97dc852cd45b.png"
+    },
+    {
+      "name": "card-silver",
+      "path": "public/cards/symbolstark/silver.png",
+      "width": 1024,
+      "height": 1536,
+      "group": "stadtwacht",
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/ore.png"
+      ],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Silber goods card: a stack of silver coins and a small silver ingot, no markings on coins. Cool silver gray palette, subdued paper-cut mountain background, large foreground motif. Full-bleed portrait artwork 2:3, no text panel. Match the reference card's material and composition, changing its subject.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-8205545b-9c6d-46ba-8a94-f64af4a8d065.png"
+    },
+    {
+      "name": "council",
+      "path": "public/icons/city/council.png",
+      "width": 256,
+      "height": 256,
+      "group": "stadtwacht",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Compact cream town hall with saturated blue roof and a large golden bell visible in its single central belfry. Blue dominant. Minimal detail, readable at 18px. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-dab067e6-d721-4f26-8678-b81057f42e67.png"
+    },
+    {
+      "name": "event-council",
+      "path": "public/icons/city/event-council.png",
+      "width": 256,
+      "height": 256,
+      "group": "stadtwacht",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Minimal city gate made of saturated blue thick layered paper: two squat square towers joined by an arch, one large transparent arch opening. Front view, symmetrical single gate, no door, no flag, no surrounding wall. Very simple geometry for a 28px die-face symbol. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-afc581ba-728f-42e9-85f9-0d35db32b4f2.png",
+      "refinement": {
+        "prompt": "Use case: background-extraction. Isolate ONLY the blue layered paper city gate from the reference. Remove the entire dark navy background and ALL blue glow, haze and shadows outside the paper gate silhouette. Make the arch opening and outside genuinely transparent (alpha zero), including gaps between battlements. Keep gate itself, saturated blue color, texture and frontal geometry unchanged. Center on square transparent canvas with 10% empty margin. No drop shadow, no halo, no border, no text.",
+        "source": "C:/Users/marxl/.codex/generated_images/01a15efa-8db3-7691-acf7-efdc86401013/exec-b6b9fcfd-6312-4bbc-8373-a1c6b714e625.png"
+      }
+    },
+    {
+      "name": "event-market",
+      "path": "public/icons/city/event-market.png",
+      "width": 256,
+      "height": 256,
+      "group": "stadtwacht",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Minimal city gate made of golden yellow thick layered paper: two squat square towers joined by an arch, one large transparent arch opening. Front view, symmetrical single gate, no door, no flag, no surrounding wall. Very simple geometry for a 28px die-face symbol. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-58ea1f26-0358-4656-8f1f-694b72e478e7.png",
+      "refinement": {
+        "prompt": "Use case: background-extraction. Isolate ONLY the yellow layered paper city gate from the reference. Remove the entire dark brown background and ALL yellow glow, haze and shadows outside the paper gate silhouette. Make the arch opening and outside genuinely transparent (alpha zero), including gaps between battlements. Keep the gate itself, yellow color, texture and frontal geometry unchanged. Center on square transparent canvas with 10% empty margin. No drop shadow, no halo, no border, no text.",
+        "source": "C:/Users/marxl/.codex/generated_images/01a15efa-8db3-7691-acf7-efdc86401013/exec-5be2b285-e709-432a-b062-12f0cd94748d.png"
+      }
+    },
+    {
+      "name": "event-scholars",
+      "path": "public/icons/city/event-scholars.png",
+      "width": 256,
+      "height": 256,
+      "group": "stadtwacht",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Minimal city gate made of forest green thick layered paper: two squat square towers joined by an arch, one large transparent arch opening. Front view, symmetrical single gate, no door, no flag, no surrounding wall. Very simple geometry for a 28px die-face symbol. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-dd898d32-951a-4085-a8fe-1b025e5a8927.png"
+    },
+    {
+      "name": "event-ship",
+      "path": "public/icons/city/event-ship.png",
+      "width": 256,
+      "height": 256,
+      "group": "stadtwacht",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Minimal single brown wooden longship with large charcoal sail, chunky compact side silhouette. Simple enough to be a 28px die-face symbol. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-9b5ebb46-c1f2-4f49-ba94-e2da054efb0f.png"
+    },
+    {
+      "name": "guard1",
+      "path": "output/designs/pieces-2026-10-21/sources/guard1.png",
+      "width": 512,
+      "height": 512,
+      "group": "stadtwacht",
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/pieces/papiercollage/knight-red.png"
+      ],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Wächter level 1 miniature: simple watchman with one long wooden spear and small cream cap, broad saturated scarlet red cloak, brown clothing and boots. No shield, no banner, no pedestal. Friendly stylized board-game pawn, no facial detail needed. Red cloak is the player-color area. Spear extends distinctly beyond silhouette. Camera steep overhead: 75 degrees above the board plane, only 15 degrees off vertical. Dominant top surfaces, strongly foreshortened vertical surfaces, no horizon, never frontal or low isometric.  Reference for paper construction ONLY, change viewpoint to near top-down. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-99f07502-c0e6-4180-b035-147da28dfb9d.png"
+    },
+    {
+      "name": "guard2",
+      "path": "output/designs/pieces-2026-10-21/sources/guard2.png",
+      "width": 512,
+      "height": 512,
+      "group": "stadtwacht",
+      "references": [
+        "C:/Users/marxl/.codex/generated_images/01a15efa-8db3-7691-acf7-efdc86401013/exec-99f07502-c0e6-4180-b035-147da28dfb9d.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create Wächter level 2 for Neuland, matching reference level 1 material, proportions and exact steep near-overhead camera. Handmade layered paper miniature, coarse tactile fibers, cream metal and brown leather/wood, saturated pure scarlet red cloak for recoloring. Experienced watchman with a broad cream metal helmet and large cream round shield clearly extending on the left of silhouette, short spear at right. No banner. Viewed from above at 80 degrees above ground: see helmet top and shoulders, foreshorten torso strongly. Cloak broad and red. Distinct readable silhouette at 24px. No pedestal, no background or ground shadow, no text, symbols, or numbers. Transparent outside all shapes. One centered square sprite with comfortable margin. Reference is style and overhead camera; do not copy level 1 equipment.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-0aade298-ce33-4d85-b491-7b4b35e30470.png"
+    },
+    {
+      "name": "guard3",
+      "path": "output/designs/pieces-2026-10-21/sources/guard3.png",
+      "width": 512,
+      "height": 512,
+      "group": "stadtwacht",
+      "references": [
+        "C:/Users/marxl/.codex/generated_images/01a15efa-8db3-7691-acf7-efdc86401013/exec-99f07502-c0e6-4180-b035-147da28dfb9d.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create Wächter level 3 for Neuland, matching reference level 1 material, proportions and exact steep near-overhead camera. Handmade layered paper miniature, coarse tactile fibers, cream metal and brown leather/wood, saturated pure scarlet red cloak for recoloring. Powerful watchman in chunky cream plate armor, broad armored shoulders and helmet, large saturated red rectangular banner clearly extending high to the right, shield at left. No long spear, banner silhouette dominates. Viewed from above at 80 degrees above ground: see helmet top and shoulders, foreshorten torso strongly. Cloak broad and red. Distinct readable silhouette at 24px. No pedestal, no background or ground shadow, no text, symbols, or numbers. Transparent outside all shapes. One centered square sprite with comfortable margin. Reference is style and overhead camera; do not copy level 1 equipment.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-474f3912-bbc5-46ef-853e-23bf2df28a2b.png"
+    },
+    {
+      "name": "honor",
+      "path": "public/icons/city/honor.png",
+      "width": 256,
+      "height": 256,
+      "group": "stadtwacht",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. A single cream and muted gold shield embraced by two green laurel sprigs. Plain shield face with subtle raised center, no letters or insignia. Clear small honor award icon. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-ea186fbf-8306-41ba-81eb-e925276b7161.png"
+    },
+    {
+      "name": "improve",
+      "path": "public/icons/city/improve.png",
+      "width": 256,
+      "height": 256,
+      "group": "stadtwacht",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Three staggered cream city towers, each with one broad roof: golden yellow on left, blue tallest in middle, green on right. Very simple compact city silhouette indicating city improvement, readable at 28px. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-d422342a-b28b-4d75-af80-4bf6e8367d83.png"
+    },
+    {
+      "name": "market",
+      "path": "public/icons/city/market.png",
+      "width": 256,
+      "height": 256,
+      "group": "stadtwacht",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Small market stall with broad golden yellow fabric canopy, two wooden supports and simple counter. Yellow is the dominant identifying color. Minimal detail, readable at 18px. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-ff227180-f3f3-4c91-adf4-dd6b8d60af16.png"
+    },
+    {
+      "name": "metropolis",
+      "path": "output/designs/organic-pieces-2026-10-22/sources/metropolis.png",
+      "width": 512,
+      "height": 512,
+      "group": "stadtwacht",
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/output/designs/organic-pieces-2026-10-22/sources/city.png"
+      ],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Prachtstadt miniature: a grand central cream stone palace surrounded by a compact cluster of buildings, three tall monumental cream towers, bold scarlet roofs and flags. Larger and grander than the reference city. All recolorable roofs and banners PURE saturated red, all stone cream, wood brown, foliage green. Compact square footprint, no surrounding terrain tile. Camera steep overhead: 75 degrees above the board plane, only 15 degrees off vertical. Dominant top surfaces, strongly foreshortened vertical surfaces, no horizon, never frontal or low isometric.  Reference is material and architecture only; make camera significantly more overhead. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-121a5831-3182-45d1-a0de-429b44c8d7f3.png",
+      "refinement": {
+        "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-5e49dc15-3d86-40f3-b396-a65a582ecba5.png",
+        "prompt": "Change ONLY camera to near VERTICAL TOP DOWN, 80 degrees above ground / 10 degrees off vertical. Roofs and ground plan dominate, severely foreshortened walls. Preserve paper materials, pure red roofs and banners, cream stone, brown wood, green foliage and city design. Transparent outside, no backdrop or text."
+      }
+    },
+    {
+      "name": "raiders",
+      "path": "public/pieces/papiercollage/raiders.png",
+      "width": 512,
+      "height": 256,
+      "group": "stadtwacht",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Plündererflotte: single long wooden longship with dark charcoal sail, cream highlights and a row of oars. Strong horizontal elongated silhouette, brown hull, no colored player accents. Three-quarter side view appropriate for a fleet progress track, 2:1 wide composition. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-fbd18ece-b555-4d57-8874-d40c7149e179.png"
+    },
+    {
+      "name": "resource-cloth",
+      "path": "public/icons/resources/cloth.png",
+      "width": 1254,
+      "height": 1254,
+      "group": "stadtwacht",
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/cloth.png"
+      ],
+      "prompt": "Use case: background-extraction. Create a matching standalone Neuland resource symbol from the card reference: two red woven fabric rolls and one folded red cloth; no shelves or workshop. Keep the same tactile torn paper collage, palette and recognizable foreground objects. Simplify into a compact bold silhouette readable at 20px. Complete objects, no cropping. Center square canvas, 10% margin. Genuine transparent background, no floor, scenery, badge, halo or ground shadow. No text or numbers. The reference is the motif and material source.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-ef96a265-2e39-4bca-9daf-49e39b60fd26.png"
+    },
+    {
+      "name": "resource-coin",
+      "path": "public/icons/resources/coin.png",
+      "width": 1254,
+      "height": 1254,
+      "group": "stadtwacht",
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/silver.png"
+      ],
+      "prompt": "Use case: background-extraction. Create a matching standalone Neuland resource symbol from the card reference: a short stack of silver coins and one small silver ingot; remove all loose rocks and mountains. Keep the same tactile torn paper collage, palette and recognizable foreground objects. Simplify into a compact bold silhouette readable at 20px. Complete objects, no cropping. Center square canvas, 10% margin. Genuine transparent background, no floor, scenery, badge, halo or ground shadow. No text or numbers. The reference is the motif and material source.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-cc426abc-8114-40ad-adda-9173e8d7e61b.png"
+    },
+    {
+      "name": "resource-paper",
+      "path": "public/icons/resources/paper.png",
+      "width": 1254,
+      "height": 1254,
+      "group": "stadtwacht",
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/paper.png"
+      ],
+      "prompt": "Use case: background-extraction. Create a matching standalone Neuland resource symbol from the card reference: the large blank parchment scroll and the brown bound book; remove quill, inkpot and shelves. Keep the same tactile torn paper collage, palette and recognizable foreground objects. Simplify into a compact bold silhouette readable at 20px. Complete objects, no cropping. Center square canvas, 10% margin. Genuine transparent background, no floor, scenery, badge, halo or ground shadow. No text or numbers. The reference is the motif and material source.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-b8033982-a92e-490d-a295-a43ccf6ed88e.png"
+    },
+    {
+      "name": "scholars",
+      "path": "public/icons/city/scholars.png",
+      "width": 256,
+      "height": 256,
+      "group": "stadtwacht",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Compact cream study building with saturated green roof and a large brass telescope pointing diagonally upward from an open window. Green dominant. Minimal detail, readable at 18px. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-e5005d0b-fc29-4d18-a6d6-426d55d21597.png"
+    },
+    {
+      "name": "wall",
+      "path": "public/pieces/papiercollage/wall.png",
+      "width": 512,
+      "height": 512,
+      "group": "stadtwacht",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Palisade: a complete circular ring of thick pointed wooden stakes with two horizontal wooden braces. Neutral warm brown wood. Broad clear empty central hole, diameter at least 70% of outer diameter, completely TRANSPARENT center and exterior, no ground, no buildings. Ring should look almost circular from high overhead. Camera steep overhead: 75 degrees above the board plane, only 15 degrees off vertical. Dominant top surfaces, strongly foreshortened vertical surfaces, no horizon, never frontal or low isometric.  Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-84b0e945-ef86-4148-ad4c-24df175e9c16.png"
+    }
+  ],
+  "generator": "Built-in image_gen",
+  "boardPerspective": "Steep overhead: approximately 75 degrees above the board plane. UI and banner motifs use their specified presentation views.",
+  "export": "Cards RGB 1024x1536; isolated assets RGBA with proportional resize and transparent padding; source pieces normalized by palette scripts. Red surfaces recolored with the existing mask pipeline."
+}

@@ -1,8 +1,8 @@
 {
   "generator": "Built-in image_gen",
   "transparent_background": true,
-  "boardPerspective": "Near-overhead, approximately 75 degrees above the board plane; user correction 2026-10-22. Banner ships remain side-view as requested by the brief.",
-  "export": "RGBA PNG, proportional resize and transparent centering; tiles retain full canvas geometry. Ship source is normalized by build-piece-assets.py.",
+  "boardPerspective": "Steep overhead: approximately 75 degrees above the board plane. UI and banner motifs use their specified presentation views.",
+  "export": "Cards RGB 1024x1536; isolated assets RGBA with proportional resize and transparent padding; source pieces normalized by palette scripts. Red surfaces recolored with the existing mask pipeline.",
   "assets": [
     {
       "group": "fernhandel",
@@ -130,6 +130,48 @@
       ],
       "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square canvas. One isolated centered motif, about 85% occupancy, generous fully transparent margin on all sides. No scene backdrop, no ground, no frame or plaque unless explicitly requested. Simplify silhouette and small details for readability. Subject: ONE round brass-gold paper trading token bearing TWO broad dark-brown curved ARROWS forming a circular exchange symbol. Bold unmistakable arrowheads, no letters or numbers, no other symbols. Readable at24px.",
       "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-9a325695-d1fe-4cce-b9fe-83b770c023b5.png"
+    },
+    {
+      "name": "bridge",
+      "path": "output/designs/pieces-2026-10-21/sources/bridge.png",
+      "width": 512,
+      "height": 128,
+      "group": "fernhandel",
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/pieces/papiercollage/ship-red.png"
+      ],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. A small wooden bridge with two low brown railings and brown end posts. Long horizontal left-to-right axis; very wide shallow silhouette 4:1, suitable for 512x128 export. Only walkway planks saturated scarlet red for palette recoloring, ALL posts and rails neutral brown. No river or terrain. Camera steep overhead: 75 degrees above the board plane, only 15 degrees off vertical. Dominant top surfaces, strongly foreshortened vertical surfaces, no horizon, never frontal or low isometric.  Reference only for material and camera, do not copy ship. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-75987586-1352-4b8d-a9eb-138e92ad1b13.png"
+    },
+    {
+      "name": "poor",
+      "path": "public/icons/rivers/poor.png",
+      "width": 256,
+      "height": 256,
+      "group": "fernhandel",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Empty flat brown cloth coin purse with a simple lighter square patch and loose cord. Friendly humble object, no person, no coins. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-583dc3aa-8c38-4737-a1d1-6af89495012a.png"
+    },
+    {
+      "name": "rich",
+      "path": "public/icons/rivers/rich.png",
+      "width": 256,
+      "height": 256,
+      "group": "fernhandel",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Full rounded brown cloth coin purse with three large gold coins visible at its open mouth. Simple friendly silhouette. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-b40ce18d-7409-4015-ad54-b9655d899ce1.png"
+    },
+    {
+      "name": "river-coin",
+      "path": "public/icons/rivers/coin.png",
+      "width": 256,
+      "height": 256,
+      "group": "fernhandel",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. A single golden paper coin with one simple embossed wave, no other mark. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-6d957ce8-3e4b-4cdc-9de7-d7d44c466a0b.png"
     }
   ]
 }

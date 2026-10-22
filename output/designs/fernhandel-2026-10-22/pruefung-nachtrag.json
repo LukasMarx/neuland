@@ -1,0 +1,29 @@
+[
+  {
+    "path": "public/icons/rivers/poor.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/rivers/rich.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/rivers/coin.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  }
+]

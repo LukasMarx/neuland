@@ -113,6 +113,46 @@
         0.5
       ],
       "recommendedBoardWidth": 32
+    },
+    "bridge": {
+      "label": "Brücke",
+      "width": 512,
+      "height": 128,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "recommendedBoardWidth": 44
+    },
+    "guard1": {
+      "label": "Wächter I",
+      "width": 512,
+      "height": 512,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "recommendedBoardWidth": 24
+    },
+    "guard2": {
+      "label": "Wächter II",
+      "width": 512,
+      "height": 512,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "recommendedBoardWidth": 24
+    },
+    "guard3": {
+      "label": "Wächter III",
+      "width": 512,
+      "height": 512,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "recommendedBoardWidth": 24
     }
   },
   "assets": {
@@ -175,6 +215,54 @@
       "brown": "pieces/papiercollage/ship-brown.png",
       "grey-light": "pieces/papiercollage/ship-grey-light.png",
       "grey-dark": "pieces/papiercollage/ship-grey-dark.png"
+    },
+    "bridge": {
+      "red": "pieces/papiercollage/bridge-red.png",
+      "blue": "pieces/papiercollage/bridge-blue.png",
+      "gold": "pieces/papiercollage/bridge-gold.png",
+      "purple": "pieces/papiercollage/bridge-purple.png",
+      "white": "pieces/papiercollage/bridge-white.png",
+      "orange": "pieces/papiercollage/bridge-orange.png",
+      "green": "pieces/papiercollage/bridge-green.png",
+      "brown": "pieces/papiercollage/bridge-brown.png",
+      "grey-light": "pieces/papiercollage/bridge-grey-light.png",
+      "grey-dark": "pieces/papiercollage/bridge-grey-dark.png"
+    },
+    "guard1": {
+      "red": "pieces/papiercollage/guard1-red.png",
+      "blue": "pieces/papiercollage/guard1-blue.png",
+      "gold": "pieces/papiercollage/guard1-gold.png",
+      "purple": "pieces/papiercollage/guard1-purple.png",
+      "white": "pieces/papiercollage/guard1-white.png",
+      "orange": "pieces/papiercollage/guard1-orange.png",
+      "green": "pieces/papiercollage/guard1-green.png",
+      "brown": "pieces/papiercollage/guard1-brown.png",
+      "grey-light": "pieces/papiercollage/guard1-grey-light.png",
+      "grey-dark": "pieces/papiercollage/guard1-grey-dark.png"
+    },
+    "guard2": {
+      "red": "pieces/papiercollage/guard2-red.png",
+      "blue": "pieces/papiercollage/guard2-blue.png",
+      "gold": "pieces/papiercollage/guard2-gold.png",
+      "purple": "pieces/papiercollage/guard2-purple.png",
+      "white": "pieces/papiercollage/guard2-white.png",
+      "orange": "pieces/papiercollage/guard2-orange.png",
+      "green": "pieces/papiercollage/guard2-green.png",
+      "brown": "pieces/papiercollage/guard2-brown.png",
+      "grey-light": "pieces/papiercollage/guard2-grey-light.png",
+      "grey-dark": "pieces/papiercollage/guard2-grey-dark.png"
+    },
+    "guard3": {
+      "red": "pieces/papiercollage/guard3-red.png",
+      "blue": "pieces/papiercollage/guard3-blue.png",
+      "gold": "pieces/papiercollage/guard3-gold.png",
+      "purple": "pieces/papiercollage/guard3-purple.png",
+      "white": "pieces/papiercollage/guard3-white.png",
+      "orange": "pieces/papiercollage/guard3-orange.png",
+      "green": "pieces/papiercollage/guard3-green.png",
+      "brown": "pieces/papiercollage/guard3-brown.png",
+      "grey-light": "pieces/papiercollage/guard3-grey-light.png",
+      "grey-dark": "pieces/papiercollage/guard3-grey-dark.png"
     }
   }
 }

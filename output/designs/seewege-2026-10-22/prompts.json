@@ -1,8 +1,8 @@
 {
   "generator": "Built-in image_gen",
   "transparent_background": true,
-  "boardPerspective": "Near-overhead, approximately 75 degrees above the board plane; user correction 2026-10-22. Banner ships remain side-view as requested by the brief.",
-  "export": "RGBA PNG, proportional resize and transparent centering; tiles retain full canvas geometry. Ship source is normalized by build-piece-assets.py.",
+  "boardPerspective": "Steep overhead: approximately 75 degrees above the board plane. UI and banner motifs use their specified presentation views.",
+  "export": "Cards RGB 1024x1536; isolated assets RGBA with proportional resize and transparent padding; source pieces normalized by palette scripts. Red surfaces recolored with the existing mask pipeline.",
   "assets": [
     {
       "group": "seewege",
@@ -92,6 +92,26 @@
       "prompt": "Use case: stylized-concept. Create ONE sailing-boat BOARD TOKEN for Neuland in tactile layered cut-paper craft style. The reference village is ONLY for paper materials and color quality. CRITICAL CAMERA: nearly overhead bird's-eye view, camera about 75 degrees ABOVE the horizontal water plane (15 degrees from vertical). Look DOWN onto the deck. This is a flat top-down game board. The hull's long axis is exactly horizontal left-to-right. The whole deck opening and both gunwales must be clearly visible from above. Hull sidewalls only a THIN strip; no tall side-facing hull. Short strongly foreshortened mast, ONE low cream sail viewed from above. Broad saturated terracotta-red paper HULL for later player-color masking; keep sail cream, deck beige, mast brown. Simple chunky miniature readable at 40 pixels. Landscape 2:1 canvas. Complete boat occupying 85%, with fully transparent margins and gaps. No waves, water, base, buildings, scenery, words, numbers or outer cast shadow. The craft feels hand-cut and layered like the village, but shown from a much higher camera.",
       "source": "C:/Users/marxl/.codex/generated_images/01a15efa-8db3-7691-acf7-efdc86401013/exec-aea5a217-470a-4b2f-9bcd-97185053a977.png",
       "normalizedOutput": "output/designs/pieces-2026-10-21/sources/ship-base.png"
+    },
+    {
+      "name": "move-ship",
+      "path": "public/icons/ui/move-ship.png",
+      "width": 256,
+      "height": 256,
+      "group": "seewege",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Small neutral brown boat with cream sail and one bold curved cream arrow wrapping around its side, indicating relocation. Simple clear UI symbol. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-fef4ec9a-5fa5-4a10-927c-ddcb59b70778.png"
+    },
+    {
+      "name": "trade",
+      "path": "public/icons/ui/trade.png",
+      "width": 256,
+      "height": 256,
+      "group": "seewege",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Two offset blank cream playing cards with two bold curved opposing arrows in muted teal and warm ochre indicating exchange. No hands. Very simple clear UI symbol. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-03867d5a-0140-40cd-83d9-2ebf771a1337.png"
     }
   ]
 }
