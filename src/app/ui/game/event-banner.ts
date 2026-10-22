@@ -24,12 +24,16 @@ interface Prop {
   mirror?: boolean;
 }
 
+/** Freigestellte Banner-Motive (Papiercollage, siehe output/designs/banner-2026-10-21). */
+const MOTIF = (name: 'laurel' | 'star' | 'shield' | 'sword' | 'signpost' | 'chest' | 'coin' | 'basket' | 'horn') =>
+  `web/banner/papiercollage/${name}.png`;
+
 /** Gesamtdauer bis zum Ausblenden, danach meldet das Banner `done`. */
 export const BANNER_MS = 4100;
 
 /**
  * Breites, halbtransparentes Band über dem Brett. Links und rechts treten freigestellte
- * Spielteile auf (Figuren, Rohstoffe); später kommen eigene Banner-Motive hinzu.
+ * Motive auf (Lorbeer, Schild, Truhe …) zusammen mit Spielteilen in der Farbe des Spielers.
  */
 @Component({
   selector: 'app-event-banner',
@@ -82,35 +86,55 @@ export class EventBanner implements OnInit {
     switch (e.kind) {
       case 'road':
         return {
-          left: list(4, (i) => at(piece('road'), 'road lay', 0.3 + i * 0.12, { rotate: i % 2 ? 8 : -8 })),
-          right: list(2, (i) => at(piece(i ? 'city' : 'settlement'), i ? 'city pop' : 'house pop', 0.85 + i * 0.15)),
+          left: list(3, (i) => at(piece('road'), 'road lay', 0.3 + i * 0.12, { rotate: i % 2 ? 8 : -8 })),
+          right: list(1, () => at(MOTIF('signpost'), 'motif pop', 0.8)),
         };
       case 'army':
+        // Zwei gespiegelte Schwerter ergeben ein gekreuztes Paar.
         return {
-          left: list(3, (i) => at(piece('knight'), 'knight march', 0.25 + i * 0.15)),
-          right: list(3, (i) => at(piece('knight'), 'knight march-r', 0.3 + i * 0.15, { mirror: true })),
+          left: list(1, () => at(MOTIF('shield'), 'motif pop', 0.3)),
+          right: [
+            { src: MOTIF('sword'), cls: 'motif sword march-r', delay: 0.4, mirror: true },
+            { src: MOTIF('sword'), cls: 'motif sword crossed march-r', delay: 0.5 },
+          ],
         };
       case 'win':
+        // Lorbeerkranz um den Titel, außen je ein Stern.
         return {
-          left: list(2, (i) => at(piece(i ? 'city' : 'settlement'), i ? 'city pop' : 'house pop', 0.35 + i * 0.15)),
-          right: list(2, (i) => at(piece(i ? 'city' : 'knight'), i ? 'city pop' : 'knight pop', 0.6 + i * 0.15)),
+          left: [
+            { src: MOTIF('star'), cls: 'motif small pop', delay: 0.6 },
+            { src: MOTIF('laurel'), cls: 'motif tall pop', delay: 0.3, mirror: true },
+          ],
+          right: [
+            { src: MOTIF('laurel'), cls: 'motif tall pop', delay: 0.3 },
+            { src: MOTIF('star'), cls: 'motif small pop', delay: 0.7 },
+          ],
         };
       case 'monopoly': {
-        const src = e.resource ? RESOURCE_ART[e.resource] : null;
+        const res = e.resource ? RESOURCE_ART[e.resource] : null;
         return {
-          left: list(3, (i) => at(src, 'res fly-l', 0.2 + i * 0.12)),
-          right: list(3, (i) => at(src, 'res fly-r', 0.26 + i * 0.12)),
+          left: [
+            ...list(2, (i) => at(res, 'res fly-l', 0.2 + i * 0.12)),
+            ...list(1, () => at(MOTIF('chest'), 'motif pop', 0.45)),
+          ],
+          right: list(3, (i) => at(MOTIF('coin'), 'motif coin fly-r', 0.3 + i * 0.12, { rotate: (i - 1) * 14 })),
         };
       }
       case 'plenty': {
         const [a, b] = e.resources ?? [];
         return {
-          left: list(1, () => at(a ? RESOURCE_ART[a] : null, 'res pop', 0.35)),
-          right: list(1, () => at(b ? RESOURCE_ART[b] : null, 'res pop', 0.5)),
+          left: list(1, () => at(MOTIF('basket'), 'motif pop', 0.3)),
+          right: [
+            ...list(1, () => at(a ? RESOURCE_ART[a] : null, 'res pop', 0.55)),
+            ...list(1, () => at(b ? RESOURCE_ART[b] : null, 'res pop', 0.7)),
+          ],
         };
       }
       case 'turn':
-        return { left: list(1, () => at(piece('knight'), 'knight march', 0.2)), right: [] };
+        return {
+          left: list(1, () => at(MOTIF('horn'), 'motif march', 0.2)),
+          right: list(1, () => at(piece('knight'), 'knight march-r', 0.35)),
+        };
     }
   });
 

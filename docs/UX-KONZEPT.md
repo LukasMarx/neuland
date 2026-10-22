@@ -101,7 +101,7 @@ Prototyp: `output/designs/handel-2026-10-21/index.html`. Gehandelt wird im Dock,
   - Anlässe: „Du bist dran“ (plus optional ein Ton), längste Handelsstraße, größte Rittermacht, Monopol, Erfindung und Sieg.
   - Mehrere Banner laufen nacheinander. Der Siegerdialog erscheint erst, wenn das Sieg-Banner durch ist.
   - Erkannt wird alles aus dem Unterschied zweier Spielstände (`GameView.detectEvents`), die Engine bleibt unverändert.
-  - Bis die Banner-Motive aus `output/designs/banner-2026-10-21/einzelteile-auftrag.md` da sind, dienen Figuren und Rohstoff-Icons als Platzhalter.
+  - Motive (Papiercollage, `public/banner/papiercollage/`, Web-Fassung 280 px): Sieg mit Lorbeerkranz und Sternen, Handelsstraße mit Straßen und Wegweiser, Rittermacht mit Schild und gekreuzten Schwertern (ein Schwert, gespiegelt), Monopol mit Truhe und Münzen, Erfindung mit Erntekorb, „Du bist dran“ mit Signalhorn und eigener Figur.
 - **Hand-Änderungen** zeigen „+n“/„−n“-Plaketten auf den Karten.
 - **Fliegende Karten für alle:** Jede Kartenbewegung ist bei allen Spielern als Flug zu sehen.
   - Ertrag fliegt vom Feld zum Spieler, und zwar erst, wenn die Würfel gelandet sind.

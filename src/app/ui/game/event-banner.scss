@@ -136,6 +136,34 @@
   width: 58px;
 }
 
+.motif {
+  width: 108px;
+
+  &.tall {
+    width: 96px;
+  }
+
+  &.small {
+    width: 58px;
+    align-self: flex-start;
+    margin-top: 6px;
+  }
+
+  &.coin {
+    width: 62px;
+    rotate: var(--r);
+  }
+
+  &.sword {
+    width: 104px;
+  }
+
+  // Das zweite Schwert liegt über dem ersten: zusammen ein gekreuztes Paar.
+  &.crossed {
+    margin-left: -78px;
+  }
+}
+
 .mirror {
   scale: -1 1;
 }
