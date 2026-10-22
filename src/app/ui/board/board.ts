@@ -8,7 +8,7 @@ import { pieceImage } from '../shared/piece-art';
 
 const S = 60;
 /** Größe der Gebäudegrafiken in Brett-Einheiten, gilt auch für die Bauvorschau. */
-const BUILDING_SIZE = { settlement: 32, city: 46 } as const;
+const BUILDING_SIZE = { settlement: 40, city: 58 } as const;
 /** Auf großen Brettern sind die Felder kleiner, Figuren und Marken werden dort größer gezeichnet. */
 const PIECE_SCALE = { base: 1, ext: 1.2 } as const;
 const MAX_PIECE_SCALE = 1.4;
