@@ -56,6 +56,169 @@ text {
   pointer-events: none;
 }
 
+// ---------------------------------------------------------------------------
+// Bewegung: langsam und leise, damit sie nicht vom Spiel ablenkt. Nur Transform und Deckkraft,
+// das bleibt auch auf großen Karten und Handys günstig. Ohne Bewegung (Systemeinstellung) steht alles still.
+
+.water-motion {
+  pointer-events: none;
+}
+
+.ocean-drift {
+  opacity: 0.32;
+  mix-blend-mode: soft-light;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: water-drift 38s ease-in-out infinite alternate;
+}
+
+@keyframes water-drift {
+  from {
+    transform: scale(1.08) translate(-1.2%, -0.6%);
+  }
+  to {
+    transform: scale(1.08) translate(1.2%, 0.8%);
+  }
+}
+
+.foam {
+  fill: none;
+  stroke: #e9f5f8;
+  stroke-width: 7;
+  stroke-linejoin: round;
+  pointer-events: none;
+  animation: foam 5.5s ease-in-out infinite;
+}
+
+@keyframes foam {
+  0%,
+  100% {
+    opacity: 0.12;
+    stroke-width: 5;
+  }
+  50% {
+    opacity: 0.38;
+    stroke-width: 10;
+  }
+}
+
+.mist {
+  pointer-events: none;
+}
+
+.mist-drift {
+  animation: mist 14s ease-in-out infinite alternate;
+}
+
+@keyframes mist {
+  from {
+    transform: translateX(-14px);
+    opacity: 0.55;
+  }
+  to {
+    transform: translateX(14px);
+    opacity: 0.95;
+  }
+}
+
+.fog-fade {
+  pointer-events: none;
+}
+
+.fog-fade-inner {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fog-fade 1.6s ease-out forwards;
+}
+
+@keyframes fog-fade {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+
+.ripples circle {
+  fill: none;
+  stroke: rgb(230 245 250 / 0.8);
+  stroke-width: 1.4;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ripple 4.8s ease-out infinite;
+
+  &.late {
+    animation-name: ripple-late;
+  }
+}
+
+@keyframes ripple {
+  from {
+    transform: scale(0.4);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+
+@keyframes ripple-late {
+  0%,
+  45% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.ship,
+.pirate {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bob 3.8s ease-in-out infinite;
+}
+
+.pirate {
+  animation-duration: 5.2s;
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: rotate(-2.5deg) translateY(0);
+  }
+  50% {
+    transform: rotate(2.5deg) translateY(-0.8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ocean-drift,
+  .foam,
+  .mist-drift,
+  .ripples circle,
+  .ship,
+  .pirate,
+  .river .river-shine {
+    animation: none;
+  }
+
+  .fog-fade,
+  .ripples {
+    display: none;
+  }
+}
+
 .hex {
   .shine {
     pointer-events: none;
@@ -233,6 +396,14 @@ text {
     stroke-linecap: round;
     stroke-dasharray: 5 11;
     opacity: 0.75;
+    // Die Glanzstriche laufen von der Quelle zur Mündung.
+    animation: river-flow 1.6s linear infinite;
+  }
+}
+
+@keyframes river-flow {
+  to {
+    stroke-dashoffset: -16;
   }
 }
 
@@ -487,24 +658,25 @@ text {
 }
 
 // Im Dunst: Ein frisch aufgedecktes Feld dreht sich wie eine Karte um.
-.hex.revealed,
+// Im Dunst: Beim Aufdecken löst sich der Nebel über dem Feld auf (.fog-fade), die Zahl taucht danach auf.
 .hex-top.revealed {
   transform-box: fill-box;
   transform-origin: center;
-  animation: reveal 0.9s ease-out;
+  animation: reveal 1.6s ease-out;
 }
 
 @keyframes reveal {
-  0% {
-    transform: scaleX(0.05);
-    filter: brightness(1.6);
+  0%,
+  45% {
+    transform: scale(0.4);
+    opacity: 0;
   }
-  60% {
-    transform: scaleX(1.06);
+  80% {
+    transform: scale(1.1);
+    opacity: 1;
   }
   100% {
     transform: none;
-    filter: none;
   }
 }
 

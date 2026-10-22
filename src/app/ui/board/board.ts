@@ -187,6 +187,12 @@ export class Board {
 
   protected readonly oceanPath = computed(() => this.ocean().path);
 
+  /** Küstenlinien (Land gegen Wasser) für die Brandung; unter den Feldern gezeichnet, sichtbar ist nur die Wasserseite. */
+  protected readonly coastPath = computed(() => {
+    const topo = this.topo();
+    return topo.coastLoops.map((l) => toPath(loopPoints(topo, l.edges))).join(' ');
+  });
+
   protected readonly hexes = computed(() => {
     const g = this.game();
     return this.topo().hexes.map((h) => {
@@ -201,6 +207,8 @@ export class Board {
         sea: state.terrain === 'sea',
         fog: state.terrain === 'fog',
         lake: state.terrain === 'lake',
+        // Versetzte Startzeit je Feld, damit nicht alle Schwaden und Wellen im Gleichtakt laufen.
+        phase: `${-((h.id * 7) % 13) * 1.3}s`,
         revealed: this.revealed().has(h.id),
         image: tileImage(state.terrain, h.id),
         // Jedes zweite Feld gespiegelt, damit gleiche Gelände nicht wie gestempelt aussehen.
@@ -377,6 +385,7 @@ export class Board {
       const width = line.length * SHIP_LENGTH * this.k();
       return [{
         id, transform: `${line.transform} scale(${this.k()})`, color: player.color, title: `${player.name}: Schiff`,
+        phase: `${-((id * 5) % 11) * 0.37}s`,
         image: pieceImage('ship', player.color), imageTransform: line.transform, width, height: width / 2,
       }];
     });

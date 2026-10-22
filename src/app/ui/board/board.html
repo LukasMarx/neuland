@@ -2,6 +2,12 @@
   <defs><g appTerrainDefs></g></defs>
   <path class="ocean" [attr.d]="oceanPath()" fill="url(#g-ocean)" />
   <path class="ocean-texture" [attr.d]="oceanPath()" fill="url(#p-ocean-paper)" />
+  <!-- Bewegtes Wasser: eine zweite, leicht durchsichtige Lage treibt langsam, an der Küste schäumt Brandung. -->
+  <clipPath id="ocean-clip"><path [attr.d]="oceanPath()" /></clipPath>
+  <g class="water-motion" clip-path="url(#ocean-clip)" aria-hidden="true">
+    <path class="ocean-drift" [attr.d]="oceanPath()" fill="url(#p-ocean-paper)" />
+  </g>
+  <path class="foam" [attr.d]="coastPath()" aria-hidden="true" />
 
   <!-- Häfen und Fischgründe: die Stege zu den Ecken liegen unter den Feldern, die Schilder kommen später. -->
   @for (h of harbors(); track $index) {
@@ -32,6 +38,30 @@
       }
       <polygon class="shine" [attr.points]="h.points" fill="url(#g-shine)" />
       <polygon class="outline" [attr.points]="h.points" />
+      }
+      @if (h.fog) {
+        <!-- Nebelschwaden treiben im Feld hin und her. -->
+        <g class="mist" [attr.transform]="'translate(' + h.x + ',' + h.y + ')'" clip-path="url(#hexclip)" aria-hidden="true">
+          <g class="mist-drift" [style.animation-delay]="h.phase">
+            <ellipse cx="-34" cy="-22" rx="46" ry="13" fill="url(#g-mist)" />
+            <ellipse cx="26" cy="6" rx="52" ry="14" fill="url(#g-mist)" />
+            <ellipse cx="-12" cy="34" rx="44" ry="11" fill="url(#g-mist)" />
+          </g>
+        </g>
+      }
+      @if (h.revealed) {
+        <!-- Aufgedeckt: Der Nebel löst sich über dem neuen Feld auf. -->
+        <g class="fog-fade" [attr.transform]="'translate(' + h.x + ',' + h.y + ')'" aria-hidden="true">
+          <g class="fog-fade-inner">
+            <image href="web/tiles/papiercollage/fog.png" x="-51.96" y="-60" width="103.92" height="120" preserveAspectRatio="xMidYMid slice" clip-path="url(#hexclip)" />
+          </g>
+        </g>
+      }
+      @if (h.lake) {
+        <g class="ripples" [attr.transform]="'translate(' + (h.x - 12) + ',' + (h.y - 22) + ')'" aria-hidden="true">
+          <circle r="6" [style.animation-delay]="h.phase" />
+          <circle r="6" class="late" [style.animation-delay]="h.phase" />
+        </g>
       }
     </g>
   }
@@ -137,7 +167,7 @@
   }
 
   @for (sh of ships(); track sh.id) {
-    <g class="ship" [attr.data-edge]="sh.id">
+    <g class="ship" [attr.data-edge]="sh.id" [style.animation-delay]="sh.phase">
       <title>{{ sh.title }}</title>
       @if (sh.image) {
         <image class="piece-art" [attr.href]="sh.image" [attr.transform]="sh.imageTransform"
