@@ -833,11 +833,6 @@ kbd {
   border-color: #2f6f8d;
   color: #e8e2d6;
 
-  svg {
-    width: 34px;
-    height: 24px;
-  }
-
   b {
     font-size: 1.1rem;
     line-height: 1;
@@ -848,22 +843,49 @@ kbd {
     opacity: 0.8;
   }
 
-  .anchor {
-    position: absolute;
-    top: 3px;
-    right: 5px;
-    font-size: 0.9rem;
-  }
 }
 
 .fish-stack.tokens {
   background: #3b3322;
   border-color: #8a6f3a;
+}
 
-  .token-icon {
-    font-size: 1.4rem;
-    line-height: 1;
-    color: #d4b06a;
+.fish-stack .stack-icon {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.fish-stack img.anchor {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+}
+
+.fish-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 6px;
+
+  img {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+.tag-icon {
+  width: 14px;
+  height: 14px;
+  margin-right: 3px;
+  vertical-align: -2px;
+
+  &.big {
+    width: 22px;
+    height: 22px;
+    vertical-align: -5px;
   }
 }
 

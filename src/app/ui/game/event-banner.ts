@@ -3,7 +3,7 @@ import { Resource } from '../../engine';
 import { pieceImage } from '../shared/piece-art';
 import { RESOURCE_ART } from '../shared/resource-art';
 
-export type BannerKind = 'win' | 'road' | 'army' | 'harbor' | 'island' | 'monopoly' | 'plenty' | 'turn' | 'raid';
+export type BannerKind = 'win' | 'road' | 'army' | 'harbor' | 'island' | 'monopoly' | 'plenty' | 'turn' | 'raid' | 'anchor';
 
 export interface BannerEvent {
   id: number;
@@ -25,7 +25,9 @@ interface Prop {
 }
 
 /** Freigestellte Banner-Motive (Papiercollage, siehe output/designs/banner-2026-10-21). */
-const MOTIF = (name: 'laurel' | 'star' | 'shield' | 'sword' | 'signpost' | 'chest' | 'coin' | 'basket' | 'horn') =>
+const MOTIF = (
+  name: 'laurel' | 'star' | 'shield' | 'sword' | 'signpost' | 'chest' | 'coin' | 'basket' | 'horn' | 'ship' | 'island' | 'anchor' | 'lighthouse',
+) =>
   `web/banner/papiercollage/${name}.png`;
 
 /** Gesamtdauer bis zum Ausblenden, danach meldet das Banner `done`. */
@@ -90,18 +92,24 @@ export class EventBanner implements OnInit {
           right: list(1, () => at(MOTIF('signpost'), 'motif pop', 0.8)),
         };
       case 'harbor':
-        // Bis es ein eigenes Motiv gibt: Gebäude des Spielers und Münzen aus dem Hafenhandel.
+        // Leuchtturm links, Münzen aus dem Hafenhandel rechts.
         return {
-          left: list(2, (i) => at(piece(i ? 'city' : 'settlement'), i ? 'city pop' : 'house pop', 0.3 + i * 0.15)),
+          left: list(1, () => at(MOTIF('lighthouse'), 'motif tall pop', 0.3)),
           right: list(2, (i) => at(MOTIF('coin'), 'motif coin fly-r', 0.4 + i * 0.12, { rotate: i ? 12 : -10 })),
         };
       case 'island':
+        // Das Schiff legt an, auf der Insel steht die neue Siedlung.
         return {
-          left: list(1, () => at(MOTIF('signpost'), 'motif pop', 0.3)),
+          left: list(1, () => at(MOTIF('ship'), 'motif march', 0.2)),
           right: [
-            ...list(1, () => at(piece('settlement'), 'house pop', 0.5)),
-            ...list(1, () => at(MOTIF('star'), 'motif small pop', 0.75)),
+            ...list(1, () => at(MOTIF('island'), 'motif pop', 0.45)),
+            ...list(1, () => at(piece('settlement'), 'house pop', 0.7)),
           ],
+        };
+      case 'anchor':
+        return {
+          left: list(1, () => at(MOTIF('anchor'), 'motif pop', 0.3)),
+          right: list(1, () => at(MOTIF('star'), 'motif small pop', 0.6)),
         };
       case 'raid':
       case 'army':

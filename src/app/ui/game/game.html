@@ -51,10 +51,10 @@
                 · Rittermacht
               }
               @if (p.harborMaster) {
-                · Hafenvogt
+                · <img class="tag-icon" src="web/icons/variants/harbor-master.png" alt="" />Hafenvogt
               }
               @if (p.anchor) {
-                · Anker
+                · <img class="tag-icon" src="web/icons/fishing/anchor.png" alt="" />Anker
               }
               @if (p.coinRank > 0) {
                 · Reichster
@@ -268,7 +268,7 @@
         @if (myTokens() !== null) {
           <span class="divider"></span>
           <button class="fish-stack tokens" title="Handelsmarken: Tausch erzwingen oder Räuber in die Wüste" (click)="openTokens()">
-            <span class="token-icon" aria-hidden="true">◈</span>
+            <img class="stack-icon" src="web/icons/duel/token.png" alt="" />
             <b>{{ myTokens() }}</b>
             <small>Marken</small>
           </button>
@@ -276,11 +276,11 @@
         @if (fishing()) {
           <span class="divider"></span>
           <button class="fish-stack" [title]="'Fische: ' + (myFish().join(' + ') || 'keine') + ' · Klicken zum Ausgeben'" (click)="openFish()">
-            <svg viewBox="-11 -8 22 16" aria-hidden="true"><use href="#fish" /></svg>
+            <img class="stack-icon" src="web/icons/fishing/fish-1.png" alt="" />
             <b>{{ myFishTotal() }}</b>
             <small>{{ myFish().length === 1 ? '1 Fisch' : myFish().length + ' Fische' }}</small>
             @if (holdsAnchor()) {
-              <span class="anchor" title="Rostiger Anker: du brauchst einen Punkt mehr zum Sieg">⚓</span>
+              <img class="anchor" src="web/icons/fishing/anchor.png" alt="Rostiger Anker" title="Rostiger Anker: du brauchst einen Punkt mehr zum Sieg" />
             }
           </button>
         }
@@ -346,7 +346,13 @@
         }
         @if (seafaring()) {
           <button [disabled]="!opts.ship.enabled" [class.selected]="buildMode() === 'ship'" [title]="opts.ship.reason ?? 'Schiff bauen (B)'" (click)="toggleBuild('ship')">
-            <span class="figure"><svg viewBox="-17 -16 34 28"><use href="#ship" [attr.fill]="myColor()" /></svg></span>
+            <span class="figure">
+              @if (pieceImage('ship', myColor()); as image) {
+                <img class="road" [src]="image" alt="" />
+              } @else {
+                <svg viewBox="-17 -16 34 28"><use href="#ship" [attr.fill]="myColor()" /></svg>
+              }
+            </span>
             <span class="label">Schiff <kbd>B</kbd></span>
             <span class="cost">@for (c of costArt(costs.ship); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
           </button>
@@ -446,11 +452,11 @@
         }
       </dd>
       @if (d.islandBonus !== null) {
-        <dt>Inselbonus</dt>
+        <dt><img class="tag-icon" src="web/icons/seewege/island-bonus.png" alt="" />Inselbonus</dt>
         <dd><span class="muted">neue Inseln</span><b [class.none]="!d.islandBonus">{{ d.islandBonus || '–' }}</b></dd>
       }
       @if (d.harborVariant) {
-        <dt>Hafenvogt</dt>
+        <dt><img class="tag-icon" src="web/icons/variants/harbor-master.png" alt="" />Hafenvogt</dt>
         <dd>
           @if (d.harborMaster) {
             <span class="muted">{{ d.harborPoints }} Hafenpunkte</span><b>2</b>
@@ -480,7 +486,7 @@
         <dt>Fische</dt>
         <dd><span class="muted">{{ d.fishCount }} Plättchen</span><b class="none">–</b></dd>
         @if (d.anchor) {
-          <dt>Rostiger Anker</dt>
+          <dt><img class="tag-icon" src="web/icons/fishing/anchor.png" alt="" />Rostiger Anker</dt>
           <dd><span class="muted">braucht {{ d.target }} zum Sieg</span><b>+1</b></dd>
         }
       }
@@ -613,7 +619,7 @@
             <button class="primary" [disabled]="total(tokenPick()) !== 2" (click)="confirmTokenTrade()">Tauschen</button>
           </div>
         } @else {
-          <h3>Handelsmarken ausgeben</h3>
+          <h3><img class="tag-icon big" src="web/icons/duel/token.png" alt="" />Handelsmarken ausgeben</h3>
           <p class="muted">Du hast {{ myTokens() }}. Wer mehr Punkte hat als der Gegner, zahlt 2 Marken, sonst 1. Marken gibt es für Siedlungen an Küste und Wüste und für jeden gespielten Ritter.</p>
           <div class="choice-list">
             @for (o of tokenOptions(); track o.effect) {
@@ -652,6 +658,11 @@
           }
           @default {
             <h3>Fische ausgeben</h3>
+            <p class="fish-tokens">
+              @for (t of myFish(); track $index) {
+                <img [src]="'web/icons/fishing/fish-' + t + '.png'" [alt]="t + ' Fisch'" [title]="t === 1 ? '1 Fisch' : t + ' Fische'" />
+              }
+            </p>
             <p class="muted">
               Du hast {{ myFishTotal() }} ({{ myFish().join(' + ') || 'keine' }}). Wechselgeld gibt es nicht, bezahlt wird mit der kleinsten passenden Summe.
             </p>
@@ -661,7 +672,7 @@
               }
             </div>
             @if (holdsAnchor()) {
-              <h3 class="mt">Rostiger Anker</h3>
+              <h3 class="mt"><img class="tag-icon big" src="web/icons/fishing/anchor.png" alt="" />Rostiger Anker</h3>
               <p class="muted">Du brauchst {{ game.settings.victoryPoints + 1 }} Punkte zum Sieg. Abgeben darfst du ihn an jemanden mit mindestens so vielen Punkten.</p>
               <div class="choice-list">
                 @for (v of anchorTargets(); track v) {

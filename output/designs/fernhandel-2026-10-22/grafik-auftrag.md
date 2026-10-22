@@ -1,5 +1,13 @@
 # Auftrag: Grafiken für Fernhandel I und kleine Varianten
 
+## Stand (22.10.2026)
+
+**Geliefert und eingebunden:** See, Fischgrund, Fischplättchen 1–3, Rostiger Anker (Symbol und Banner), Handelsmarke, graue Figuren der Neutralen, Hafenvogt-Abzeichen, Banner-Motiv Leuchtturm. Lieferung siehe `README.md` in diesem Ordner.
+
+**Offen, neu seit der Lieferung (Flussläufe):** Brücke in Spielerfarben (`bridge-base.png`, über die Pipeline), Münze, Abzeichen „meiste“ und „wenigste Münzen“. Die Lieferung beruhte auf einem älteren Stand des Auftrags, in dem Flussläufe noch fehlte.
+
+**Offen, optional:** Banner-Motiv Fisch, Würfelstapel Vorder- und Rückseite.
+
 ## Worum es geht
 
 Neuland hat drei neue Varianten aus „Fernhandel I“, alle in der Lobby zuschaltbar:

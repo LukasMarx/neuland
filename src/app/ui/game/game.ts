@@ -872,6 +872,16 @@ export class GameView {
         tag: from == null ? `+2 Punkte · ${harborPoints(g, g.harborMaster)} Hafenpunkte` : `übernimmt von ${g.players[from].name}`,
       });
     }
+    // Fischgründe: Der Rostige Anker wechselt den Besitzer.
+    if (g.anchor != null && g.anchor !== prev.anchor) {
+      const from = prev.anchor ?? null;
+      this.pushBanner({
+        kind: 'anchor',
+        title: 'Rostiger Anker',
+        ...who(g.anchor),
+        tag: from === null ? 'braucht einen Punkt mehr zum Sieg' : `bekommt ihn von ${g.players[from].name}`,
+      });
+    }
     // Stadtwacht: Die Flotte hat angegriffen (Leiste wieder bei 0, vorher am Ende).
     if (g.raiders && prev.raiders && g.raiders.position === 0 && prev.raiders.position === RAIDER_TRACK - 1 && g.event === 'ship') {
       const lost = g.buildings.some((b, v) => b?.type === 'settlement' && prev.buildings[v]?.type === 'city');

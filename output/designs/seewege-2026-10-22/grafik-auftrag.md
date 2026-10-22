@@ -1,5 +1,11 @@
 # Auftrag: Grafiken für Seewege
 
+## Stand (22.10.2026)
+
+**Geliefert und eingebunden:** Goldfeld, Nebelfeld, Schiff in allen Farben (Draufsicht, auch in den beiden Grautönen), Kaperschiff, Banner-Motive Schiff und Insel, Inselbonus-Symbol. Lieferung siehe `README.md` in diesem Ordner.
+
+**Offen:** nur das optionale Banner-Motiv Kaperschiff (erst nötig, wenn es ein Banner „Kaperschiff versetzt“ gibt).
+
 ## Worum es geht
 
 Neuland hat jetzt die Erweiterung **Seewege**: Karten mit Meerfeldern und Inseln, Schiffe auf den Kanten, ein Kaperschiff auf dem Meer und Goldfelder, die einen Rohstoff nach Wahl liefern. Im Spiel stehen dafür im Moment einfache SVG-Platzhalter. Gebraucht werden Grafiken im bestehenden **Papiercollage-Stil**.

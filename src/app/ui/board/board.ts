@@ -99,6 +99,7 @@ export class Board {
   });
   protected readonly ghostSize = computed(() => BUILDING_SIZE[this.ghost() ?? 'settlement'] * this.k());
   protected readonly ghostRoadImage = computed(() => pieceImage('road', this.ghostColor()));
+  protected readonly ghostShipImage = computed(() => pieceImage('ship', this.ghostColor()));
   /** Was im Baumodus an Kanten als Vorschau erscheint: Straße oder Schiff. */
   readonly edgeGhost = input<'road' | 'ship'>('road');
 
@@ -327,7 +328,12 @@ export class Board {
       if (owner === null) return [];
       const player = g.players[owner];
       const line = this.edgeLine(id, 0.08);
-      return [{ id, transform: `${line.transform} scale(${this.k()})`, color: player.color, title: `${player.name}: Schiff` }];
+      // Schiff aus der Draufsicht, Bug in Kantenrichtung; Bild im Seitenverhältnis 2:1.
+      const width = line.length * 1.05 * this.k();
+      return [{
+        id, transform: `${line.transform} scale(${this.k()})`, color: player.color, title: `${player.name}: Schiff`,
+        image: pieceImage('ship', player.color), imageTransform: line.transform, width, height: width / 2,
+      }];
     });
   });
 
@@ -335,7 +341,7 @@ export class Board {
     const g = this.game();
     if (g.pirate == null) return null;
     const h = this.topo().hexes[g.pirate];
-    return { transform: `translate(${h.x * S},${h.y * S}) scale(${1.25 * this.k()})` };
+    return { transform: `translate(${h.x * S},${h.y * S}) scale(${1.25 * this.k()})`, x: h.x * S, y: h.y * S, size: 54 * this.k() };
   });
 
   /** Stadtwacht: Wächter auf Ecken, Stufe als Ringe, ruhende Wächter gedämpft. */

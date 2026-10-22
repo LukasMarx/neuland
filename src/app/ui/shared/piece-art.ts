@@ -1,4 +1,4 @@
-export type PieceKind = 'knight' | 'city' | 'road' | 'settlement';
+export type PieceKind = 'knight' | 'city' | 'road' | 'settlement' | 'ship';
 
 /** Palette of the exported PNGs; unknown saved colors retain the SVG fallback. */
 const PIECE_COLORS: Readonly<Record<string, string>> = {
@@ -11,6 +11,9 @@ const PIECE_COLORS: Readonly<Record<string, string>> = {
   '#7b4a2a': 'brown',
   '#d5a824': 'gold',
   '#8152b3': 'purple',
+  // Neutrale Mitspieler im Duell
+  '#9aa1a8': 'grey-light',
+  '#5d646c': 'grey-dark',
 };
 
 export function pieceImage(kind: PieceKind, color: string): string | null {

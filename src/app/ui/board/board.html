@@ -28,9 +28,8 @@
       <line [attr.x1]="f.x" [attr.y1]="f.y" [attr.x2]="f.ax" [attr.y2]="f.ay" />
       <line [attr.x1]="f.x" [attr.y1]="f.y" [attr.x2]="f.bx" [attr.y2]="f.by" />
       <g [attr.transform]="f.transform">
-        <circle class="fishing-disc" cx="0" cy="0" r="19" />
-        <use href="#fish" x="0" y="-7" />
-        <text class="fishing-number" [class.red]="f.red" x="0" y="9">{{ f.number }}</text>
+        <image class="fishing-art" href="web/icons/fishing/ground.png" x="-21" y="-21" width="42" height="42" />
+        <text class="fishing-number" [class.red]="f.red" x="0" y="13">{{ f.number }}</text>
       </g>
     </g>
   }
@@ -132,14 +131,19 @@
   @for (sh of ships(); track sh.id) {
     <g class="ship" [attr.data-edge]="sh.id">
       <title>{{ sh.title }}</title>
-      <use href="#ship" [attr.transform]="sh.transform" [attr.fill]="sh.color" />
+      @if (sh.image) {
+        <image class="piece-art" [attr.href]="sh.image" [attr.transform]="sh.imageTransform"
+          [attr.x]="-sh.width / 2" [attr.y]="-sh.height / 2" [attr.width]="sh.width" [attr.height]="sh.height" />
+      } @else {
+        <use href="#ship" [attr.transform]="sh.transform" [attr.fill]="sh.color" />
+      }
     </g>
   }
 
   @if (pirate(); as p) {
     <g class="pirate">
       <title>Kaperschiff</title>
-      <use href="#pirate" [attr.transform]="p.transform" />
+      <image class="piece-art" href="web/pieces/papiercollage/pirate.png" [attr.x]="p.x - p.size / 2" [attr.y]="p.y - p.size / 2" [attr.width]="p.size" [attr.height]="p.size" />
     </g>
   }
 
@@ -191,7 +195,10 @@
     <g class="edge-target" (click)="edgePick.emit(e.id)">
       <line class="hit" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" />
       <line class="mark" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" />
-      @if (edgeGhost() === 'ship') {
+      @if (edgeGhost() === 'ship' && ghostShipImage(); as image) {
+        <image class="ghost-road piece-art" [attr.href]="image" [attr.transform]="e.transform"
+          [attr.x]="-e.length * 1.05 * k() / 2" [attr.y]="-e.length * 1.05 * k() / 4" [attr.width]="e.length * 1.05 * k()" [attr.height]="e.length * 1.05 * k() / 2" />
+      } @else if (edgeGhost() === 'ship') {
         <use class="ghost-road" href="#ship" [attr.transform]="e.transform + ' scale(' + k() + ')'" [attr.fill]="ghostColor()" />
       } @else if (ghostRoadImage(); as image) {
         <image class="ghost-road piece-art" [attr.href]="image" [attr.transform]="e.transform"

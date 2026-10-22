@@ -1,5 +1,9 @@
 # Auftrag: Grafiken für Stadtwacht I und II
 
+## Stand (22.10.2026)
+
+**Alles offen.** Dieser Auftrag ist neuer als die letzte Lieferung. Im Spiel stehen Platzhalter: Güterkarten und -symbole als schlichte SVGs, Prachtstadt als Abzeichen, Palisade als Ring, Wächter als runde Marken, Flotte und Ereigniswürfel als einfache Formen. Stadtwacht III (Einflusskarten) bekommt einen eigenen Abschnitt, sobald die Kartenliste steht.
+
 ## Worum es geht
 
 Neuland bekommt die Erweiterung **Stadtwacht** in drei Schritten. Der erste Schritt ist spielbar (in der Lobby „Stadtwacht (in Arbeit)“):

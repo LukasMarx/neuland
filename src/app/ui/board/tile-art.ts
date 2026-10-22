@@ -13,4 +13,7 @@ export const TILE_IMAGES: Partial<Record<Terrain, string[]>> = {
   wheat: ['web/tiles/papiercollage/wheat.png'],
   ore: ['web/tiles/papiercollage/ore.png'],
   desert: ['web/tiles/papiercollage/desert.png'],
+  gold: ['web/tiles/papiercollage/gold.png'],
+  fog: ['web/tiles/papiercollage/fog.png'],
+  lake: ['web/tiles/papiercollage/lake.png'],
 };

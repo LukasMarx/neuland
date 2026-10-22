@@ -149,25 +149,27 @@ text {
     stroke-dasharray: 3 3;
   }
 
-  .fishing-disc {
-    fill: #1b2832;
-    stroke: rgb(159 208 230 / 0.8);
-    stroke-width: 1.4;
+  .fishing-art {
+    filter: drop-shadow(0 1.5px 1.5px rgb(0 0 0 / 0.45));
   }
 
+  // Die Zahl steht auf dem hellen Wasser unten im Plättchen.
   .fishing-number {
     font-size: 12px;
     font-weight: 900;
-    fill: #e8e2d6;
+    fill: #1b2832;
+    stroke: #f4fbfd;
+    stroke-width: 2.5px;
+    paint-order: stroke;
     text-anchor: middle;
     dominant-baseline: middle;
 
     &.red {
-      fill: #ff8a7a;
+      fill: #b3261e;
     }
   }
 
-  &.hit .fishing-disc {
+  &.hit .fishing-art {
     animation: hit-fish 2.4s ease-out;
   }
 }
@@ -175,8 +177,7 @@ text {
 @keyframes hit-fish {
   0%,
   60% {
-    fill: #2f6f8d;
-    stroke: #ffffff;
+    filter: brightness(1.35) drop-shadow(0 0 6px #ffffff);
   }
 }
 
