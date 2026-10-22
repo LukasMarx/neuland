@@ -34,6 +34,8 @@ In Prompts nur die Neuland-Begriffe verwenden (See, Fischgrund, Rostiger Anker, 
 
 ## Benötigte Dateien
 
+**Liefernachtrag 22.10.2026:** Auch Brücke (acht Farben und zwei Grautöne), Münze und Geldbeutel liegen jetzt inklusive Web-Fassungen vor. [Vorschau](nachtrag-vorschau.html), [Lieferdetails](../stadtwacht-2026-10-22/LIEFERUNG.md). Die Einbindung der neuen Motive folgt separat.
+
 ### Fischgründe
 
 | Datei | Motiv | Format | Hinweise |

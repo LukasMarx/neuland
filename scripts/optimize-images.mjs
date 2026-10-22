@@ -27,6 +27,9 @@ const GROUPS = [
   { dir: 'icons/fishing', size: 96, format: 'png' },
   { dir: 'icons/duel', size: 96, format: 'png' },
   { dir: 'icons/variants', size: 96, format: 'png' },
+  { dir: 'icons/rivers', size: 96, format: 'png' },
+  { dir: 'icons/ui', size: 96, format: 'png' },
+  { dir: 'icons/city', size: 96, format: 'png' },
   { dir: 'pieces/papiercollage', size: 160, format: 'png' },
   // Motive der Ereignis-Banner werden mit etwa 80 bis 140 px Höhe gezeigt.
   { dir: 'banner/papiercollage', size: 280, format: 'png' },

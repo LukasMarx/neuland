@@ -1,0 +1,20 @@
+[
+  {
+    "path": "public/icons/ui/move-ship.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/ui/trade.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  }
+]

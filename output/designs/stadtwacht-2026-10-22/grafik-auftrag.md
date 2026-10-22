@@ -2,6 +2,8 @@
 
 ## Stand (22.10.2026)
 
+**Nachtrag Grafiklieferung:** Stadtwacht I/II und das Symbol „Ausbau“ sind als Originale, Farbvarianten und Web-Dateien fertig. Übersicht und Dateizuordnung: [LIEFERUNG.md](LIEFERUNG.md). Die Einbindung durch den Code-Agenten bleibt offen. Der inzwischen ergänzte Abschnitt Stadtwacht III sowie optionale Wächter-Aktionssymbole sind noch nicht geliefert. Der folgende Absatz beschreibt den Stand vor dieser Lieferung.
+
 **Alles offen.** Dieser Auftrag ist neuer als die letzte Lieferung. Zuletzt dazugekommen: Symbol für den Knopf „Ausbau“ und (optional) Symbole für die Wächter-Aktionen. Im Spiel stehen Platzhalter: Güterkarten und -symbole als schlichte SVGs, Prachtstadt als Abzeichen, Palisade als Ring, Wächter als runde Marken, Flotte und Ereigniswürfel als einfache Formen. Neu dazu: Abschnitt Stadtwacht III (Einflusskarten). Im Spiel stehen dafür schlichte farbige Karten mit Namen.
 
 ## Worum es geht

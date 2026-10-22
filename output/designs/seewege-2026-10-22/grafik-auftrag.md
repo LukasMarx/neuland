@@ -38,6 +38,8 @@ Optional, erst nötig, wenn es dafür ein Banner gibt:
 
 ### Bedienelemente
 
+**Geliefert am 22.10.2026:** `move-ship.png` und `trade.png`, jeweils Original und Web-Fassung. [Vorschau](nachtrag-vorschau.html). Die UI-Zuordnung ist noch offen.
+
 Die Knöpfe im Bauraster zeigen Straße, Siedlung, Stadt, Schiff als Figuren und die Entwicklungskarte als Kartenrückseite. Zwei Knöpfe haben noch ein Textzeichen:
 
 | Datei | Motiv | Format | Hinweise |

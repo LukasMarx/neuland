@@ -13,7 +13,8 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parents[1]
 DESIGN = ROOT / "output/designs/pieces-2026-10-21"
 OUT = ROOT / "public/pieces/papiercollage"
-PIECES = {"knight": "Ritter", "city": "Stadt", "road": "Straße", "settlement": "Dorf", "ship": "Schiff"}
+PIECES = {"knight": "Ritter", "city": "Stadt", "road": "Straße", "settlement": "Dorf", "ship": "Schiff",
+          "bridge": "Brücke", "guard1": "Wächter I", "guard2": "Wächter II", "guard3": "Wächter III"}
 COLORS = {
     "red": ("Rot", "#d23c3c", True),
     "blue": ("Blau", "#2f64d6", True),
@@ -38,7 +39,7 @@ def normalized(source, piece):
     if not bounds:
         raise ValueError(f"Empty source: {piece}")
     rgba = rgba.crop(bounds)
-    size = (512, 128) if piece == "road" else (512, 256) if piece == "ship" else (512, 512)
+    size = (512, 128) if piece in ("road", "bridge") else (512, 256) if piece == "ship" else (512, 512)
     rgba.thumbnail((size[0] - 32, size[1] - 32), Image.Resampling.LANCZOS)
     result = Image.new("RGBA", size)
     result.alpha_composite(rgba, ((size[0] - rgba.width) // 2, (size[1] - rgba.height) // 2))
@@ -51,7 +52,7 @@ def automatic_mask(base, piece):
     distance = np.minimum(hue, 360 - hue)
     # Only saturated terracotta: stone, cream, brass and green foliage are excluded.
     weight = (1 - smooth(20, 29, distance)) * smooth(0.23, 0.42, saturation)
-    if piece == "ship":
+    if piece in ("ship", "bridge", "guard1", "guard2", "guard3", "metropolis"):
         # The overhead deck exposes warm brown wood. Select only the saturated
         # red hull; the broad architectural mask would also tint mast/hatches.
         weight = (1 - smooth(6, 12, distance)) * smooth(0.40, 0.60, saturation)
@@ -124,7 +125,7 @@ def main():
             raise ValueError(f"Mask size mismatch: {mask_path}. Refresh or adjust the mask.")
         manifest["pieces"][piece] = {
             "label": label, "width": base.width, "height": base.height,
-            "anchor": [0.5, 0.5], "recommendedBoardWidth": 44 if piece == "road" else 40 if piece == "city" else 32,
+            "anchor": [0.5, 0.5], "recommendedBoardWidth": 44 if piece in ("road", "bridge") else 40 if piece == "city" else 24 if piece.startswith("guard") else 32,
         }
         manifest["assets"][piece] = {}
         for key, (_, hex_color, _) in COLORS.items():

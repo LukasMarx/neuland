@@ -75,6 +75,18 @@
       "brown": "city-brown.png",
       "grey-light": "city-grey-light.png",
       "grey-dark": "city-grey-dark.png"
+    },
+    "metropolis": {
+      "red": "metropolis-red.png",
+      "blue": "metropolis-blue.png",
+      "gold": "metropolis-gold.png",
+      "purple": "metropolis-purple.png",
+      "white": "metropolis-white.png",
+      "orange": "metropolis-orange.png",
+      "green": "metropolis-green.png",
+      "brown": "metropolis-brown.png",
+      "grey-light": "metropolis-grey-light.png",
+      "grey-dark": "metropolis-grey-dark.png"
     }
   }
 }

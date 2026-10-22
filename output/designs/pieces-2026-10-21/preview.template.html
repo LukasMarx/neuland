@@ -12,7 +12,7 @@ main{max-width:1280px;margin:auto;padding:32px 24px}h1{font:600 clamp(28px,4vw,4
 </head>
 <body><main>
 <h1>Papierfiguren in Spielerfarben</h1>
-<p>Fünf Figuren, eine gemeinsame Vorlage je Figur. Papierstruktur, Perspektive und neutrale Flächen bleiben in allen Farben erhalten.</p>
+<p>Eine gemeinsame Vorlage je Figur. Papierstruktur, Perspektive und neutrale Flächen bleiben in allen Farben erhalten.</p>
 <div class="controls">
 <label>Untergrund <select id="surface"><option value="paper">Papier</option><option value="checker">Transparenz</option><option value="wood">Wald</option><option value="sheep">Weide</option><option value="wheat">Acker</option><option value="brick">Lehm</option><option value="ore">Gebirge</option></select></label>
 <label><input id="small" type="checkbox"> Brettgröße</label>
@@ -26,11 +26,12 @@ main{max-width:1280px;margin:auto;padding:32px 24px}h1{font:600 clamp(28px,4vw,4
 const manifest=JSON.parse(document.getElementById('manifest').textContent);
 const prefix='../../../public/';
 function render(){
+ document.querySelector('thead tr').innerHTML='<th>Spielerfarbe</th>'+Object.values(manifest.pieces).map(info=>'<th>'+info.label+'</th>').join('');
  const mode=document.getElementById('mode').value;
  document.body.classList.toggle('mask',mode==='mask');
  document.getElementById('pieces').innerHTML=manifest.colors.map(color=>'<tr><th scope="row"><span class="swatch" style="background:'+color.hex+'"></span>'+color.label+(!color.inGame?'<span class="note">'+(color.id.startsWith('grey-')?'Neutral':'Entwurf')+'</span>':'')+'</th>'+Object.entries(manifest.pieces).map(([piece,info])=>{
  const src=mode==='mask'?'masks/'+piece+'.png':mode==='base'?'sources/'+piece+'-base.png':prefix+manifest.assets[piece][color.id];
- return '<td><img class="sprite '+piece+'" src="'+src+'" alt="'+info.label+' – '+color.label+'" width="'+info.width+'" height="'+info.height+'"></td>';
+ return '<td><img class="sprite '+piece+'" style="'+(document.body.classList.contains('small')?'width:'+info.recommendedBoardWidth+'px':'')+'" src="'+src+'" alt="'+info.label+' – '+color.label+'" width="'+info.width+'" height="'+info.height+'"></td>';
  }).join('')+'</tr>').join('');
 }
 document.getElementById('surface').addEventListener('change',event=>{
@@ -39,7 +40,7 @@ document.getElementById('surface').addEventListener('change',event=>{
  document.body.classList.toggle('terrain',value!=='paper'&&value!=='checker');
  document.body.style.setProperty('--terrain','url("'+prefix+'tiles/papiercollage/'+value+'.png")');
 });
-document.getElementById('small').addEventListener('change',event=>document.body.classList.toggle('small',event.target.checked));
+document.getElementById('small').addEventListener('change',event=>{document.body.classList.toggle('small',event.target.checked);render()});
 document.getElementById('mode').addEventListener('change',render);
 render();
 </script></body></html>
