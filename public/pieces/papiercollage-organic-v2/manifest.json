@@ -1,0 +1,66 @@
+{
+  "colors": {
+    "red": [
+      "Rot",
+      "#d23c3c",
+      true
+    ],
+    "blue": [
+      "Blau",
+      "#2f64d6",
+      true
+    ],
+    "gold": [
+      "Goldgelb",
+      "#d5a824",
+      false
+    ],
+    "purple": [
+      "Violett",
+      "#8152b3",
+      false
+    ],
+    "white": [
+      "Weiß",
+      "#f4f1e8",
+      true
+    ],
+    "orange": [
+      "Orange",
+      "#ee8a1c",
+      true
+    ],
+    "green": [
+      "Grün",
+      "#2f9a48",
+      true
+    ],
+    "brown": [
+      "Braun",
+      "#7b4a2a",
+      true
+    ]
+  },
+  "assets": {
+    "settlement": {
+      "red": "settlement-red.png",
+      "blue": "settlement-blue.png",
+      "gold": "settlement-gold.png",
+      "purple": "settlement-purple.png",
+      "white": "settlement-white.png",
+      "orange": "settlement-orange.png",
+      "green": "settlement-green.png",
+      "brown": "settlement-brown.png"
+    },
+    "city": {
+      "red": "city-red.png",
+      "blue": "city-blue.png",
+      "gold": "city-gold.png",
+      "purple": "city-purple.png",
+      "white": "city-white.png",
+      "orange": "city-orange.png",
+      "green": "city-green.png",
+      "brown": "city-brown.png"
+    }
+  }
+}

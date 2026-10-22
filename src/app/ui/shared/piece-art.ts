@@ -15,5 +15,6 @@ const PIECE_COLORS: Readonly<Record<string, string>> = {
 
 export function pieceImage(kind: PieceKind, color: string): string | null {
   const palette = PIECE_COLORS[color.trim().toLowerCase()];
-  return palette ? `web/pieces/papiercollage/${kind}-${palette}.png` : null;
+  const style = kind === 'city' || kind === 'settlement' ? 'papiercollage-organic-v2' : 'papiercollage';
+  return palette ? `web/pieces/${style}/${kind}-${palette}.png` : null;
 }

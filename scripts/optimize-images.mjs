@@ -23,6 +23,7 @@ const GROUPS = [
   { dir: 'pieces/papiercollage', size: 160, format: 'png' },
   // Motive der Ereignis-Banner werden mit etwa 80 bis 140 px Höhe gezeigt.
   { dir: 'banner/papiercollage', size: 280, format: 'png' },
+  { dir: 'pieces/papiercollage-organic-v2', size: 160, format: 'png' },
 ];
 
 const sources = new Set();
