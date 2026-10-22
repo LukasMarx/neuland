@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neuland · Kartenauswahl</title>
+<link rel="stylesheet" href="../../../public/fonts/nunito-sans/fonts.css">
+<style>
+  :root {
+    --bg: #121c24;
+    --surface: #18242e;
+    --surface-2: #1e2c37;
+    --line: #2a3a46;
+    --text: #e8e2d6;
+    --muted: #8d9aa4;
+    --accent: #d4b06a;
+    --accent-ink: #1b1508;
+    --ok: #5fb57a;
+    --warn: #e0a84f;
+    --bad: #d26a5c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: 'Nunito Sans', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  .stage {
+    display: grid;
+    grid-template-columns: 290px minmax(0, 1fr) 330px;
+    grid-template-rows: 64px minmax(0, 1fr);
+    height: 100vh;
+  }
+
+  /* --- Kopf --- */
+  .top {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { white-space: nowrap; }
+  .brand b { font-size: 17px; font-weight: 800; }
+  .brand span { margin-left: 10px; font-size: 13px; color: var(--muted); }
+  .spacer { flex: 1; }
+  .seg { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+  .seg .opts { display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .seg button {
+    border: 0; background: transparent; border-radius: 7px; width: 32px; height: 28px;
+    font-weight: 800; color: var(--muted);
+  }
+  .seg button.on { background: var(--surface-2); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
+  .toggle { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; cursor: pointer; user-select: none; }
+  .toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+  .primary {
+    border: 0; border-radius: 10px; padding: 0 18px; height: 38px;
+    background: var(--accent); color: var(--accent-ink); font-weight: 800;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .primary:hover { filter: brightness(1.07); }
+  .primary svg { width: 18px; height: 18px; }
+
+  /* --- Kartenliste --- */
+  .list {
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+    padding: 14px 12px 20px;
+  }
+  .list h2, .info h2 {
+    margin: 4px 6px 10px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 800;
+  }
+  .map-card {
+    width: 100%; display: grid; grid-template-columns: 72px 1fr; gap: 12px; align-items: center;
+    text-align: left; border: 1px solid transparent; background: transparent; border-radius: 12px;
+    padding: 8px; margin-bottom: 4px;
+  }
+  .map-card:hover { background: var(--surface); }
+  .map-card.on { background: var(--surface-2); border-color: rgb(212 176 106 / 0.55); }
+  .map-card .thumb { width: 72px; height: 56px; border-radius: 8px; background: #16303f; display: grid; place-items: center; overflow: hidden; }
+  .map-card .thumb svg { width: 100%; height: 100%; }
+  .map-card b { display: block; font-size: 14px; font-weight: 800; }
+  .map-card small { display: block; color: var(--muted); font-size: 12px; }
+  .map-card .fit { display: inline-block; margin-top: 3px; font-size: 11px; font-weight: 800; color: var(--muted); }
+  .map-card .fit.yes { color: var(--ok); }
+
+  /* --- Brett --- */
+  .board-wrap { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  .board-head { padding: 16px 24px 0; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .board-head h1 { margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.01em; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { font-size: 11px; font-weight: 800; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+  .board { flex: 1; min-height: 0; padding: 8px 16px 16px; }
+  .board svg { width: 100%; height: 100%; display: block; }
+  .seed { position: absolute; left: 24px; bottom: 14px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* SVG-Brett, Werte wie src/app/ui/board/board.scss */
+  svg text { text-anchor: middle; dominant-baseline: central; pointer-events: none; font-family: 'Nunito Sans', sans-serif; }
+  .ocean { stroke: #28627f; stroke-width: 6; stroke-linejoin: round; }
+  .foam { fill: none; stroke: rgb(240 248 250 / 0.32); stroke-width: 9; stroke-linejoin: round; }
+  .hex .outline { fill: none; stroke: #f3e7c6; stroke-width: 3; stroke-linejoin: round; }
+  .token .shadow { fill: rgb(0 0 0 / 0.28); }
+  .token .disc { stroke: #8a7550; stroke-width: 1.2; }
+  .token .ring { fill: none; stroke: #c9b385; stroke-width: 0.8; }
+  .token .number { font-size: 19px; font-weight: 700; fill: #2b2418; }
+  .token.red .number { fill: #c0281f; }
+  .robber ellipse { fill: rgb(0 0 0 / 0.3); }
+  .robber path, .robber circle { fill: #333; stroke: #111; stroke-width: 1.5; }
+  .harbor line { stroke: #735536; stroke-width: 3; stroke-linecap: round; }
+  .harbor .disc { fill: #1b2832; stroke: rgb(212 176 106 / 0.7); stroke-width: 1.4; }
+  .harbor .any { font-size: 20px; font-weight: 900; fill: #d4b06a; }
+  .harbor .plaque { fill: #1b2832; stroke: rgb(212 176 106 / 0.7); stroke-width: 1; }
+  .harbor .rate { font-size: 11px; font-weight: 900; fill: #e8e2d6; }
+  .pick circle { stroke: #101a22; stroke-width: 2.5; }
+  .pick text { font-size: 13px; font-weight: 900; }
+  .board.picks .token { opacity: 0.75; }
+
+  /* --- Info rechts --- */
+  .info { border-left: 1px solid var(--line); overflow-y: auto; padding: 14px 16px 24px; }
+  .info section { margin-bottom: 22px; }
+  .desc { margin: 0 6px 12px; color: var(--text); }
+  .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 0 2px; }
+  .fact { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .fact b { display: block; font-size: 18px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .fact span { font-size: 11px; color: var(--muted); font-weight: 700; }
+  .checks { list-style: none; margin: 0; padding: 0 2px; }
+  .checks li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; padding: 7px 4px; border-bottom: 1px solid var(--line); align-items: start; }
+  .checks li:last-child { border-bottom: 0; }
+  .mark { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 900; margin-top: 1px; }
+  .mark.ok { background: rgb(95 181 122 / 0.16); color: var(--ok); }
+  .mark.warn { background: rgb(224 168 79 / 0.16); color: var(--warn); }
+  .mark.bad { background: rgb(210 106 92 / 0.18); color: var(--bad); }
+  .checks small { display: block; color: var(--muted); font-size: 12px; }
+  .bars { display: grid; gap: 7px; margin: 0 4px; }
+  .bar { display: grid; grid-template-columns: 26px 64px 1fr 34px; gap: 8px; align-items: center; font-size: 12px; }
+  .bar img { width: 24px; height: 24px; }
+  .bar .track { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+  .bar .fill { height: 100%; border-radius: 4px; background: var(--accent); }
+  .bar .val { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .seats { display: grid; gap: 6px; margin: 0 4px; }
+  .seat { display: grid; grid-template-columns: 14px 1fr 40px; gap: 8px; align-items: center; font-size: 12px; }
+  .seat i { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 0 1.5px #101a22; }
+  .seat .val { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+  pre.mask {
+    margin: 0 2px; padding: 12px; background: #0e161d; border: 1px solid var(--line); border-radius: 10px;
+    font: 600 12px/1.35 ui-monospace, 'SF Mono', Menlo, monospace; color: #cbbf9f; overflow-x: auto;
+  }
+  .legend { margin: 8px 4px 0; color: var(--muted); font-size: 12px; }
+  .legend code { color: #cbbf9f; font-family: ui-monospace, 'SF Mono', Menlo, monospace; }
+  .note { margin: 0 6px; color: var(--muted); font-size: 12px; }
+
+  @media (max-width: 1100px) {
+    .stage { grid-template-columns: 240px minmax(0, 1fr); grid-template-rows: auto minmax(480px, 75vh) auto; height: auto; }
+    .info { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
+  }
+  @media (max-width: 720px) {
+    .top { flex-wrap: wrap; height: auto; padding: 12px 16px; gap: 12px; }
+    .stage { grid-template-columns: 1fr; grid-template-rows: auto auto minmax(420px, 70vh) auto; }
+    .list { border-right: 0; border-bottom: 1px solid var(--line); display: flex; gap: 6px; overflow-x: auto; padding: 10px 16px; }
+    .list h2 { display: none; }
+    .map-card { flex: none; width: 210px; }
+    .board-head { padding: 12px 16px 0; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <header class="top">
+    <div class="brand"><b>Neuland</b><span>Karten · Prototyp</span></div>
+    <div class="spacer"></div>
+    <div class="seg"><span>Spieler</span><div class="opts" id="players"></div></div>
+    <label class="toggle"><input type="checkbox" id="showPicks"> Startplätze zeigen</label>
+    <button class="primary" id="reroll" title="Gelände, Zahlen und Häfen neu verteilen (Taste N)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>
+      Neu würfeln
+    </button>
+  </header>
+
+  <nav class="list" id="list"><h2>Karten</h2></nav>
+
+  <main class="board-wrap">
+    <div class="board-head">
+      <h1 id="title"></h1>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="board" id="board"></div>
+    <div class="seed" id="seed"></div>
+  </main>
+
+  <aside class="info" id="info"></aside>
+</div>
+<script>
+"use strict";
+// ===== Kartengenerator (ohne DOM, auch mit node testbar) =====
+const SQ3 = Math.sqrt(3);
+const RESOURCES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
+const TERRAIN_WEIGHT = { wood: 4, sheep: 4, wheat: 4, brick: 3, ore: 3 };
+const NUMBER_WEIGHT = { 2: 1, 3: 2, 4: 2, 5: 2, 6: 2, 8: 2, 9: 2, 10: 2, 11: 2, 12: 1 };
+const GOOD_SPOT = 8;
+const PIPS = (n) => (n ? 6 - Math.abs(7 - n) : 0);
+const BIAS = { h: 'wood', l: 'brick', w: 'sheep', g: 'wheat', e: 'ore', x: 'desert' };
+const FIXED = { H: 'wood', L: 'brick', W: 'sheep', G: 'wheat', E: 'ore', X: 'desert' };
+
+// --- Zufall: Mulberry32 wie in src/app/engine/rng.ts ---
+function rngOf(seed) { return { rng: seed | 0 }; }
+function random(s) {
+  let t = (s.rng = (s.rng + 0x6d2b79f5) | 0);
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+const randomInt = (s, n) => Math.floor(random(s) * n);
+function shuffle(s, items) {
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) { const j = randomInt(s, i + 1); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// --- Form: ASCII-Maske in "doubled coordinates" (c, r). Jedes Zeichen außer Leerzeichen ist ein Feld. ---
+function parseMask(rows) {
+  const cells = [];
+  rows.forEach((line, r) => {
+    for (let c = 0; c < line.length; c++) {
+      const ch = line[c];
+      if (ch === ' ') continue;
+      cells.push({ c, r, ch });
+    }
+  });
+  const parity = (cells[0].c + cells[0].r) & 1;
+  for (const cell of cells) {
+    if (((cell.c + cell.r) & 1) !== parity) throw new Error(`Maske: Feld (${cell.c},${cell.r}) liegt nicht im Raster`);
+  }
+  return cells.filter((cell) => cell.ch !== '~');
+}
+
+const key = (c, r) => `${c},${r}`;
+const NB = [[2, 0], [1, 1], [-1, 1], [-2, 0], [-1, -1], [1, -1]];
+
+/** Topologie wie src/app/engine/board.ts buildTopology, nur aus einer beliebigen Feldliste. */
+function buildTopology(cells) {
+  const hexes = [], vertices = [], edges = [];
+  const vByKey = new Map(), eByKey = new Map(), hByKey = new Map();
+  const vertexAt = (x, y) => {
+    const k = `${Math.round(x * 1000)},${Math.round(y * 1000)}`;
+    let id = vByKey.get(k);
+    if (id === undefined) { id = vertices.length; vertices.push({ id, x, y, hexes: [], edges: [], neighbors: [] }); vByKey.set(k, id); }
+    return id;
+  };
+  const edgeBetween = (a, b) => {
+    const k = a < b ? `${a}-${b}` : `${b}-${a}`;
+    let id = eByKey.get(k);
+    if (id === undefined) { id = edges.length; edges.push({ id, a: Math.min(a, b), b: Math.max(a, b), hexes: [] }); eByKey.set(k, id); }
+    return id;
+  };
+  // Reihenfolge zeilenweise, links nach rechts: so bleiben die IDs des klassischen Bretts gleich.
+  const sorted = [...cells].sort((p, q) => p.r - q.r || p.c - q.c);
+  for (const cell of sorted) {
+    const x = (cell.c * SQ3) / 2, y = cell.r * 1.5;
+    const hex = { id: hexes.length, c: cell.c, r: cell.r, ch: cell.ch, x, y, corners: [], edges: [], neighbors: [] };
+    for (let k = 0; k < 6; k++) {
+      const a = ((60 * k - 90) * Math.PI) / 180;
+      const v = vertexAt(x + Math.cos(a), y + Math.sin(a));
+      hex.corners.push(v); vertices[v].hexes.push(hex.id);
+    }
+    for (let k = 0; k < 6; k++) {
+      const e = edgeBetween(hex.corners[k], hex.corners[(k + 1) % 6]);
+      hex.edges.push(e); edges[e].hexes.push(hex.id);
+    }
+    hexes.push(hex); hByKey.set(key(cell.c, cell.r), hex.id);
+  }
+  for (const e of edges) {
+    vertices[e.a].edges.push(e.id); vertices[e.b].edges.push(e.id);
+    vertices[e.a].neighbors.push(e.b); vertices[e.b].neighbors.push(e.a);
+    if (e.hexes.length === 2) { hexes[e.hexes[0]].neighbors.push(e.hexes[1]); hexes[e.hexes[1]].neighbors.push(e.hexes[0]); }
+  }
+  const topo = { hexes, vertices, edges, hByKey };
+  topo.water = classifyWater(topo);
+  topo.loops = coastLoops(topo);
+  return topo;
+}
+
+/** Wasserfelder rund ums Land: Meer (von außen erreichbar) und Binnenseen (eingeschlossen). */
+function classifyWater(topo) {
+  const { hexes, hByKey } = topo;
+  const cs = hexes.map((h) => h.c), rs = hexes.map((h) => h.r);
+  const minC = Math.min(...cs) - 4, maxC = Math.max(...cs) + 4, minR = Math.min(...rs) - 2, maxR = Math.max(...rs) + 2;
+  const parity = (hexes[0].c + hexes[0].r) & 1;
+  const inBox = (c, r) => c >= minC && c <= maxC && r >= minR && r <= maxR && ((c + r) & 1) === parity;
+  const sea = new Set();
+  let start = null;
+  for (let c = minC; c <= minC + 1 && !start; c++) if (inBox(c, minR)) start = [c, minR];
+  const queue = [start];
+  sea.add(key(...start));
+  while (queue.length) {
+    const [c, r] = queue.pop();
+    for (const [dc, dr] of NB) {
+      const nc = c + dc, nr = r + dr, k = key(nc, nr);
+      if (!inBox(nc, nr) || sea.has(k) || hByKey.has(k)) continue;
+      sea.add(k); queue.push([nc, nr]);
+    }
+  }
+  const lake = new Set();
+  for (let r = minR; r <= maxR; r++) for (let c = minC; c <= maxC; c++) {
+    const k = key(c, r);
+    if (inBox(c, r) && !sea.has(k) && !hByKey.has(k)) lake.add(k);
+  }
+  return { sea, lake, box: { minC, maxC, minR, maxR, parity } };
+}
+
+/** Küstenkanten als geschlossene Schleifen. Jede Küstenecke hat genau zwei Küstenkanten, deshalb geht das immer auf. */
+function coastLoops(topo) {
+  const { edges, vertices, hexes } = topo;
+  const isCoast = (e) => edges[e].hexes.length === 1;
+  const seen = new Set();
+  const loops = [];
+  for (const startEdge of edges) {
+    if (!isCoast(startEdge.id) || seen.has(startEdge.id)) continue;
+    const ordered = [startEdge.id];
+    seen.add(startEdge.id);
+    let prev = startEdge.id, at = startEdge.b;
+    while (true) {
+      const next = vertices[at].edges.find((e) => e !== prev && isCoast(e));
+      if (next === startEdge.id) break;
+      ordered.push(next); seen.add(next);
+      at = edges[next].a === at ? edges[next].b : edges[next].a;
+      prev = next;
+    }
+    // Liegt das Wasser hinter der ersten Kante in einem Binnensee?
+    const e = edges[ordered[0]], h = hexes[e.hexes[0]];
+    const mx = (vertices[e.a].x + vertices[e.b].x) / 2, my = (vertices[e.a].y + vertices[e.b].y) / 2;
+    const wc = Math.round(((2 * mx - h.x) * 2) / SQ3), wr = Math.round((2 * my - h.y) / 1.5);
+    loops.push({ edges: ordered, lake: topo.water.lake.has(key(wc, wr)) });
+  }
+  return loops;
+}
+
+function connected(topo) {
+  if (!topo.hexes.length) return false;
+  const seen = new Set([0]); const stack = [0];
+  while (stack.length) for (const n of topo.hexes[stack.pop()].neighbors) if (!seen.has(n)) { seen.add(n); stack.push(n); }
+  return seen.size === topo.hexes.length;
+}
+
+// --- Pools: aus der Feldzahl abgeleitet, trifft für 19 und 30 Felder genau die Originalverteilung ---
+function largestRemainder(total, weights, rng) {
+  const keys = Object.keys(weights);
+  const sum = keys.reduce((a, k) => a + weights[k], 0);
+  const exact = keys.map((k) => ({ k, v: (total * weights[k]) / sum, tie: random(rng) }));
+  const out = {};
+  let used = 0;
+  for (const x of exact) { out[x.k] = Math.floor(x.v); used += out[x.k]; }
+  exact.sort((a, b) => (b.v - Math.floor(b.v)) - (a.v - Math.floor(a.v)) || a.tie - b.tie);
+  for (let i = 0; i < total - used; i++) out[exact[i].k]++;
+  return out;
+}
+
+function poolsFor(map, n, rng) {
+  const deserts = map.deserts ?? Math.max(1, Math.round(n / 15));
+  const terrains = map.terrains ?? { ...largestRemainder(n - deserts, TERRAIN_WEIGHT, rng), desert: deserts };
+  const producing = n - terrains.desert;
+  const numberCounts = largestRemainder(producing, NUMBER_WEIGHT, rng);
+  const numbers = Object.entries(numberCounts).flatMap(([k, c]) => Array(c).fill(Number(k)));
+  return { terrains, numbers };
+}
+
+function harborTypes(count) {
+  const special = Math.max(5, Math.round((count * 5) / 9));
+  const order = ['wood', 'brick', 'sheep', 'wheat', 'ore', 'sheep', 'wheat', 'wood', 'ore', 'brick'];
+  const types = [];
+  for (let i = 0; i < Math.min(special, count); i++) types.push(order[i % order.length]);
+  while (types.length < count) types.push('any');
+  return types;
+}
+
+// --- Gelände verteilen ---
+function placeTerrain(topo, pool, rng) {
+  const n = topo.hexes.length;
+  const terrain = Array(n).fill(null);
+  const left = { ...pool };
+  // 1. Feste Felder aus der Maske
+  for (const h of topo.hexes) {
+    const t = FIXED[h.ch];
+    if (t && left[t] > 0) { terrain[h.id] = t; left[t]--; }
+  }
+  // 2. Wüsten: zuerst auf Wüsten-Plätze (x), sonst zufällig, nie zwei nebeneinander
+  const desertSpots = shuffle(rng, topo.hexes.filter((h) => terrain[h.id] === null && h.ch === 'x'));
+  const others = shuffle(rng, topo.hexes.filter((h) => terrain[h.id] === null && h.ch !== 'x'));
+  for (const h of [...desertSpots, ...others]) {
+    if (left.desert <= 0) break;
+    if (h.neighbors.some((m) => terrain[m] === 'desert')) continue;
+    terrain[h.id] = 'desert'; left.desert--;
+  }
+  // 3. Rest gewichtet: Vorrat × Vorliebe der Maske × Strafe für Klumpen
+  const order = shuffle(rng, topo.hexes.filter((h) => terrain[h.id] === null));
+  order.sort((a, b) => (BIAS[b.ch] ? 1 : 0) - (BIAS[a.ch] ? 1 : 0));
+  for (const h of order) {
+    const options = RESOURCES.filter((t) => left[t] > 0);
+    if (!options.length) { terrain[h.id] = 'desert'; continue; }
+    const weights = options.map((t) => {
+      const same = h.neighbors.filter((m) => terrain[m] === t).length;
+      const bias = BIAS[h.ch] === t ? 5 : 1;
+      return left[t] * bias * (same === 0 ? 1 : same === 1 ? 0.45 : 0.08);
+    });
+    let roll = random(rng) * weights.reduce((a, b) => a + b, 0);
+    let pick = options[options.length - 1];
+    for (let i = 0; i < options.length; i++) { roll -= weights[i]; if (roll <= 0) { pick = options[i]; break; } }
+    terrain[h.id] = pick; left[pick]--;
+  }
+  return terrain;
+}
+
+// --- Zahlen verteilen: harte Regeln, Neustart bei Sackgasse ---
+function placeNumbers(topo, terrain, pool, rng, strictSame) {
+  const red = (x) => x === 6 || x === 8;
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const numbers = Array(topo.hexes.length).fill(null);
+    const open = new Set(topo.hexes.filter((h) => terrain[h.id] !== 'desert').map((h) => h.id));
+    // Rote Zahlen zuerst, dann die übrigen gemischt
+    const seq = [...shuffle(rng, pool.filter(red)), ...shuffle(rng, pool.filter((x) => !red(x)))];
+    let ok = true;
+    for (const num of seq) {
+      const candidates = [...open].filter((id) => topo.hexes[id].neighbors.every((m) => {
+        const other = numbers[m];
+        if (other === null) return true;
+        if (red(num) && red(other)) return false;
+        if (strictSame && num === other) return false;
+        return true;
+      }));
+      if (!candidates.length) { ok = false; break; }
+      const id = candidates[randomInt(rng, candidates.length)];
+      numbers[id] = num; open.delete(id);
+    }
+    if (ok) return numbers;
+  }
+  return null;
+}
+
+// --- Häfen entlang aller Küsten (außen und Binnensee) ---
+function placeHarbors(topo, count, rng) {
+  const loops = topo.loops;
+  const total = loops.reduce((a, l) => a + l.edges.length, 0);
+  // Anteil je Küste nach Länge, ein Binnensee bekommt höchstens eine Hafen je 6 Kanten
+  const share = loops.map((l) => Math.min(Math.floor(l.edges.length / (l.lake ? 6 : 3)), (count * l.edges.length) / total));
+  const alloc = share.map(Math.floor);
+  let rest = count - alloc.reduce((a, b) => a + b, 0);
+  share.map((s, i) => ({ i, f: s - Math.floor(s) })).sort((a, b) => b.f - a.f)
+    .forEach(({ i }) => { if (rest > 0 && alloc[i] < Math.floor(loops[i].edges.length / (loops[i].lake ? 6 : 3))) { alloc[i]++; rest--; } });
+  const vertexValue = (v) => topo.vertices[v].hexes.length;
+  // Gleichmäßig verteilen; mit zufälligem Versatz mehrmals probieren, bis alle Häfen Platz finden
+  let used = new Set(), chosen = [];
+  for (let attempt = 0; attempt < 40 && chosen.length < count; attempt++) {
+    const u = new Set(), c = [];
+    loops.forEach((loop, li) => {
+      const len = loop.edges.length, k = alloc[li];
+      if (!k) return;
+      const step = len / k, offset = random(rng) * step;
+      for (let i = 0; i < k; i++) {
+        const target = Math.round(offset + i * step);
+        let best = null;
+        for (const d of [0, 1, -1]) {
+          const e = topo.edges[loop.edges[(((target + d) % len) + len) % len]];
+          if ([e.a, e.b].some((v) => u.has(v) || topo.vertices[v].neighbors.some((w) => u.has(w)))) continue;
+          const score = vertexValue(e.a) + vertexValue(e.b) - Math.abs(d) * 1.5;
+          if (!best || score > best.score) best = { e, score };
+        }
+        if (!best) continue;
+        c.push(best.e.id); u.add(best.e.a); u.add(best.e.b);
+      }
+    });
+    if (c.length > chosen.length) { chosen = c; used = u; }
+  }
+  // Was in der Nähe der Sollposition keinen Platz fand, kommt an die freie Kante mit dem größten Abstand
+  const loopOf = new Map();
+  loops.forEach((loop, li) => loop.edges.forEach((e, i) => loopOf.set(e, { li, i, len: loop.edges.length })));
+  const free = (e) => ![e.a, e.b].some((v) => used.has(v) || topo.vertices[v].neighbors.some((w) => used.has(w)));
+  while (chosen.length < count) {
+    let best = null;
+    for (const loop of loops) for (const id of loop.edges) {
+      const e = topo.edges[id];
+      if (!free(e)) continue;
+      const me = loopOf.get(id);
+      let gap = Infinity;
+      for (const c of chosen) {
+        const o = loopOf.get(c);
+        if (o.li === me.li) gap = Math.min(gap, Math.abs(o.i - me.i), me.len - Math.abs(o.i - me.i));
+      }
+      const score = Math.min(gap, 99) + random(rng) * 0.1;
+      if (!best || score > best.score) best = { e, score };
+    }
+    if (!best) break;
+    chosen.push(best.e.id); used.add(best.e.a); used.add(best.e.b);
+  }
+  const types = shuffle(rng, harborTypes(chosen.length));
+  return chosen.map((edge, i) => ({ edge, type: types[i] }));
+}
+
+// --- Bewertung ---
+function analyse(topo, board, players) {
+  const { terrain, numbers, harbors } = board;
+  const red = (x) => x === 6 || x === 8;
+  let redAdj = 0, sameAdj = 0, clusterMax = 1;
+  for (const h of topo.hexes) for (const m of h.neighbors) if (m > h.id) {
+    if (red(numbers[h.id]) && red(numbers[m])) redAdj++;
+    if (numbers[h.id] && numbers[h.id] === numbers[m]) sameAdj++;
+  }
+  // Größte zusammenhängende Gruppe gleicher Landschaft
+  const seen = new Set();
+  for (const h of topo.hexes) {
+    if (seen.has(h.id) || terrain[h.id] === 'desert') continue;
+    let size = 0; const stack = [h.id]; seen.add(h.id);
+    while (stack.length) {
+      const id = stack.pop(); size++;
+      for (const m of topo.hexes[id].neighbors) if (!seen.has(m) && terrain[m] === terrain[id]) { seen.add(m); stack.push(m); }
+    }
+    clusterMax = Math.max(clusterMax, size);
+  }
+  // Ertrag je Rohstoff (Summe der Wahrscheinlichkeitspunkte)
+  const pips = Object.fromEntries(RESOURCES.map((r) => [r, 0]));
+  const tiles = Object.fromEntries(RESOURCES.map((r) => [r, 0]));
+  topo.hexes.forEach((h) => { const t = terrain[h.id]; if (t !== 'desert') { pips[t] += PIPS(numbers[h.id]); tiles[t]++; } });
+  const perTile = RESOURCES.map((r) => (tiles[r] ? pips[r] / tiles[r] : 0));
+  const avgPerTile = perTile.reduce((a, b) => a + b, 0) / perTile.length;
+  const resourceSkew = Math.max(...perTile.map((p) => Math.abs(p - avgPerTile) / avgPerTile));
+  // Startplätze: Schlangen-Auswahl, jeder nimmt gierig die beste freie Ecke
+  const value = topo.vertices.map((v) => {
+    const res = new Set();
+    let p = 0;
+    for (const id of v.hexes) { p += PIPS(numbers[id]); if (terrain[id] !== 'desert') res.add(terrain[id]); }
+    return { p, score: p + 0.6 * Math.max(0, res.size - 1) };
+  });
+  const taken = new Set(), blocked = new Set();
+  const order = [...Array(players).keys(), ...[...Array(players).keys()].reverse()];
+  const totals = Array(players).fill(0);
+  const picks = [];
+  for (const seat of order) {
+    let best = -1;
+    for (const v of topo.vertices) {
+      if (blocked.has(v.id)) continue;
+      if (best < 0 || value[v.id].score > value[best].score) best = v.id;
+    }
+    if (best < 0) break;
+    taken.add(best); blocked.add(best);
+    for (const w of topo.vertices[best].neighbors) blocked.add(w);
+    totals[seat] += value[best].p;
+    picks.push({ seat, vertex: best, pips: value[best].p });
+  }
+  const spread = Math.max(...totals) - Math.min(...totals);
+  // Gute Startplätze: unabhängige Ecken (Abstandsregel) mit mindestens GOOD_SPOT Punkten
+  const goodBlocked = new Set();
+  let goodSpots = 0;
+  for (const v of [...topo.vertices].sort((a, b) => value[b.id].p - value[a.id].p)) {
+    if (value[v.id].p < GOOD_SPOT) break;
+    if (goodBlocked.has(v.id)) continue;
+    goodSpots++; goodBlocked.add(v.id);
+    for (const w of v.neighbors) goodBlocked.add(w);
+  }
+  const meanTotal = totals.reduce((a, b) => a + b, 0) / players;
+  const harborAdjacent = harbors.some((h, i) => harbors.some((g, j) => {
+    if (j <= i) return false;
+    const a = topo.edges[h.edge], b = topo.edges[g.edge];
+    return [a.a, a.b].some((v) => v === b.a || v === b.b);
+  }));
+  return { redAdj, sameAdj, clusterMax, pips, tiles, resourceSkew, totals, spread, meanTotal, picks, harborAdjacent, goodSpots };
+}
+
+function scoreOf(a, players) {
+  return Math.max(0, 2 * players - a.goodSpots) * 3 + a.redAdj * 100 + a.sameAdj * 6 + Math.max(0, a.clusterMax - 2) * 4 + a.spread * 1.5 + a.resourceSkew * 30;
+}
+
+// --- Zufallsküste: Form wächst vom Mittelpunkt aus, kompakt, mit gelegentlichen Halbinseln und Seen ---
+function growShape(n, rng) {
+  const land = new Map([[key(0, 0), { c: 0, r: 0, ch: '.' }]]);
+  const reserved = new Set();
+  if (random(rng) < 0.45) { // Platz für einen Binnensee freihalten
+    const [dc, dr] = NB[randomInt(rng, 6)];
+    reserved.add(key(dc * 2, dr * 2));
+  }
+  const stretch = 0.7 + random(rng) * 0.6; // leicht gestreckt in x oder y
+  while (land.size < n) {
+    const frontier = new Map();
+    for (const cell of land.values()) for (const [dc, dr] of NB) {
+      const c = cell.c + dc, r = cell.r + dr, k = key(c, r);
+      if (land.has(k) || reserved.has(k)) continue;
+      frontier.set(k, { c, r });
+    }
+    const list = [...frontier.values()].map((f) => {
+      const nb = NB.filter(([dc, dr]) => land.has(key(f.c + dc, f.r + dr))).length;
+      const dist = Math.hypot((f.c * SQ3) / 2 * stretch, (f.r * 1.5) / stretch);
+      const arm = nb === 1 && random(rng) < 0.18 ? 2.2 : 1;
+      return { f, w: (nb * nb * arm * (0.4 + random(rng))) / (1 + 0.25 * dist) };
+    });
+    let roll = random(rng) * list.reduce((a, x) => a + x.w, 0);
+    let pick = list[list.length - 1].f;
+    for (const x of list) { roll -= x.w; if (roll <= 0) { pick = x.f; break; } }
+    land.set(key(pick.c, pick.r), { c: pick.c, r: pick.r, ch: '.' });
+  }
+  // Einzelne Spitzen (nur ein Nachbar) nach innen verlegen, damit niemand auf einer Nadel siedelt
+  for (let pass = 0; pass < 3; pass++) {
+    for (const [k, cell] of land) {
+      const nb = NB.filter(([dc, dr]) => land.has(key(cell.c + dc, cell.r + dr))).length;
+      if (nb > 1) continue;
+      land.delete(k);
+      let best = null, bestNb = -1;
+      for (const other of land.values()) for (const [dc, dr] of NB) {
+        const c = other.c + dc, r = other.r + dr, kk = key(c, r);
+        if (land.has(kk) || reserved.has(kk) || kk === k) continue;
+        const m = NB.filter(([ec, er]) => land.has(key(c + ec, r + er))).length;
+        if (m > bestNb) { bestNb = m; best = { c, r, ch: '.' }; }
+      }
+      land.set(key(best.c, best.r), best);
+    }
+  }
+  return [...land.values()];
+}
+
+/** 9 Häfen bei 19 Feldern, 11 bei 30; eine längere Küste als bei einer kompakten Insel bringt ein paar mehr. */
+function harborCountFor(n, coastLen) {
+  const compactCoast = 6.9 * Math.sqrt(n);
+  const base = 9 + ((n - 19) * 2) / 11;
+  const extra = Math.min(3, Math.max(0, coastLen - compactCoast) / 14);
+  return Math.max(5, Math.min(Math.round(base + extra), Math.floor(coastLen / 3)));
+}
+
+/** Ein komplettes Brett: beste von `tries` Varianten nach Bewertung. */
+function generate(map, players, seed, tries = 24) {
+  const rng = rngOf(seed);
+  let cells = map.mask ? parseMask(typeof map.mask === 'function' ? map.mask(players) : map.mask) : growShape(map.size(players), rng);
+  const topo = buildTopology(cells);
+  const n = topo.hexes.length;
+  const pool = poolsFor(map, n, rng);
+  const coastLen = topo.loops.reduce((a, l) => a + l.edges.length, 0);
+  const harborCount = map.harbors ?? harborCountFor(n, coastLen);
+  let best = null;
+  for (let t = 0; t < tries; t++) {
+    const terrain = placeTerrain(topo, pool.terrains, rng);
+    const numbers = placeNumbers(topo, terrain, pool.numbers, rng, true) ?? placeNumbers(topo, terrain, pool.numbers, rng, false);
+    if (!numbers) continue;
+    const harbors = placeHarbors(topo, harborCount, rng);
+    const board = { terrain, numbers, harbors };
+    const analysis = analyse(topo, board, players);
+    const score = scoreOf(analysis, players);
+    if (!best || score < best.score) best = { board, analysis, score };
+  }
+  const robber = best.board.terrain.indexOf('desert');
+  const bank = Math.max(19, Math.round(19 + ((n - 19) * 5) / 11));
+  return {
+    topo, ...best, robber, pool, harborCount, coastLen, bank,
+    connected: connected(topo),
+    lakes: topo.loops.filter((l) => l.lake).length,
+  };
+}
+
+if (typeof module !== 'undefined') module.exports = { parseMask, buildTopology, generate, poolsFor, growShape, harborTypes, connected, rngOf, PIPS, NB, key, SQ3 };
+
+// ===== Karten =====
+const rowsMask = (rows) => { const w = Math.max(...rows); return rows.map((n) => ' '.repeat(w - n) + Array(n).fill('.').join(' ')); };
+const CLASSIC_BASE = rowsMask([3, 4, 5, 4, 3]);
+const CLASSIC_EXT = rowsMask([3, 4, 5, 6, 5, 4, 3]);
+
+const MAPS = [
+  {
+    id: 'klassisch', name: 'Klassisch', players: [2, 6], vp: 10, tags: ['Referenz'],
+    desc: 'Das heutige Brett: 19 Felder bis 4 Spieler, 30 Felder ab 5. Läuft über denselben Generator und kommt auf exakt dieselben Vorräte wie heute.',
+    mask: (p) => (p > 4 ? CLASSIC_EXT : CLASSIC_BASE),
+  },
+  {
+    id: 'kratersee', name: 'Kratersee', players: [3, 4], vp: 10, tags: ['Binnensee'],
+    desc: 'Ein Ring um einen kleinen See. Die sechs Ecken am Kraterrand berühren je zwei Landfelder und einen Seehafen, darum wird dort zuerst gesiedelt.',
+    mask: [
+      '  . . .',
+      ' . . . .',
+      '. . ~ . .',
+      ' . . . .',
+      '  . . .',
+    ],
+  },
+  {
+    id: 'langes-tal', name: 'Langes Tal', players: [3, 4], vp: 10, tags: ['lange Wege', 'viel Küste'],
+    desc: 'Drei Reihen, acht Felder lang. Wer an einem Ende sitzt, muss weit bauen; die längste Handelsstraße wird umkämpft, Häfen gibt es reichlich.',
+    mask: [
+      ' . . . . . . .',
+      '. . . . . . . .',
+      ' . . . . . . .',
+    ],
+  },
+  {
+    id: 'halbmond', name: 'Halbmond', players: [3, 4], vp: 10, tags: ['Bucht', 'Engstelle'],
+    desc: 'Eine Sichel um eine offene Bucht. Die schmale Mitte trennt zwei Hälften, die Häfen an der Innenseite liegen nah beieinander.',
+    mask: [
+      '  . . .',
+      ' . . . .',
+      '. . .',
+      ' . .',
+      '. . .',
+      ' . . . .',
+      '  . . .',
+    ],
+  },
+  {
+    id: 'atoll', name: 'Atoll', players: [5, 6], vp: 10, harbors: 12, tags: ['Binnensee', 'Ring'],
+    desc: 'Ein Landring um eine Lagune aus sieben Wasserfeldern. Häfen liegen außen und an der Lagune; wer innen baut, ist schnell überall.',
+    mask: [
+      '   . . . .',
+      '  . . . . .',
+      ' . . ~ ~ . .',
+      '. . ~ ~ ~ . .',
+      ' . . ~ ~ . .',
+      '  . . . . .',
+      '   . . . .',
+    ],
+  },
+  {
+    id: 'zwei-reiche', name: 'Zwei Reiche', players: [4, 6], vp: 10, tags: ['Landbrücke', 'Engpass'],
+    desc: 'Zwei Kontinente, verbunden durch eine schmale Landbrücke aus zwei Feldern. Wer die Brücke zuerst bebaut, sperrt den Weg nach drüben.',
+    mask: [
+      '  . .         . .',
+      ' . . .       . . .',
+      '. . . . . . . . . .',
+      ' . . .       . . .',
+      '  . .         . .',
+    ],
+  },
+  {
+    id: 'europa', name: 'Europa', players: [5, 6], vp: 11, tags: ['Ostsee', 'Klimazonen'],
+    desc: 'Stilisiert: Skandinavien und Finnland umschließen die Ostsee als Binnensee, Iberien, Italien und Griechenland ragen ins Mittelmeer. Erz bevorzugt in Alpen und Norden.',
+    mask: [
+      '              h e h',
+      '             e   h',
+      '            . ~ ~ g',
+      '       w . . . g g',
+      '  . . w . e e . g .',
+      ' l .     .   e .',
+      '  x       .   w',
+      '           .   w',
+    ],
+  },
+  {
+    id: 'weltkarte', name: 'Weltkarte', players: [5, 6], vp: 12, sea: 'rect', tags: ['Landbrücken', 'Klimazonen', 'groß'],
+    desc: 'Alle Kontinente als eine Landmasse: Amerika hängt über Grönland an Europa, Australien über Indonesien an Asien. Wüsten in Sahara, Arabien und Australien.',
+    mask: [
+      '  h h   . .   h h h',
+      '   . . .   w . . . . .',
+      '  e g       . e g .',
+      '   l       x . x   . g',
+      '    .       . l     .',
+      '     h       .       .',
+      '    . e     h       x w',
+      '                   w .',
+    ],
+  },
+  {
+    id: 'zufallskueste', name: 'Zufallsküste', players: [2, 6], vp: 10, tags: ['jedes Mal neu'],
+    desc: 'Die Form wächst bei jedem Würfeln neu aus der Mitte: kompakt, mit Buchten, manchmal einer Halbinsel oder einem kleinen See. 20 Felder bis 4 Spieler, 30 ab 5.',
+    size: (p) => (p > 4 ? 30 : 20),
+  },
+];
+
+if (typeof module !== 'undefined') module.exports.MAPS = MAPS;
+
+// ===== Oberfläche =====
+const ASSETS = '../../../public/web/';
+const TILE = (t) => `${ASSETS}tiles/papiercollage/${t}.png`;
+const ICON = (r) => `${ASSETS}icons/resources/${r}.png`;
+const S = 60;
+const HARBOR_OFFSET = 0.55;
+const NAMES = { wood: 'Holz', brick: 'Lehm', sheep: 'Wolle', wheat: 'Getreide', ore: 'Erz' };
+const PLAYER_COLORS = ['#d23c3c', '#2f64d6', '#f4f1e8', '#ee8a1c', '#2f9a48', '#7b4a2a'];
+const NS = 'http://www.w3.org/2000/svg';
+
+const state = { map: MAPS[0], players: 4, seed: newSeed(), picks: false, result: null };
+
+function newSeed() { return Math.floor(Math.random() * 900000) + 100000; }
+const fmt = (n) => n.toFixed(1).replace('.', ',');
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+// --- Wasserfläche: Land plus ein Feld Rand, Binnenseen und Buchten gefüllt, Ecken weich ---
+function waterCells(topo) {
+  const E = new Set();
+  for (const h of topo.hexes) {
+    E.add(key(h.c, h.r));
+    for (const [dc, dr] of NB) E.add(key(h.c + dc, h.r + dr));
+  }
+  for (const k of topo.water.lake) E.add(k);
+  const { minC, maxC, minR, maxR, parity } = topo.water.box;
+  const cells = [];
+  for (let r = minR - 1; r <= maxR + 1; r++) for (let c = minC - 2; c <= maxC + 2; c++) if (((c + r) & 1) === parity) cells.push([c, r]);
+  // Schmale Kerben schließen
+  for (let pass = 0; pass < 2; pass++) {
+    const add = cells.filter(([c, r]) => !E.has(key(c, r)) && NB.filter(([dc, dr]) => E.has(key(c + dc, r + dr))).length >= 4);
+    add.forEach(([c, r]) => E.add(key(c, r)));
+  }
+  // Eingeschlossene Lücken füllen
+  const outside = new Set();
+  const stack = [cells[0]];
+  outside.add(key(...cells[0]));
+  const inBox = (c, r) => c >= minC - 2 && c <= maxC + 2 && r >= minR - 1 && r <= maxR + 1;
+  while (stack.length) {
+    const [c, r] = stack.pop();
+    for (const [dc, dr] of NB) {
+      const nc = c + dc, nr = r + dr, k = key(nc, nr);
+      if (!inBox(nc, nr) || outside.has(k) || E.has(k)) continue;
+      outside.add(k); stack.push([nc, nr]);
+    }
+  }
+  for (const [c, r] of cells) if (!outside.has(key(c, r))) E.add(key(c, r));
+  return [...E].map((k) => { const [c, r] = k.split(',').map(Number); return { c, r, ch: '.' }; });
+}
+
+function loopPoints(topo, loop) {
+  return loop.edges.map((id, i) => {
+    const e = topo.edges[id], next = topo.edges[loop.edges[(i + 1) % loop.edges.length]];
+    const v = topo.vertices[e.a === next.a || e.a === next.b ? e.a : e.b];
+    return { x: v.x * S, y: v.y * S };
+  });
+}
+
+function chaikin(points, rounds) {
+  let p = points;
+  for (let k = 0; k < rounds; k++) {
+    const out = [];
+    for (let i = 0; i < p.length; i++) {
+      const a = p[i], b = p[(i + 1) % p.length];
+      out.push({ x: a.x * 0.75 + b.x * 0.25, y: a.y * 0.75 + b.y * 0.25 }, { x: a.x * 0.25 + b.x * 0.75, y: a.y * 0.25 + b.y * 0.75 });
+    }
+    p = out;
+  }
+  return p;
+}
+
+const pathOf = (points) => points.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('') + 'Z';
+
+function seaShape(topo, mode) {
+  const sea = buildTopology(waterCells(topo));
+  const loops = sea.loops.map((l) => chaikin(loopPoints(sea, l), 3));
+  const all = loops.flat();
+  const box = {
+    x: Math.min(...all.map((p) => p.x)), y: Math.min(...all.map((p) => p.y)),
+    X: Math.max(...all.map((p) => p.x)), Y: Math.max(...all.map((p) => p.y)),
+  };
+  if (mode === 'rect') {
+    const pad = 10;
+    const x = box.x - pad, y = box.y - pad, w = box.X - box.x + 2 * pad, h = box.Y - box.y + 2 * pad;
+    return { d: `M${x + 40},${y}H${x + w - 40}Q${x + w},${y} ${x + w},${y + 40}V${y + h - 40}Q${x + w},${y + h} ${x + w - 40},${y + h}H${x + 40}Q${x},${y + h} ${x},${y + h - 40}V${y + 40}Q${x},${y} ${x + 40},${y}Z`, box: { x, y, X: x + w, Y: y + h } };
+  }
+  return { d: loops.map(pathOf).join(' '), box };
+}
+
+function el(name, attrs = {}, parent) {
+  const node = document.createElementNS(NS, name);
+  for (const [k, v] of Object.entries(attrs)) if (v !== null && v !== undefined) node.setAttribute(k, v);
+  if (parent) parent.append(node);
+  return node;
+}
+
+function harborGeometry(topo, h) {
+  const e = topo.edges[h.edge];
+  const hex = topo.hexes[e.hexes[0]];
+  const a = topo.vertices[e.a], b = topo.vertices[e.b];
+  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+  const dx = mx - hex.x, dy = my - hex.y, len = Math.hypot(dx, dy);
+  return { x: (mx + (dx / len) * HARBOR_OFFSET) * S, y: (my + (dy / len) * HARBOR_OFFSET) * S, a, b };
+}
+
+function renderBoard(host, res, map) {
+  const { topo, board } = res;
+  const svg = el('svg', { role: 'img', 'aria-label': `Spielbrett ${map.name}` });
+  const defs = el('defs', {}, svg);
+  defs.innerHTML = `
+    <clipPath id="hexclip"><polygon points="0,-60 51.96,-30 51.96,30 0,60 -51.96,30 -51.96,-30"/></clipPath>
+    <linearGradient id="g-shine" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.28"/><stop offset="0.45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.18"/>
+    </linearGradient>
+    <radialGradient id="g-ocean" cx="50%" cy="45%" r="65%"><stop offset="0.55" stop-color="#4f97c4"/><stop offset="1" stop-color="#2f6f9c"/></radialGradient>
+    <pattern id="p-ocean-paper" width="1" height="1" patternUnits="objectBoundingBox" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+      <image href="${ASSETS}tiles/papiercollage/ocean.jpg" width="100" height="100" preserveAspectRatio="xMidYMid slice"/>
+    </pattern>
+    <radialGradient id="g-token" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#ead9b5"/></radialGradient>`;
+
+  const sea = seaShape(topo, map.sea);
+  el('path', { class: 'ocean', d: sea.d, fill: 'url(#g-ocean)' }, svg);
+  el('path', { d: sea.d, fill: 'url(#p-ocean-paper)' }, svg);
+  // Brandung an allen Küsten, auch am Binnensee
+  for (const loop of topo.loops) el('path', { class: 'foam', d: pathOf(loopPoints(topo, loop)) }, svg);
+
+  const xs = [sea.box.x, sea.box.X], ys = [sea.box.y, sea.box.Y];
+  for (const h of board.harbors) {
+    const g = harborGeometry(topo, h);
+    xs.push(g.x - 24, g.x + 24); ys.push(g.y - 28, g.y + 30);
+    const group = el('g', { class: 'harbor' }, svg);
+    el('title', {}, group).textContent = h.type === 'any' ? 'Hafen 3:1 – alle Rohstoffe' : `Hafen 2:1 ${NAMES[h.type]}`;
+    el('line', { x1: g.x, y1: g.y, x2: g.a.x * S, y2: g.a.y * S }, group);
+    el('line', { x1: g.x, y1: g.y, x2: g.b.x * S, y2: g.b.y * S }, group);
+    const sign = el('g', { transform: `translate(${g.x.toFixed(1)},${g.y.toFixed(1)})` }, group);
+    el('circle', { class: 'disc', cx: 0, cy: -4, r: 21 }, sign);
+    if (h.type === 'any') el('text', { class: 'any', x: 0, y: -4 }, sign).textContent = '?';
+    else el('image', { href: ICON(h.type), x: -12, y: -16, width: 24, height: 24 }, sign);
+    el('rect', { class: 'plaque', x: -15, y: 12, width: 30, height: 15, rx: 7.5 }, sign);
+    el('text', { class: 'rate', x: 0, y: 20 }, sign).textContent = h.type === 'any' ? '3:1' : '2:1';
+  }
+
+  topo.hexes.forEach((h) => {
+    const x = h.x * S, y = h.y * S, t = board.terrain[h.id], n = board.numbers[h.id];
+    const g = el('g', { class: 'hex' }, svg);
+    el('title', {}, g).textContent = `${t === 'desert' ? 'Wüste' : NAMES[t]}${n ? ` · ${n}` : ''}`;
+    const art = el('g', { transform: `translate(${x.toFixed(1)},${y.toFixed(1)})` }, g);
+    el('image', { href: TILE(t), x: -51.96, y: -60, width: 103.92, height: 120, preserveAspectRatio: 'xMidYMid slice', 'clip-path': 'url(#hexclip)' }, art);
+    const points = h.corners.map((c) => `${(topo.vertices[c].x * S).toFixed(1)},${(topo.vertices[c].y * S).toFixed(1)}`).join(' ');
+    el('polygon', { points, fill: 'url(#g-shine)', 'pointer-events': 'none' }, g);
+    el('polygon', { class: 'outline', points }, g);
+    if (n) {
+      const ty = y + S * 0.05;
+      const tok = el('g', { class: `token${n === 6 || n === 8 ? ' red' : ''}` }, g);
+      el('circle', { class: 'shadow', cx: x + 1.5, cy: ty + 2.5, r: S * 0.3 }, tok);
+      el('circle', { class: 'disc', cx: x, cy: ty, r: S * 0.3, fill: 'url(#g-token)' }, tok);
+      el('circle', { class: 'ring', cx: x, cy: ty, r: S * 0.25 }, tok);
+      el('text', { class: 'number', x, y: ty }, tok).textContent = n;
+    }
+    if (h.id === res.robber) {
+      const r = el('g', { class: 'robber', transform: `translate(${x},${y - S * 0.05})` }, g);
+      el('ellipse', { cx: 0, cy: S * 0.2, rx: S * 0.16, ry: S * 0.06 }, r);
+      el('path', { d: `M${-S * 0.13},${S * 0.2} Q0,${-S * 0.25} ${S * 0.13},${S * 0.2} Z` }, r);
+      el('circle', { cx: 0, cy: -S * 0.12, r: S * 0.1 }, r);
+    }
+  });
+
+  if (state.picks) {
+    res.analysis.picks.forEach((p, i) => {
+      const v = topo.vertices[p.vertex];
+      const g = el('g', { class: 'pick' }, svg);
+      el('title', {}, g).textContent = `Wahl ${i + 1}: Spieler ${p.seat + 1}, ${p.pips} Punkte`;
+      const color = PLAYER_COLORS[p.seat];
+      el('circle', { cx: v.x * S, cy: v.y * S, r: 14, fill: color }, g);
+      el('text', { x: v.x * S, y: v.y * S + 0.5, fill: p.seat === 2 ? '#1b1508' : '#fff' }, g).textContent = i + 1;
+    });
+  }
+
+  const pad = 8;
+  const x = Math.min(...xs) - pad, y = Math.min(...ys) - pad;
+  svg.setAttribute('viewBox', `${x.toFixed(0)} ${y.toFixed(0)} ${(Math.max(...xs) + pad - x).toFixed(0)} ${(Math.max(...ys) + pad - y).toFixed(0)}`);
+  host.classList.toggle('picks', state.picks);
+  host.replaceChildren(svg);
+}
+
+/** Vorschaubild für die Kartenwahl: nur Umriss, Wasser und Binnenseen. */
+function thumbnail(map, players) {
+  const cells = map.mask ? parseMask(typeof map.mask === 'function' ? map.mask(players) : map.mask)
+    : state.map === map && state.result ? state.result.topo.hexes.map((h) => ({ c: h.c, r: h.r, ch: '.' }))
+    : growShape(map.size(players), rngOf(7));
+  const topo = buildTopology(cells);
+  const sea = seaShape(topo, map.sea);
+  const b = sea.box;
+  const svg = el('svg', { viewBox: `${b.x - 6} ${b.y - 6} ${b.X - b.x + 12} ${b.Y - b.y + 12}`, preserveAspectRatio: 'xMidYMid meet', 'aria-hidden': 'true' });
+  el('path', { d: sea.d, fill: '#2b6788' }, svg);
+  for (const h of topo.hexes) {
+    const points = h.corners.map((c) => `${topo.vertices[c].x * S},${topo.vertices[c].y * S}`).join(' ');
+    el('polygon', { points, fill: '#d9c48f', stroke: '#2b6788', 'stroke-width': 7, 'stroke-linejoin': 'round' }, svg);
+  }
+  return svg;
+}
+
+const fits = (map, p) => p >= map.players[0] && p <= map.players[1];
+const range = (map) => (map.players[0] === map.players[1] ? `${map.players[0]}` : `${map.players[0]}–${map.players[1]}`);
+
+function renderList() {
+  const list = document.getElementById('list');
+  list.querySelectorAll('.map-card').forEach((n) => n.remove());
+  for (const map of MAPS) {
+    const btn = document.createElement('button');
+    btn.className = 'map-card' + (map === state.map ? ' on' : '');
+    const cells = map.mask ? parseMask(typeof map.mask === 'function' ? map.mask(state.players) : map.mask).length : map.size(state.players);
+    btn.innerHTML = `<span class="thumb"></span><span><b>${esc(map.name)}</b><small>${cells} Felder · ${range(map)} Spieler</small>
+      <span class="fit ${fits(map, state.players) ? 'yes' : ''}">${fits(map, state.players) ? `passt für ${state.players}` : `für ${range(map)} Spieler`}</span></span>`;
+    btn.querySelector('.thumb').append(thumbnail(map, state.players));
+    btn.addEventListener('click', () => selectMap(map));
+    list.append(btn);
+  }
+  list.querySelector('.map-card.on')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
+function renderPlayers() {
+  const host = document.getElementById('players');
+  host.replaceChildren();
+  for (let p = 2; p <= 6; p++) {
+    const b = document.createElement('button');
+    b.textContent = p;
+    b.className = p === state.players ? 'on' : '';
+    b.setAttribute('aria-pressed', p === state.players);
+    b.addEventListener('click', () => { state.players = p; update(); });
+    host.append(b);
+  }
+}
+
+function check(status, title, detail) {
+  const sign = { ok: '✓', warn: '!', bad: '✕' }[status];
+  return `<li><span class="mark ${status}">${sign}</span><span>${title}${detail ? `<small>${detail}</small>` : ''}</span></li>`;
+}
+
+function renderInfo(res, map) {
+  const a = res.analysis, n = res.topo.hexes.length, p = state.players;
+  const lakeEdges = new Set(res.topo.loops.filter((l) => l.lake).flatMap((l) => l.edges));
+  const lakeHarbors = res.board.harbors.filter((h) => lakeEdges.has(h.edge)).length;
+  const special = res.board.harbors.filter((h) => h.type !== 'any').length;
+  const inner = res.topo.vertices.filter((v) => v.hexes.length === 3).length;
+  const deserts = res.board.terrain.filter((t) => t === 'desert').length;
+  const numbers = res.board.numbers.filter(Boolean).length;
+  const skew = Math.round(a.resourceSkew * 100);
+  const maxPips = Math.max(...RESOURCES.map((r) => a.pips[r]));
+  const maxTotal = Math.max(...a.totals);
+
+  const checks = [
+    res.connected ? check('ok', 'Eine zusammenhängende Landmasse', 'Jedes Landfeld ist über Land erreichbar. Ohne Schiffe Pflicht.')
+      : check('bad', 'Nicht zusammenhängend', 'Ohne Schiffe-Erweiterung nicht spielbar.'),
+    a.redAdj === 0 ? check('ok', 'Keine benachbarten 6 und 8') : check('bad', `${a.redAdj}× 6/8 nebeneinander`),
+    a.sameAdj === 0 ? check('ok', 'Keine gleichen Zahlen nebeneinander') : check('warn', `${a.sameAdj}× gleiche Zahl nebeneinander`, 'Regel musste gelockert werden.'),
+    a.clusterMax <= 2 ? check('ok', 'Keine Dreiergruppen gleicher Landschaft') : check('warn', `Gruppe aus ${a.clusterMax} gleichen Feldern`),
+    !a.harborAdjacent ? check('ok', `${res.board.harbors.length} Häfen, keiner berührt einen anderen`, `${res.coastLen} Küstenkanten${lakeHarbors ? `, davon ${lakeHarbors} ${lakeHarbors === 1 ? 'Hafen' : 'Häfen'} am Binnensee` : ''}`)
+      : check('warn', 'Zwei Häfen teilen sich eine Ecke'),
+    check(skew <= 25 ? 'ok' : skew <= 40 ? 'warn' : 'bad', 'Rohstoffe ausgewogen', `Ertrag je Feld weicht höchstens ±${skew} % vom Mittel ab.`),
+    check(a.goodSpots >= 2 * p ? 'ok' : 'warn', `${a.goodSpots} gute Startplätze, ${2 * p} nötig`, 'Ecken mit mindestens 8 Punkten, die sich nach der Abstandsregel nicht stören.'),
+    check(a.spread <= 2 ? 'ok' : a.spread <= 4 ? 'warn' : 'bad', `Startrunde fair: Spanne ${a.spread} ${a.spread === 1 ? 'Punkt' : 'Punkte'}`, 'Simulierte Schlangenwahl, jeder nimmt die beste freie Ecke.'),
+    fits(map, p) ? check('ok', `Gedacht für ${range(map)} Spieler`) : check('warn', `Gedacht für ${range(map)} Spieler, gewählt sind ${p}`),
+  ];
+
+  document.getElementById('info').innerHTML = `
+    <section>
+      <h2>Karte</h2>
+      <p class="desc">${esc(map.desc)}</p>
+      <div class="facts">
+        <div class="fact"><b>${n}</b><span>Landfelder</span></div>
+        <div class="fact"><b>${range(map)}</b><span>Spieler</span></div>
+        <div class="fact"><b>${res.board.harbors.length}</b><span>Häfen (${special}× 2:1, ${res.board.harbors.length - special}× 3:1)</span></div>
+        <div class="fact"><b>${deserts}</b><span>${deserts === 1 ? 'Wüste' : 'Wüsten'} · ${numbers} Zahlenchips</span></div>
+        <div class="fact"><b>${map.vp}</b><span>Siegpunkte (Vorschlag)</span></div>
+        <div class="fact"><b>${res.bank}</b><span>Karten je Rohstoff</span></div>
+        <div class="fact"><b>${inner}</b><span>Ecken mit 3 Landfeldern</span></div>
+        <div class="fact"><b>${res.lakes ? res.topo.water.lake.size : '–'}</b><span>Binnensee-Felder</span></div>
+      </div>
+    </section>
+    <section>
+      <h2>Prüfungen</h2>
+      <ul class="checks">${checks.join('')}</ul>
+    </section>
+    <section>
+      <h2>Ertrag je Rohstoff</h2>
+      <div class="bars">${RESOURCES.map((r) => `
+        <div class="bar"><img src="${ICON(r)}" alt=""><span>${NAMES[r]} <small style="color:var(--muted)">${a.tiles[r]}×</small></span>
+          <span class="track"><span class="fill" style="display:block;width:${(a.pips[r] / maxPips) * 100}%"></span></span>
+          <span class="val">${a.pips[r]}</span></div>`).join('')}
+      </div>
+      <p class="note" style="margin-top:8px">Summe der Wahrscheinlichkeitspunkte (2 und 12 = 1, 6 und 8 = 5).</p>
+    </section>
+    <section>
+      <h2>Startrunde (Simulation)</h2>
+      <div class="seats">${a.totals.map((t, i) => `
+        <div class="seat"><i style="background:${PLAYER_COLORS[i]}"></i>
+          <span class="track" style="height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden"><span style="display:block;height:100%;width:${(t / maxTotal) * 100}%;background:${PLAYER_COLORS[i]};opacity:.85"></span></span>
+          <span class="val">${t}</span></div>`).join('')}
+      </div>
+      <p class="note" style="margin-top:8px">Punkte beider Startsiedlungen je Spieler. „Startplätze zeigen“ markiert die Wahl auf dem Brett.</p>
+    </section>
+    <section>
+      <h2>Als Daten</h2>
+      <pre class="mask">${esc(maskText(res.topo, map))}</pre>
+      <p class="legend"><code>.</code> Land zufällig · <code>~</code> Binnensee · <code>h l w g e</code> Vorliebe Holz, Lehm, Wolle, Getreide, Erz · <code>x</code> Wüstenplatz · Großbuchstaben = fest</p>
+    </section>`;
+}
+
+/** Maske aus der aktuellen Form zurückschreiben, damit auch die Zufallsküste als Daten sichtbar wird. */
+function maskText(topo, map) {
+  if (map.mask) return (typeof map.mask === 'function' ? map.mask(state.players) : map.mask).join('\n');
+  const cs = topo.hexes.map((h) => h.c), rs = topo.hexes.map((h) => h.r);
+  const minC = Math.min(...cs), minR = Math.min(...rs);
+  let shift = minC;
+  if (((shift + minR) & 1) !== ((topo.hexes[0].c + topo.hexes[0].r) & 1)) shift -= 1;
+  const rows = [];
+  for (const h of topo.hexes) {
+    const r = h.r - minR, c = h.c - shift;
+    rows[r] = (rows[r] ?? '').padEnd(c, ' ') + '.';
+  }
+  for (const k of topo.water.lake) {
+    const [c0, r0] = k.split(',').map(Number);
+    const r = r0 - minR, c = c0 - shift;
+    const row = (rows[r] ?? '').padEnd(c + 1, ' ');
+    rows[r] = row.slice(0, c) + '~' + row.slice(c + 1);
+  }
+  return rows.map((x) => x ?? '').join('\n');
+}
+
+function selectMap(map) {
+  state.map = map;
+  if (!fits(map, state.players)) state.players = Math.min(map.players[1], Math.max(map.players[0], state.players));
+  update();
+}
+
+function update() {
+  const map = state.map;
+  const res = generate(map, state.players, state.seed);
+  state.result = res;
+  document.getElementById('title').textContent = map.name;
+  document.getElementById('chips').innerHTML = map.tags.map((t) => `<span class="chip">${esc(t)}</span>`).join('');
+  document.getElementById('seed').textContent = `Seed ${state.seed} · beste von 24 Varianten`;
+  renderBoard(document.getElementById('board'), res, map);
+  renderInfo(res, map);
+  renderPlayers();
+  renderList();
+  history.replaceState(null, '', `#${map.id}/${state.players}/${state.seed}`);
+}
+
+function reroll() { state.seed = newSeed(); update(); }
+
+document.getElementById('reroll').addEventListener('click', reroll);
+document.getElementById('showPicks').addEventListener('change', (e) => { state.picks = e.target.checked; renderBoard(document.getElementById('board'), state.result, state.map); });
+document.addEventListener('keydown', (e) => {
+  if ((e.key === 'n' || e.key === 'N') && !e.metaKey && !e.ctrlKey && !(e.target instanceof HTMLInputElement)) reroll();
+});
+
+// Zustand aus dem Link: #weltkarte/6/123456
+function readHash() {
+  const [hashMap, hashPlayers, hashSeed] = location.hash.slice(1).split('/');
+  const fromHash = MAPS.find((m) => m.id === hashMap);
+  if (fromHash) state.map = fromHash;
+  if (Number(hashPlayers) >= 2 && Number(hashPlayers) <= 6) state.players = Number(hashPlayers);
+  if (Number(hashSeed) > 0) state.seed = Number(hashSeed);
+}
+window.addEventListener('hashchange', () => { readHash(); update(); });
+readHash();
+update();
+</script>
+</body>
+</html>
