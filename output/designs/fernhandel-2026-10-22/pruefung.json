@@ -1,0 +1,92 @@
+[
+  {
+    "path": "public/icons/fishing/anchor.png",
+    "size": [
+      256,
+      256
+    ],
+    "transparentPixels": 44155,
+    "cornersTransparent": true
+  },
+  {
+    "path": "public/banner/papiercollage/anchor.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "transparentPixels": 763743,
+    "cornersTransparent": true
+  },
+  {
+    "path": "public/icons/fishing/fish-1.png",
+    "size": [
+      256,
+      256
+    ],
+    "transparentPixels": 32023,
+    "cornersTransparent": true
+  },
+  {
+    "path": "public/icons/fishing/fish-2.png",
+    "size": [
+      256,
+      256
+    ],
+    "transparentPixels": 27757,
+    "cornersTransparent": true
+  },
+  {
+    "path": "public/icons/fishing/fish-3.png",
+    "size": [
+      256,
+      256
+    ],
+    "transparentPixels": 28119,
+    "cornersTransparent": true
+  },
+  {
+    "path": "public/icons/fishing/ground.png",
+    "size": [
+      256,
+      256
+    ],
+    "transparentPixels": 27834,
+    "cornersTransparent": true
+  },
+  {
+    "path": "public/icons/variants/harbor-master.png",
+    "size": [
+      256,
+      256
+    ],
+    "transparentPixels": 27568,
+    "cornersTransparent": true
+  },
+  {
+    "path": "public/tiles/papiercollage/lake.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "transparentPixels": 536064,
+    "cornersTransparent": true
+  },
+  {
+    "path": "public/banner/papiercollage/lighthouse.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "transparentPixels": 772365,
+    "cornersTransparent": true
+  },
+  {
+    "path": "public/icons/duel/token.png",
+    "size": [
+      256,
+      256
+    ],
+    "transparentPixels": 27887,
+    "cornersTransparent": true
+  }
+]

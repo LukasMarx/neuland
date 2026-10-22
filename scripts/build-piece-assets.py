@@ -13,7 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parents[1]
 DESIGN = ROOT / "output/designs/pieces-2026-10-21"
 OUT = ROOT / "public/pieces/papiercollage"
-PIECES = {"knight": "Ritter", "city": "Stadt", "road": "Straße", "settlement": "Dorf"}
+PIECES = {"knight": "Ritter", "city": "Stadt", "road": "Straße", "settlement": "Dorf", "ship": "Schiff"}
 COLORS = {
     "red": ("Rot", "#d23c3c", True),
     "blue": ("Blau", "#2f64d6", True),
@@ -23,6 +23,8 @@ COLORS = {
     "orange": ("Orange", "#ee8a1c", True),
     "green": ("Grün", "#2f9a48", True),
     "brown": ("Braun", "#7b4a2a", True),
+    "grey-light": ("Hellgrau", "#9aa1a8", False),
+    "grey-dark": ("Dunkelgrau", "#5d646c", False),
 }
 
 def smooth(lo, hi, value):
@@ -36,7 +38,7 @@ def normalized(source, piece):
     if not bounds:
         raise ValueError(f"Empty source: {piece}")
     rgba = rgba.crop(bounds)
-    size = (512, 128) if piece == "road" else (512, 512)
+    size = (512, 128) if piece == "road" else (512, 256) if piece == "ship" else (512, 512)
     rgba.thumbnail((size[0] - 32, size[1] - 32), Image.Resampling.LANCZOS)
     result = Image.new("RGBA", size)
     result.alpha_composite(rgba, ((size[0] - rgba.width) // 2, (size[1] - rgba.height) // 2))
@@ -49,6 +51,10 @@ def automatic_mask(base, piece):
     distance = np.minimum(hue, 360 - hue)
     # Only saturated terracotta: stone, cream, brass and green foliage are excluded.
     weight = (1 - smooth(20, 29, distance)) * smooth(0.23, 0.42, saturation)
+    if piece == "ship":
+        # The overhead deck exposes warm brown wood. Select only the saturated
+        # red hull; the broad architectural mask would also tint mast/hatches.
+        weight = (1 - smooth(6, 12, distance)) * smooth(0.40, 0.60, saturation)
     weight[np.asarray(base)[..., 3] == 0] = 0
     if piece == "city":
         # The front gate is warm wood, not a player-color surface.
@@ -129,12 +135,12 @@ def main():
         alpha = np.asarray(base)[..., 3]
         assert alpha.min() == 0 and alpha.max() == 255
         coverage = float(np.count_nonzero(np.asarray(mask) > 128) / max(1, np.count_nonzero(alpha)))
-        print(f"{piece}: {base.width}x{base.height}, mask {coverage:.0%}, 8 variants")
+        print(f"{piece}: {base.width}x{base.height}, mask {coverage:.0%}, {len(COLORS)} variants")
     (OUT / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     template = (DESIGN / "preview.template.html").read_text(encoding="utf-8-sig")
     (DESIGN / "preview.html").write_text(template.replace("__MANIFEST__", json.dumps(manifest, ensure_ascii=False)), encoding="utf-8")
     # Compact visual inspection artifact; compositing is part of this asset build.
-    sheet = Image.new("RGB", (1120, 1680), "#f3ecdc")
+    sheet = Image.new("RGB", (200 + len(PIECES) * 230, 130 + len(COLORS) * 192), "#f3ecdc")
     draw = ImageDraw.Draw(sheet)
     draw.text((32, 20), "Neuland · Papierfiguren in Spielerfarben", font=font(28), fill="#2b2418")
     for col, label in enumerate(PIECES.values()):

@@ -1,0 +1,97 @@
+{
+  "generator": "Built-in image_gen",
+  "transparent_background": true,
+  "boardPerspective": "Near-overhead, approximately 75 degrees above the board plane; user correction 2026-10-22. Banner ships remain side-view as requested by the brief.",
+  "export": "RGBA PNG, proportional resize and transparent centering; tiles retain full canvas geometry. Ship source is normalized by build-piece-assets.py.",
+  "assets": [
+    {
+      "group": "seewege",
+      "name": "banner-ship",
+      "path": "public/banner/papiercollage/ship.png",
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "output/designs/seewege-2026-10-22/stilreferenz-spielfiguren.png",
+        "F:/Projects/VsCode/angular/neuland/public/banner/papiercollage/horn.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square canvas. One isolated centered motif, about 85% occupancy, generous fully transparent margin on all sides. No scene backdrop, no ground, no frame or plaque unless explicitly requested. Simplify silhouette and small details for readability. Subject: ONE handsome small sailing ship in SIDE VIEW, wooden hull, cream paper sail and small plain terracotta pennant. The layered paper miniature craft style of the village, simplified for a 100px event banner. No water or island or base.",
+      "source": "C:/Users/marxl/.codex/generated_images/01a15efa-8db3-7691-acf7-efdc86401013/exec-30b3a350-5740-4734-96f6-e17fe98405ef.png"
+    },
+    {
+      "group": "seewege",
+      "name": "fog",
+      "path": "public/tiles/papiercollage/fog.png",
+      "width": 1254,
+      "height": 1254,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/tiles/papiercollage/wood.png",
+        "F:/Projects/VsCode/angular/neuland/public/tiles/papiercollage/ocean.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square 1254x1254 canvas. Exactly one regular POINTY-TOP hexagonal terrain tile, tip at top center and bottom center, vertical left/right edges. Match the reference tile's framing, near-full canvas height and width/height ratio 0.866. The scenery fills the entire hexagon right to its edges, no border, no rim, no raised plinth, transparent outside the hexagon. Steep overhead terrain view. Subject: mysterious pale WHITE tissue-paper fog banks layered over deep dark blue water. Fog covers most of the hexagon. No land, trees or rocks, no question mark or icons. Very clearly distinct from bright turquoise open ocean and from any land terrain. Quiet misty hidden-terrain card-back feeling.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-f180edf9-2810-431a-b772-3ad8a94ca0c6.png"
+    },
+    {
+      "group": "seewege",
+      "name": "gold",
+      "path": "public/tiles/papiercollage/gold.png",
+      "width": 1254,
+      "height": 1254,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/tiles/papiercollage/wood.png",
+        "F:/Projects/VsCode/angular/neuland/public/tiles/papiercollage/ocean.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square 1254x1254 canvas. Exactly one regular POINTY-TOP hexagonal terrain tile, tip at top center and bottom center, vertical left/right edges. Match the reference tile's framing, near-full canvas height and width/height ratio 0.866. The scenery fills the entire hexagon right to its edges, no border, no rim, no raised plinth, transparent outside the hexagon. Steep overhead terrain view. Subject: golden riverbed with visible gold nuggets among warm ochre and brown stones around the sides, pale blue layered-paper stream. Leave the central 35% of width visually quiet for a number chip; no chip in artwork.",
+      "source": "C:/Users/marxl/.codex/generated_images/01a15efa-8db3-7691-acf7-efdc86401013/exec-1f75dd05-17bc-4836-b10d-f6aff32d3ba7.png"
+    },
+    {
+      "group": "seewege",
+      "name": "island-bonus",
+      "path": "public/icons/seewege/island-bonus.png",
+      "width": 256,
+      "height": 256,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/icons/resources/sheep.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square canvas. One isolated centered motif, about 85% occupancy, generous fully transparent margin on all sides. No scene backdrop, no ground, no frame or plaque unless explicitly requested. Simplify silhouette and small details for readability. Subject: minimal tiny cream sandy island with ONE green tree and a clear plain RED triangular flag on a short pole. Only 3 bold simple shapes; no extra details, no water disc. Must read clearly at 24px. Warm paper cutout.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-228ede88-f4d4-4e58-bf5a-8e8093557e37.png"
+    },
+    {
+      "group": "seewege",
+      "name": "island",
+      "path": "public/banner/papiercollage/island.png",
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "output/designs/seewege-2026-10-22/stilreferenz-spielfiguren.png",
+        "F:/Projects/VsCode/angular/neuland/public/banner/papiercollage/horn.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square canvas. One isolated centered motif, about 85% occupancy, generous fully transparent margin on all sides. No scene backdrop, no ground, no frame or plaque unless explicitly requested. Simplify silhouette and small details for readability. Subject: ONE tiny organic cream sandy island, one leafy green tree, two rocks and a little plain red flag on a pole. Three-quarter miniature paper diorama, organic shoreline, only a few turquoise paper wave strips at its foot. Simplified for 100px. No buildings.",
+      "source": "C:/Users/marxl/.codex/generated_images/01a15efa-8db3-7691-acf7-efdc86401013/exec-6449f94b-6936-48e0-8c3e-35cb3e17cb90.png"
+    },
+    {
+      "group": "seewege",
+      "name": "pirate",
+      "path": "public/pieces/papiercollage/pirate.png",
+      "width": 512,
+      "height": 512,
+      "references": [
+        "C:/Users/marxl/.codex/generated_images/01a15efa-8db3-7691-acf7-efdc86401013/exec-aea5a217-470a-4b2f-9bcd-97185053a977.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create ONE privateer ship token for Neuland's top-down game board. Input reference shows the REQUIRED CAMERA and paper materials. Almost vertical bird's-eye view, about 75 degrees above the water plane, looking down onto a fully visible deck and both gunwales. Match reference boat's near-overhead angle and horizontal left-to-right alignment. Make a slightly larger warm dark-brown paper ship with charcoal paper sails, cream deck, cream gunwale edges, and ONE tiny plain ivory pennant. Dark but friendly mysterious, no skulls or weapons. Short strongly foreshortened mast, tops dominate, side walls only a narrow strip. Simple chunky silhouette legible at 50px. Square transparent canvas, whole ship comfortably centered with transparent margins; no water, ground, base, words, numbers, decorative frame or outer shadow. Tactile layered cut-paper craft with light from upper left.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-61471e8a-de11-4f0f-b5ba-b499765d9e5a.png"
+    },
+    {
+      "group": "seewege",
+      "name": "ship",
+      "path": "output/designs/pieces-2026-10-21/sources/ship.png",
+      "width": 512,
+      "height": 256,
+      "references": [
+        "output/designs/seewege-2026-10-22/stilreferenz-spielfiguren.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create ONE sailing-boat BOARD TOKEN for Neuland in tactile layered cut-paper craft style. The reference village is ONLY for paper materials and color quality. CRITICAL CAMERA: nearly overhead bird's-eye view, camera about 75 degrees ABOVE the horizontal water plane (15 degrees from vertical). Look DOWN onto the deck. This is a flat top-down game board. The hull's long axis is exactly horizontal left-to-right. The whole deck opening and both gunwales must be clearly visible from above. Hull sidewalls only a THIN strip; no tall side-facing hull. Short strongly foreshortened mast, ONE low cream sail viewed from above. Broad saturated terracotta-red paper HULL for later player-color masking; keep sail cream, deck beige, mast brown. Simple chunky miniature readable at 40 pixels. Landscape 2:1 canvas. Complete boat occupying 85%, with fully transparent margins and gaps. No waves, water, base, buildings, scenery, words, numbers or outer cast shadow. The craft feels hand-cut and layered like the village, but shown from a much higher camera.",
+      "source": "C:/Users/marxl/.codex/generated_images/01a15efa-8db3-7691-acf7-efdc86401013/exec-aea5a217-470a-4b2f-9bcd-97185053a977.png",
+      "normalizedOutput": "output/designs/pieces-2026-10-21/sources/ship-base.png"
+    }
+  ]
+}

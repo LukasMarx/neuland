@@ -49,6 +49,18 @@
       "label": "Braun",
       "hex": "#7b4a2a",
       "inGame": true
+    },
+    {
+      "id": "grey-light",
+      "label": "Hellgrau",
+      "hex": "#9aa1a8",
+      "inGame": false
+    },
+    {
+      "id": "grey-dark",
+      "label": "Dunkelgrau",
+      "hex": "#5d646c",
+      "inGame": false
     }
   ],
   "pieces": {
@@ -91,6 +103,16 @@
         0.5
       ],
       "recommendedBoardWidth": 32
+    },
+    "ship": {
+      "label": "Schiff",
+      "width": 512,
+      "height": 256,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "recommendedBoardWidth": 32
     }
   },
   "assets": {
@@ -102,7 +124,9 @@
       "white": "pieces/papiercollage/knight-white.png",
       "orange": "pieces/papiercollage/knight-orange.png",
       "green": "pieces/papiercollage/knight-green.png",
-      "brown": "pieces/papiercollage/knight-brown.png"
+      "brown": "pieces/papiercollage/knight-brown.png",
+      "grey-light": "pieces/papiercollage/knight-grey-light.png",
+      "grey-dark": "pieces/papiercollage/knight-grey-dark.png"
     },
     "city": {
       "red": "pieces/papiercollage/city-red.png",
@@ -112,7 +136,9 @@
       "white": "pieces/papiercollage/city-white.png",
       "orange": "pieces/papiercollage/city-orange.png",
       "green": "pieces/papiercollage/city-green.png",
-      "brown": "pieces/papiercollage/city-brown.png"
+      "brown": "pieces/papiercollage/city-brown.png",
+      "grey-light": "pieces/papiercollage/city-grey-light.png",
+      "grey-dark": "pieces/papiercollage/city-grey-dark.png"
     },
     "road": {
       "red": "pieces/papiercollage/road-red.png",
@@ -122,7 +148,9 @@
       "white": "pieces/papiercollage/road-white.png",
       "orange": "pieces/papiercollage/road-orange.png",
       "green": "pieces/papiercollage/road-green.png",
-      "brown": "pieces/papiercollage/road-brown.png"
+      "brown": "pieces/papiercollage/road-brown.png",
+      "grey-light": "pieces/papiercollage/road-grey-light.png",
+      "grey-dark": "pieces/papiercollage/road-grey-dark.png"
     },
     "settlement": {
       "red": "pieces/papiercollage/settlement-red.png",
@@ -132,7 +160,21 @@
       "white": "pieces/papiercollage/settlement-white.png",
       "orange": "pieces/papiercollage/settlement-orange.png",
       "green": "pieces/papiercollage/settlement-green.png",
-      "brown": "pieces/papiercollage/settlement-brown.png"
+      "brown": "pieces/papiercollage/settlement-brown.png",
+      "grey-light": "pieces/papiercollage/settlement-grey-light.png",
+      "grey-dark": "pieces/papiercollage/settlement-grey-dark.png"
+    },
+    "ship": {
+      "red": "pieces/papiercollage/ship-red.png",
+      "blue": "pieces/papiercollage/ship-blue.png",
+      "gold": "pieces/papiercollage/ship-gold.png",
+      "purple": "pieces/papiercollage/ship-purple.png",
+      "white": "pieces/papiercollage/ship-white.png",
+      "orange": "pieces/papiercollage/ship-orange.png",
+      "green": "pieces/papiercollage/ship-green.png",
+      "brown": "pieces/papiercollage/ship-brown.png",
+      "grey-light": "pieces/papiercollage/ship-grey-light.png",
+      "grey-dark": "pieces/papiercollage/ship-grey-dark.png"
     }
   }
 }
