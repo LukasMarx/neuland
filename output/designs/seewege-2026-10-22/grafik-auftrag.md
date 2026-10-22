@@ -4,7 +4,7 @@
 
 **Geliefert und eingebunden:** Goldfeld, Nebelfeld, Schiff in allen Farben (Draufsicht, auch in den beiden Grautönen), Kaperschiff, Banner-Motive Schiff und Insel, Inselbonus-Symbol. Lieferung siehe `README.md` in diesem Ordner.
 
-**Offen, neu seit der Lieferung:** Symbole für die Knöpfe „Versetzen“ und „Handeln“ im Bauraster (siehe „Bedienelemente“). Seit dort echte Figuren stehen, fallen die Textzeichen ⤳ und ⇄ daneben auf.
+**Nachgeliefert und eingebunden:** Symbole für die Knöpfe „Versetzen“ und „Handeln“ im Bauraster.
 
 **Offen, optional:** Banner-Motiv Kaperschiff (erst nötig, wenn es ein Banner „Kaperschiff versetzt“ gibt).
 
@@ -38,7 +38,7 @@ Optional, erst nötig, wenn es dafür ein Banner gibt:
 
 ### Bedienelemente
 
-**Geliefert am 22.10.2026:** `move-ship.png` und `trade.png`, jeweils Original und Web-Fassung. [Vorschau](nachtrag-vorschau.html). Die UI-Zuordnung ist noch offen.
+**Geliefert und eingebunden am 22.10.2026:** `move-ship.png` und `trade.png`, jeweils Original und Web-Fassung. [Vorschau](nachtrag-vorschau.html).
 
 Die Knöpfe im Bauraster zeigen Straße, Siedlung, Stadt, Schiff als Figuren und die Entwicklungskarte als Kartenrückseite. Zwei Knöpfe haben noch ein Textzeichen:
 

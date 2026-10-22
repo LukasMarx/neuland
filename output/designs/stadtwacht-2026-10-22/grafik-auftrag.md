@@ -2,7 +2,7 @@
 
 ## Stand (22.10.2026)
 
-**Geliefert (22.10.2026):** Stadtwacht I und II und das Symbol „Ausbau“, als Originale, Farbvarianten und Web-Dateien. Übersicht und Dateizuordnung: [LIEFERUNG.md](LIEFERUNG.md).
+**Geliefert und eingebunden (22.10.2026):** Stadtwacht I und II und das Symbol „Ausbau“: Güterkarten und -symbole, Richtungssymbole (Ausbau-Tafel und Abzeichen der Prachtstadt), Prachtstadt, Palisade, Wächter in drei Stufen, Flotte, Ereigniswürfel, Ehrenschild, Banner „Angriff“. Übersicht und Dateizuordnung: [LIEFERUNG.md](LIEFERUNG.md).
 
 **Offen:** Stadtwacht III, also drei Rückseiten und 25 Motive der Einflusskarten sowie die Händlerfigur. Optional die Symbole für die Wächter-Aktionen. Im Spiel stehen dafür Platzhalter: Einflusskarten als farbige Karten mit Namen ohne Motiv, der Händler als Marke mit „H“.
 

@@ -33,9 +33,9 @@ const ABILITY: Record<Track, string> = {
       @for (t of tracks(); track t.track) {
         <section class="track" [attr.data-track]="t.track">
           <header>
-            <img [src]="art[t.good]" alt="" />
+            <img class="track-icon" [src]="'web/icons/city/' + t.track + '.png'" alt="" />
             <b>{{ t.name }}</b>
-            <small>zahlt mit {{ t.goodName }}</small>
+            <small>zahlt mit <img [src]="art[t.good]" alt="" /> {{ t.goodName }}</small>
           </header>
           <ol class="levels" [attr.aria-label]="t.name + ': Stufe ' + t.level + ' von 5'">
             @for (n of [1, 2, 3, 4, 5]; track n) {
@@ -102,13 +102,21 @@ const ABILITY: Record<Track, string> = {
       align-items: center;
       gap: 6px;
     }
-    header img {
-      width: 24px;
-      height: 24px;
+    header .track-icon {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
     }
     header small {
+      display: flex;
+      align-items: center;
+      gap: 3px;
       margin-left: auto;
-      opacity: 0.7;
+      opacity: 0.75;
+      img {
+        width: 18px;
+        height: 18px;
+      }
     }
     .levels {
       display: flex;

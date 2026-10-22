@@ -1,4 +1,4 @@
-export type PieceKind = 'knight' | 'city' | 'road' | 'settlement' | 'ship';
+export type PieceKind = 'knight' | 'city' | 'road' | 'settlement' | 'ship' | 'bridge' | 'metropolis' | 'guard1' | 'guard2' | 'guard3';
 
 /** Palette of the exported PNGs; unknown saved colors retain the SVG fallback. */
 const PIECE_COLORS: Readonly<Record<string, string>> = {
@@ -18,6 +18,6 @@ const PIECE_COLORS: Readonly<Record<string, string>> = {
 
 export function pieceImage(kind: PieceKind, color: string): string | null {
   const palette = PIECE_COLORS[color.trim().toLowerCase()];
-  const style = kind === 'city' || kind === 'settlement' ? 'papiercollage-organic-v2' : 'papiercollage';
+  const style = kind === 'city' || kind === 'settlement' || kind === 'metropolis' ? 'papiercollage-organic-v2' : 'papiercollage';
   return palette ? `web/pieces/${style}/${kind}-${palette}.png` : null;
 }

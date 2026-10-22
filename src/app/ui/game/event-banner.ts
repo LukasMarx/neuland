@@ -26,7 +26,7 @@ interface Prop {
 
 /** Freigestellte Banner-Motive (Papiercollage, siehe output/designs/banner-2026-10-21). */
 const MOTIF = (
-  name: 'laurel' | 'star' | 'shield' | 'sword' | 'signpost' | 'chest' | 'coin' | 'basket' | 'horn' | 'ship' | 'island' | 'anchor' | 'lighthouse',
+  name: 'laurel' | 'star' | 'shield' | 'sword' | 'signpost' | 'chest' | 'coin' | 'basket' | 'horn' | 'ship' | 'island' | 'anchor' | 'lighthouse' | 'raiders',
 ) =>
   `web/banner/papiercollage/${name}.png`;
 
@@ -121,6 +121,11 @@ export class EventBanner implements OnInit, OnDestroy {
           right: list(1, () => at(MOTIF('star'), 'motif small pop', 0.6)),
         };
       case 'raid':
+        // Stadtwacht: Langschiff vor der Stadtmauer, rechts der Schild der Verteidiger.
+        return {
+          left: list(1, () => at(MOTIF('raiders'), 'motif march', 0.2)),
+          right: list(1, () => at(MOTIF('shield'), 'motif pop', 0.45)),
+        };
       case 'army':
         // Zwei gespiegelte Schwerter ergeben ein gekreuztes Paar.
         return {

@@ -310,11 +310,11 @@ export class GameView {
   protected readonly eventFace = computed(() => {
     const e = this.g().event;
     if (!e) return null;
-    if (e === 'ship') return { cls: 'ship', label: '⛵', title: 'Ereigniswürfel: Schiff' };
+    if (e === 'ship') return { cls: 'ship', image: 'web/icons/city/event-ship.png', title: 'Ereigniswürfel: Schiff' };
     // Stufe s zieht bei einem roten Würfel bis s+1.
     const red = this.g().dice?.[1] ?? 1;
     const from = Math.max(1, red - 1);
-    return { cls: e, label: TRACK_NAMES[e][0], title: `Ereigniswürfel: Tor ${TRACK_NAMES[e]}. Roter Würfel ${red}: Einflusskarten für alle mit ${TRACK_NAMES[e]} ab Stufe ${from}.` };
+    return { cls: e, image: `web/icons/city/event-${e}.png`, title: `Ereigniswürfel: Tor ${TRACK_NAMES[e]}. Roter Würfel ${red}: Einflusskarten für alle mit ${TRACK_NAMES[e]} ab Stufe ${from}.` };
   });
   /** Was ein eigener Wächter gerade tun kann (für den Dialog). */
   protected readonly guardOptions = computed(() => {
@@ -750,6 +750,7 @@ export class GameView {
       progress: g.progress ? progressCount(g, seat) : null,
       trader: g.trader?.owner === seat,
       coinRank: coinPoints(g, seat),
+      honors: g.honors?.[seat] ?? 0,
       active: actingSeats(g).includes(seat),
       online: !!members.find((m) => m.id === p.id)?.peerId,
       me: seat === this.seat(),
