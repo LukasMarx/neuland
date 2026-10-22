@@ -1,0 +1,101 @@
+{
+  "generator": "Built-in image_gen",
+  "transparent_background": true,
+  "references": {
+    "laurel": "public/cards/symbolstark/victoryPoint.png",
+    "star": "public/cards/symbolstark/victoryPoint.png",
+    "shield": "public/cards/symbolstark/knight.png",
+    "sword": "public/cards/symbolstark/knight.png",
+    "signpost": "public/cards/symbolstark/roadBuilding.png",
+    "chest": "public/cards/symbolstark/monopoly.png",
+    "coin": "public/cards/symbolstark/monopoly.png",
+    "basket": "public/cards/symbolstark/yearOfPlenty.png",
+    "horn": "public/cards/symbolstark/knight.png",
+    "robber": "public/cards/symbolstark/knight.png"
+  },
+  "prompts": {
+    "laurel": "Use case: background-extraction. Edit the reference card artwork into ONE isolated decorative game asset for an animated event banner. Keep only the requested subject, preserving the established cut-paper collage style, layered paper forms, visible paper fibers and recognizable colors. Remove ALL scenery, landscape, sky, clouds, hills, ground, buildings and backdrop. Simplify tiny details so the subject reads clearly at 100 pixels tall. Straight-on view as on the card. Center the complete subject on a square 1024x1024 canvas, occupying about 85% of the area with a transparent margin and no cropping. Genuine transparent background including all corners and gaps inside the silhouette. No circular disc, no border, no badge, no frame, no labels, no text, no numbers, no extra objects, no cast shadow outside the subject. Transparent cutout, not a card or a scene.\nSubject: ONE single golden laurel branch only, gently curved, stem at bottom left, leaves sweeping up to the top right, so that a mirrored copy forms a wreath",
+    "star": "Use case: background-extraction. Edit the reference card artwork into ONE isolated decorative game asset for an animated event banner. Keep only the requested subject, preserving the established cut-paper collage style, layered paper forms, visible paper fibers and recognizable colors. Remove ALL scenery, landscape, sky, clouds, hills, ground, buildings and backdrop. Simplify tiny details so the subject reads clearly at 100 pixels tall. Straight-on view as on the card. Center the complete subject on a square 1024x1024 canvas, occupying about 85% of the area with a transparent margin and no cropping. Genuine transparent background including all corners and gaps inside the silhouette. No circular disc, no border, no badge, no frame, no labels, no text, no numbers, no extra objects, no cast shadow outside the subject. Transparent cutout, not a card or a scene.\nSubject: the single large golden star only",
+    "shield": "Use case: background-extraction. Edit the reference card artwork into ONE isolated decorative game asset for an animated event banner. Keep only the requested subject, preserving the established cut-paper collage style, layered paper forms, visible paper fibers and recognizable colors. Remove ALL scenery, landscape, sky, clouds, hills, ground, buildings and backdrop. Simplify tiny details so the subject reads clearly at 100 pixels tall. Straight-on view as on the card. Center the complete subject on a square 1024x1024 canvas, occupying about 85% of the area with a transparent margin and no cropping. Genuine transparent background including all corners and gaps inside the silhouette. No circular disc, no border, no badge, no frame, no labels, no text, no numbers, no extra objects, no cast shadow outside the subject. Transparent cutout, not a card or a scene.\nSubject: the heraldic shield with the golden fleur-de-lis only, without swords",
+    "sword": "Use case: background-extraction. Edit the reference card artwork into ONE isolated decorative game asset for an animated event banner. Keep only the requested subject, preserving the established cut-paper collage style, layered paper forms, visible paper fibers and recognizable colors. Remove ALL scenery, landscape, sky, clouds, hills, ground, buildings and backdrop. Simplify tiny details so the subject reads clearly at 100 pixels tall. Straight-on view as on the card. Center the complete subject on a square 1024x1024 canvas, occupying about 85% of the area with a transparent margin and no cropping. Genuine transparent background including all corners and gaps inside the silhouette. No circular disc, no border, no badge, no frame, no labels, no text, no numbers, no extra objects, no cast shadow outside the subject. Transparent cutout, not a card or a scene.\nSubject: ONE single sword only, tilted 45 degrees with the tip pointing to the top right, so that a mirrored copy forms crossed swords",
+    "signpost": "Use case: background-extraction. Edit the reference card artwork into ONE isolated decorative game asset for an animated event banner. Keep only the requested subject, preserving the established cut-paper collage style, layered paper forms, visible paper fibers and recognizable colors. Remove ALL scenery, landscape, sky, clouds, hills, ground, buildings and backdrop. Simplify tiny details so the subject reads clearly at 100 pixels tall. Straight-on view as on the card. Center the complete subject on a square 1024x1024 canvas, occupying about 85% of the area with a transparent margin and no cropping. Genuine transparent background including all corners and gaps inside the silhouette. No circular disc, no border, no badge, no frame, no labels, no text, no numbers, no extra objects, no cast shadow outside the subject. Transparent cutout, not a card or a scene.\nSubject: the wooden signpost with two blank arrow boards only, no writing on the boards",
+    "chest": "Use case: background-extraction. Edit the reference card artwork into ONE isolated decorative game asset for an animated event banner. Keep only the requested subject, preserving the established cut-paper collage style, layered paper forms, visible paper fibers and recognizable colors. Remove ALL scenery, landscape, sky, clouds, hills, ground, buildings and backdrop. Simplify tiny details so the subject reads clearly at 100 pixels tall. Straight-on view as on the card. Center the complete subject on a square 1024x1024 canvas, occupying about 85% of the area with a transparent margin and no cropping. Genuine transparent background including all corners and gaps inside the silhouette. No circular disc, no border, no badge, no frame, no labels, no text, no numbers, no extra objects, no cast shadow outside the subject. Transparent cutout, not a card or a scene.\nSubject: the open treasure chest filled with gold coins only, no loose coins around it",
+    "coin": "Use case: background-extraction. Edit the reference card artwork into ONE isolated decorative game asset for an animated event banner. Keep only the requested subject, preserving the established cut-paper collage style, layered paper forms, visible paper fibers and recognizable colors. Remove ALL scenery, landscape, sky, clouds, hills, ground, buildings and backdrop. Simplify tiny details so the subject reads clearly at 100 pixels tall. Straight-on view as on the card. Center the complete subject on a square 1024x1024 canvas, occupying about 85% of the area with a transparent margin and no cropping. Genuine transparent background including all corners and gaps inside the silhouette. No circular disc, no border, no badge, no frame, no labels, no text, no numbers, no extra objects, no cast shadow outside the subject. Transparent cutout, not a card or a scene.\nSubject: ONE single gold coin only, seen slightly from the side, plain face without symbols or numbers",
+    "basket": "Use case: background-extraction. Edit the reference card artwork into ONE isolated decorative game asset for an animated event banner. Keep only the requested subject, preserving the established cut-paper collage style, layered paper forms, visible paper fibers and recognizable colors. Remove ALL scenery, landscape, sky, clouds, hills, ground, buildings and backdrop. Simplify tiny details so the subject reads clearly at 100 pixels tall. Straight-on view as on the card. Center the complete subject on a square 1024x1024 canvas, occupying about 85% of the area with a transparent margin and no cropping. Genuine transparent background including all corners and gaps inside the silhouette. No circular disc, no border, no badge, no frame, no labels, no text, no numbers, no extra objects, no cast shadow outside the subject. Transparent cutout, not a card or a scene.\nSubject: the woven basket filled with wheat, wool and wood only",
+    "horn": "Use case: stylized-concept. Input image is STYLE REFERENCE only: match its tactile cut-paper collage look with layered paper forms, visible paper fibers, warm cream and gold accents and soft dimensional shading inside the subject. Create ONE isolated decorative game asset for an animated event banner. Straight-on view. Center the complete subject on a square 1024x1024 canvas, occupying about 85% of the area with a transparent margin and no cropping. Genuine transparent background including all corners and gaps inside the silhouette. Must read clearly at 100 pixels tall. No circular disc, no border, no badge, no frame, no labels, no text, no numbers, no extra objects, no cast shadow outside the subject. Transparent cutout, not a card or a scene.\nSubject: ONE curved brass herald horn with a small red pennant hanging from it",
+    "robber": "Use case: stylized-concept. Input image is STYLE REFERENCE only: match its tactile cut-paper collage look with layered paper forms, visible paper fibers, warm cream and gold accents and soft dimensional shading inside the subject. Create ONE isolated decorative game asset for an animated event banner. Straight-on view. Center the complete subject on a square 1024x1024 canvas, occupying about 85% of the area with a transparent margin and no cropping. Genuine transparent background including all corners and gaps inside the silhouette. Must read clearly at 100 pixels tall. No circular disc, no border, no badge, no frame, no labels, no text, no numbers, no extra objects, no cast shadow outside the subject. Transparent cutout, not a card or a scene.\nSubject: ONE simple dark hooded robber figure, standing, faceless shadow under the hood, friendly-mysterious rather than scary, dark charcoal and slate paper with subtle highlights"
+  },
+  "refinements": {
+    "laurel": {
+      "prompt": "Use case: background-extraction. Edit the reference card artwork into ONE isolated decorative game asset for an animated event banner. Keep only the requested subject, preserving the established cut-paper collage style, layered paper forms, visible paper fibers and recognizable colors. Remove ALL scenery, landscape, sky, clouds, hills, ground, buildings and backdrop. Simplify tiny details so the subject reads clearly at 100 pixels tall. Straight-on view as on the card. Center the complete subject on a square 1024x1024 canvas, occupying about 85% of the area with a transparent margin and no cropping. Genuine transparent background including all corners and gaps inside the silhouette. No circular disc, no border, no badge, no frame, no labels, no text, no numbers, no extra objects, no cast shadow outside the subject. Transparent cutout, not a card or a scene.\nSubject: ONE single golden laurel branch only, gently curved, stem at bottom left, leaves sweeping up to the top right, so that a mirrored copy forms a wreath\nCRITICAL CORRECTION: Deliver exactly ONE branch, NOT a wreath, NOT two branches, NOT a symmetrical pair. The image must contain only a single curved stem with leaves, diagonally sweeping from bottom left to top right. Do not render the mirrored copy; mirroring happens later in code.",
+      "reference": "public/cards/symbolstark/victoryPoint.png"
+    },
+    "basket": {
+      "prompt": "Use case: precise-object-edit. Edit this transparent paper-collage basket icon. Change ONLY the framing: zoom out slightly to leave clear transparent margin on every side, repairing the few wheat tips clipped at the left edge. Keep this exact basket, wheat, cream wool and three wood logs, paper textures, colors, handle and striped cloth unchanged. No added leaves, berries, fruit, scenery or other objects. Entire subject centered and fully visible, occupying 85% of a square 1024x1024 canvas. Preserve true transparency outside and inside the handle gap. No text, no border, no shadow outside the object.",
+      "reference": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-4da61a8f-0f7d-47b5-b435-d037a98ddfb4.png"
+    },
+    "horn": {
+      "prompt": "Use case: stylized-concept. Input image is STYLE REFERENCE only: match its tactile cut-paper collage look with layered paper forms, visible paper fibers, warm cream and gold accents and soft dimensional shading inside the subject. Create ONE isolated decorative game asset for an animated event banner. Straight-on view. Center the complete subject on a square 1024x1024 canvas, occupying about 85% of the area with a transparent margin and no cropping. Genuine transparent background including all corners and gaps inside the silhouette. Must read clearly at 100 pixels tall. No circular disc, no border, no badge, no frame, no labels, no text, no numbers, no extra objects, no cast shadow outside the subject. Transparent cutout, not a card or a scene.\nSubject: ONE curved brass herald horn with a small red pennant hanging from it\nCRITICAL SIMPLICITY: The small red pennant is plain red without any emblem, fleur-de-lis or ornament. It must be a small hanging cloth, less than one quarter the height of the complete horn-and-pennant silhouette. The horn is the dominant subject. Do not copy the shield emblem from the style reference.",
+      "reference": "public/cards/symbolstark/knight.png"
+    }
+  },
+  "exports": [
+    {
+      "name": "laurel",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-bbbaff00-4e7e-433f-9619-e5ef924eb6cc.png",
+      "destination": "public/banner/papiercollage/laurel.png"
+    },
+    {
+      "name": "star",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-eae50204-bed6-4e61-8512-d1d6b7ccad7a.png",
+      "destination": "public/banner/papiercollage/star.png"
+    },
+    {
+      "name": "shield",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-8cae396f-48dc-4122-81d0-79c97066888d.png",
+      "destination": "public/banner/papiercollage/shield.png"
+    },
+    {
+      "name": "sword",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-885f35be-ec53-4026-8542-92b38a8e0162.png",
+      "destination": "public/banner/papiercollage/sword.png"
+    },
+    {
+      "name": "signpost",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-b4edbcb7-64bf-4044-bb11-bf84f89ebd54.png",
+      "destination": "public/banner/papiercollage/signpost.png"
+    },
+    {
+      "name": "chest",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-8040e3e2-e145-4929-b254-c4024930a0e8.png",
+      "destination": "public/banner/papiercollage/chest.png"
+    },
+    {
+      "name": "coin",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-e30762c3-7e82-478a-b8b1-48200cca830f.png",
+      "destination": "public/banner/papiercollage/coin.png"
+    },
+    {
+      "name": "basket",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-d434409d-38ad-4173-ae87-a0dd663582bc.png",
+      "destination": "public/banner/papiercollage/basket.png"
+    },
+    {
+      "name": "horn",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-f1c76d63-d6e1-4ed2-8d7a-0573cf03d292.png",
+      "destination": "public/banner/papiercollage/horn.png"
+    },
+    {
+      "name": "robber",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-bb9bd209-e3f9-481f-865f-54ff6444e44d.png",
+      "destination": "public/banner/papiercollage/robber.png"
+    }
+  ],
+  "exportSettings": {
+    "width": 1024,
+    "height": 1024,
+    "subjectMaxDimension": 870,
+    "alpha": "preserved",
+    "method": "Proportional resampling and transparent centering; no artistic changes"
+  }
+}

@@ -1,0 +1,52 @@
+﻿[
+    {
+        "result":  "source=1254x1254; bounds=77,86,870,852; transparentPixels=847552; corners=0,0,0,0",
+        "name":  "laurel",
+        "size":  "1024x1024"
+    },
+    {
+        "result":  "source=1254x1254; bounds=77,84,870,856; transparentPixels=753723; corners=0,0,0,0",
+        "name":  "star",
+        "size":  "1024x1024"
+    },
+    {
+        "result":  "source=1254x1254; bounds=88,80,848,866; transparentPixels=636254; corners=0,0,0,0",
+        "name":  "shield",
+        "size":  "1024x1024"
+    },
+    {
+        "result":  "source=1254x1254; bounds=80,77,863,870; transparentPixels=897566; corners=0,0,0,0",
+        "name":  "sword",
+        "size":  "1024x1024"
+    },
+    {
+        "result":  "source=1254x1254; bounds=81,78,862,869; transparentPixels=798939; corners=0,0,0,0",
+        "name":  "signpost",
+        "size":  "1024x1024"
+    },
+    {
+        "result":  "source=1254x1254; bounds=77,112,870,800; transparentPixels=524918; corners=0,0,0,0",
+        "name":  "chest",
+        "size":  "1024x1024"
+    },
+    {
+        "result":  "source=1254x1254; bounds=77,83,870,857; transparentPixels=609310; corners=0,0,0,0",
+        "name":  "coin",
+        "size":  "1024x1024"
+    },
+    {
+        "result":  "source=1254x1254; bounds=77,77,870,869; transparentPixels=565039; corners=0,0,0,0",
+        "name":  "basket",
+        "size":  "1024x1024"
+    },
+    {
+        "result":  "source=1254x1254; bounds=77,93,869,838; transparentPixels=796836; corners=0,0,0,0",
+        "name":  "horn",
+        "size":  "1024x1024"
+    },
+    {
+        "result":  "source=1254x1254; bounds=77,82,870,860; transparentPixels=758221; corners=0,0,0,0",
+        "name":  "robber",
+        "size":  "1024x1024"
+    }
+]
