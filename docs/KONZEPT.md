@@ -155,7 +155,13 @@ Jeder Browser speichert den letzten Stand unter dem Raumcode im `localStorage`. 
 
 ### Verdeckte Informationen
 
-Damit der Host-Wechsel funktioniert, bekommt jeder den kompletten Stand, also auch die Handkarten der anderen und den Kartenstapel. Die Oberfläche zeigt davon nur, was man sehen darf. Wer in den Entwicklertools des Browsers wühlt, könnte schummeln. Für ein Spiel unter Kollegen nehmen wir das bewusst in Kauf, denn dicht zu machen ginge nur mit Server oder aufwendiger Kryptografie.
+Damit der Host-Wechsel funktioniert, bekommt jeder den kompletten Stand, also auch die Handkarten der anderen und den Kartenstapel. Die Oberfläche zeigt davon nur, was man sehen darf. Wer in den Entwicklertools des Browsers wühlt, sieht also die Hände der anderen; unter Kollegen nehmen wir das in Kauf (dicht ginge es nur mit Schwärzen pro Empfänger, siehe ERWEITUNGEN.md, Abschnitt 4).
+
+Was man aber nicht vorausrechnen kann:
+
+- **Würfel und Zufall:** Der Zufallszustand steht zwar im Spielstand, der Host mischt aber vor jeder Aktion frischen Zufall aus `crypto.getRandomValues` ein. Der nächste Wurf ist damit für niemanden vorhersehbar.
+- **Entwicklungskarten:** Sie werden zufällig aus dem Stapel gezogen, nicht von oben. Die Reihenfolge im Spielstand verrät also nichts.
+- **Würfelstapel (Variante):** Er steht nur als Zählwerk im Spielstand (wie viele Karten je Summe), gezogen wird erst beim Würfeln.
 
 ### Bekannte Risiken
 

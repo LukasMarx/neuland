@@ -1,5 +1,6 @@
 import { generateBoard, getTopology, vertexHarbors } from './board';
 import { mapById, mapFits } from './maps';
+import { DICE_DECK, DICE_DECK_RESHUFFLE, HARBOR_MASTER_POINTS, VariantId } from './variants';
 import { randomInt, RngState, shuffle } from './rng';
 import {
   Action,
@@ -96,6 +97,8 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
     transfers: [],
     winner: null,
   };
+  if (hasVariant(state, 'hafenvogt')) state.harborMaster = null;
+  if (hasVariant(state, 'wuerfelstapel')) state.diceDeck = { ...DICE_DECK };
   log(state, null, `Spiel gestartet mit ${n} Spielern. ${seated[0].name} beginnt mit der Aufbauphase.`);
   return state;
 }
@@ -141,6 +144,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     s.phase = { ...phase, step: 'road', settlement: vertex };
     updateLongestRoad(s);
     log(s, seat, text);
+    updateHarborMaster(s);
   },
 
   placeRoad(s, seat, { edge }) {
@@ -167,7 +171,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
 
   roll(s, seat) {
     requireTurn(s, seat, 'roll');
-    const dice: [number, number] = [randomInt(s, 6) + 1, randomInt(s, 6) + 1];
+    const dice = s.diceDeck ? drawDiceCard(s) : ([randomInt(s, 6) + 1, randomInt(s, 6) + 1] as [number, number]);
     s.dice = dice;
     const sum = dice[0] + dice[1];
     log(s, seat, `${name(s, seat)} würfelt ${sum} (${dice[0]} + ${dice[1]}).`);
@@ -212,6 +216,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (seat !== s.current) fail('Du bist nicht dran.');
     if (!s.board.hexes[hex]) fail('Unbekanntes Feld.');
     if (hex === s.robber) fail('Der Räuber muss auf ein anderes Feld.');
+    if (!legalRobberHexes(s).includes(hex)) fail('Milder Räuber: Dort stehen Spieler mit höchstens 2 Siegpunkten.');
     const candidates = robberVictims(s, seat, hex);
     s.robber = hex;
     if (candidates.length > 0) {
@@ -260,6 +265,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     s.buildings[vertex] = { owner: seat, type: 'settlement' };
     updateLongestRoad(s);
     log(s, seat, `${name(s, seat)} baut eine Siedlung.`);
+    updateHarborMaster(s);
   },
 
   buildCity(s, seat, { vertex }) {
@@ -270,13 +276,16 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     pay(s, seat, COSTS.city, { kind: 'vertex', id: vertex });
     b.type = 'city';
     log(s, seat, `${name(s, seat)} baut eine Stadt.`);
+    updateHarborMaster(s);
   },
 
   buyDevCard(s, seat) {
     requireBuilder(s, seat);
     if (s.devDeck.length === 0) fail('Es gibt keine Entwicklungskarten mehr.');
     pay(s, seat, COSTS.devCard);
-    s.players[seat].newDevCards.push(s.devDeck.pop()!);
+    // Zufällig ziehen statt von oben: Die Reihenfolge im Spielstand verrät so nichts.
+    const [card] = s.devDeck.splice(randomInt(s, s.devDeck.length), 1);
+    s.players[seat].newDevCards.push(card);
     transfer(s, BANK, seatPoint(seat), 'dev', 1);
     log(s, seat, `${name(s, seat)} kauft eine Entwicklungskarte.`);
   },
@@ -470,6 +479,7 @@ export function victoryPoints(s: GameState, seat: number, includeHidden: boolean
   for (const b of s.buildings) if (b?.owner === seat) vp += b.type === 'city' ? 2 : 1;
   if (s.longestRoad === seat) vp += 2;
   if (s.largestArmy === seat) vp += 2;
+  if (s.harborMaster === seat) vp += 2;
   if (includeHidden) {
     const p = s.players[seat];
     vp += [...p.devCards, ...p.newDevCards].filter((c) => c === 'victoryPoint').length;
@@ -528,6 +538,63 @@ export function robberVictims(s: GameState, seat: number, hex: number): number[]
     if (b && b.owner !== seat && totalResources(s.players[b.owner].resources) > 0) victims.add(b.owner);
   }
   return [...victims];
+}
+
+export function hasVariant(s: Pick<GameState, 'settings'>, id: VariantId): boolean {
+  return s.settings.variants?.includes(id) ?? false;
+}
+
+/**
+ * Felder, auf die der Räuber darf: jedes andere Feld. Mit dem milden Räuber keines, an dem ein Spieler
+ * mit höchstens 2 sichtbaren Siegpunkten baut; bleibt dann nichts, darf er in die Wüste.
+ */
+export function legalRobberHexes(s: GameState): number[] {
+  const others = s.board.hexes.map((_, id) => id).filter((id) => id !== s.robber);
+  if (!hasVariant(s, 'milderRaeuber')) return others;
+  const topo = getTopology(s.board);
+  const protectedSeat = s.players.map((_, seat) => victoryPoints(s, seat, false) <= 2);
+  const allowed = others.filter((id) => topo.hexes[id].corners.every((v) => !s.buildings[v] || !protectedSeat[s.buildings[v]!.owner]));
+  if (allowed.length) return allowed;
+  const deserts = others.filter((id) => s.board.hexes[id].terrain === 'desert');
+  return deserts.length ? deserts : others;
+}
+
+/** Hafenpunkte (Hafenvogt): Siedlung an einem Hafen 1, Stadt 2. */
+export function harborPoints(s: GameState, seat: number): number {
+  const harbors = vertexHarbors(s.board);
+  return s.buildings.reduce((n, b, v) => (b?.owner === seat && harbors[v] ? n + (b.type === 'city' ? 2 : 1) : n), 0);
+}
+
+function updateHarborMaster(s: GameState): void {
+  if (!hasVariant(s, 'hafenvogt')) return;
+  const points = s.players.map((_, seat) => harborPoints(s, seat));
+  const holder = s.harborMaster ?? null;
+  const max = Math.max(...points);
+  let next = holder;
+  if (max >= HARBOR_MASTER_POINTS && (holder === null || max > points[holder])) {
+    const leaders = points.flatMap((p, seat) => (p === max ? [seat] : []));
+    if (leaders.length === 1) next = leaders[0];
+  }
+  if (next !== holder && next !== null) {
+    s.harborMaster = next;
+    log(s, next, `${name(s, next)} ist jetzt Hafenvogt (${points[next]} Hafenpunkte).`);
+  }
+}
+
+/** Würfelstapel: eine Karte ziehen; kurz vor dem Ende wird der ganze Stapel neu gemischt. */
+function drawDiceCard(s: GameState): [number, number] {
+  let deck = s.diceDeck!;
+  if (Object.values(deck).reduce((a, b) => a + b, 0) <= DICE_DECK_RESHUFFLE) {
+    deck = { ...DICE_DECK };
+    log(s, null, 'Der Würfelstapel wird neu gemischt.');
+  }
+  const cards = Object.entries(deck).flatMap(([sum, n]) => Array<number>(n).fill(Number(sum)));
+  const sum = cards[randomInt(s, cards.length)];
+  s.diceDeck = { ...deck, [sum]: deck[sum] - 1 };
+  // Passende Einzelwerte, damit die Würfelanzeige stimmt.
+  const low = Math.max(1, sum - 6);
+  const first = low + randomInt(s, Math.min(6, sum - 1) - low + 1);
+  return [first, sum - first];
 }
 
 export function tradeRate(s: GameState, seat: number, give: Resource): number {

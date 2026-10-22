@@ -642,6 +642,13 @@ kbd {
   }
 }
 
+.dice-deck {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .go {
   min-width: 170px;
   height: 50px;

@@ -1,5 +1,5 @@
 import { Component, computed, inject, output, signal } from '@angular/core';
-import { MapDef, mapById, mapFits, MAPS, mapShape } from '../../engine';
+import { MapDef, mapById, mapFits, MAPS, mapShape, VariantDef, VARIANTS } from '../../engine';
 import { MAX_PLAYERS, PLAYER_COLORS } from '../../net/protocol';
 import { LOCAL_MODE, RoomService } from '../../net/room.service';
 import { ChatBox } from '../shared/chat-box';
@@ -119,6 +119,19 @@ import { MapThumb } from './map-thumb';
             }
           </p>
 
+          <h3 class="mt">Varianten</h3>
+          <div class="variants">
+            @for (v of variants; track v.id) {
+              <label class="variant" [class.on]="variantOn(v)">
+                <input type="checkbox" [checked]="variantOn(v)" [disabled]="!room.isHost()" (change)="toggleVariant(v, $any($event.target).checked)" />
+                <span>
+                  <b>{{ v.name }}</b>
+                  <small>{{ v.description }}</small>
+                </span>
+              </label>
+            }
+          </div>
+
           <div class="start">
             @if (room.isHost()) {
               <button class="primary big" [disabled]="!canStart()" (click)="room.startGame()">Spiel starten</button>
@@ -225,6 +238,36 @@ import { MapThumb } from './map-thumb';
     .start {
       margin-top: 16px;
     }
+    .variants {
+      display: grid;
+      gap: 6px;
+    }
+    .variant {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px;
+      align-items: start;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      cursor: pointer;
+
+      input {
+        margin-top: 3px;
+      }
+      b {
+        display: block;
+        font-size: 13px;
+      }
+      small {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      &.on {
+        border-color: var(--accent);
+      }
+    }
     .maps {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
@@ -296,10 +339,25 @@ export class Lobby {
     return mapFits(map, Math.max(2, this.present()));
   }
 
-  /** Karte wählen; das Siegziel folgt dem Vorschlag der Karte. */
+  protected readonly variants = VARIANTS;
+
+  /** Karte wählen; das Siegziel folgt dem Vorschlag der Karte (plus Varianten wie dem Hafenvogt). */
   protected setMap(map: MapDef): void {
     const settings = this.room.room()!.settings;
-    this.room.updateSettings({ ...settings, map: map.id, victoryPoints: map.victoryPoints });
+    const bonus = VARIANTS.filter((v) => settings.variants?.includes(v.id)).reduce((n, v) => n + (v.victoryPoints ?? 0), 0);
+    this.room.updateSettings({ ...settings, map: map.id, victoryPoints: map.victoryPoints + bonus });
+  }
+
+  protected variantOn(v: VariantDef): boolean {
+    return this.room.room()?.settings.variants?.includes(v.id) ?? false;
+  }
+
+  /** Variante an- oder ausschalten; erhöht sie das Siegziel, geht es mit. */
+  protected toggleVariant(v: VariantDef, on: boolean): void {
+    const settings = this.room.room()!.settings;
+    const variants = (settings.variants ?? []).filter((id) => id !== v.id).concat(on ? [v.id] : []);
+    const victoryPoints = settings.victoryPoints + (on ? 1 : -1) * (v.victoryPoints ?? 0);
+    this.room.updateSettings({ ...settings, variants, victoryPoints });
   }
 
   protected setVp(value: string): void {

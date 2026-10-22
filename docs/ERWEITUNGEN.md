@@ -49,6 +49,8 @@ Die Schätzungen gelten für eine Person mit KI-Unterstützung und setzen voraus
 
 Referenz (nur zur Orientierung): Varianten aus der Schachtel, die hier als Fernhandel (2.4) geführt wird, sowie ein separat erschienenes Kartenset als Würfelersatz.
 
+> **Umgesetzt am 22.10.2026:** Milder Räuber, Hafenvogt und Würfelstapel (ohne Ereigniskarten) als Varianten in `src/app/engine/variants.ts`, zuschaltbar in der Lobby (`GameSettings.variants`). Aus Abschnitt 4 ist Maßnahme A umgesetzt: frischer Zufall vom Host vor jeder Aktion, Entwicklungskarten werden zufällig gezogen. Noch offen: Ereigniskarten im Würfelstapel, ein eigenes Banner-Motiv für den Hafenvogt, Duell für zwei.
+
 #### Würfelstapel statt Würfel
 
 **Regel:** Ein Stapel aus 36 Karten ersetzt die zwei Würfel. Die Karten bilden genau die Verteilung zweier Würfel ab (eine 2, zwei 3er … sechs 7er … eine 12). Wer würfeln müsste, deckt die oberste Karte auf. Einige Karten tragen zusätzlich ein kleines Ereignis (z. B. „jeder mit den meisten Rittern bekommt einen Rohstoff“, „Handel ist diese Runde nur mit der Bank erlaubt“). Etwa fünf Karten vor dem Ende wird neu gemischt, damit das Ende nicht vorhersagbar ist. Die Karte kann außerdem die Einzelwerte zweier Würfel angeben, damit Stadtwacht (roter Würfel) weiter funktioniert.

@@ -1,6 +1,6 @@
 import { Injector, runInInjectionContext } from '@angular/core';
 import { Action, actingSeats, applyAction, emptyResources, GameState, legalCityVertices, legalRoadEdges } from '../../engine';
-import { legalSettlementVertices, legalSetupRoads, legalSetupVertices, RESOURCES, robberVictims } from '../../engine';
+import { legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, RESOURCES, robberVictims } from '../../engine';
 import { NetMessage } from '../protocol';
 import { NET_ENV, NetEnv, RoomService } from '../room.service';
 import { TransportHandlers } from '../transport';
@@ -197,6 +197,7 @@ export class Sim {
       setTimeout: (fn, ms) => clock.schedule(fn, ms),
       clearTimeout: (handle) => clock.cancel(handle),
       randomId: () => `${this.pageId}-${++ids}-${Math.random().toString(36).slice(2, 8)}`,
+      entropy: () => Math.floor(Math.random() * 2 ** 32) | 0,
     };
     const injector = Injector.create({ providers: [{ provide: NET_ENV, useValue: env }] });
     this.svc = runInInjectionContext(injector, () => new RoomService());
@@ -290,7 +291,7 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
       return { seat, action: { type: 'discard', resources: out } };
     }
     case 'robber': {
-      const hex = pick(g.board.hexes.map((_, i) => i).filter((i) => i !== g.robber));
+      const hex = pick(legalRobberHexes(g));
       return { seat, action: { type: 'moveRobber', hex, victim: robberVictims(g, seat, hex)[0] ?? null } };
     }
     case 'roadBuilding':

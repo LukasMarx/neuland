@@ -46,6 +46,8 @@ export interface NetEnv {
   setTimeout(fn: () => void, ms: number): unknown;
   clearTimeout(handle: unknown): void;
   randomId(): string;
+  /** Frischer Zufall (32 Bit), den der Host vor jeder Aktion einmischt. */
+  entropy(): number;
 }
 
 export const NET_ENV = new InjectionToken<NetEnv>('NET_ENV');
@@ -90,6 +92,7 @@ function browserEnv(): NetEnv {
     setTimeout: (fn, ms) => setTimeout(fn, ms),
     clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
     randomId: () => crypto.randomUUID(),
+    entropy: () => crypto.getRandomValues(new Uint32Array(1))[0] | 0,
   };
 }
 
@@ -677,9 +680,10 @@ export class RoomService {
     try {
       if (seat < 0) throw new RuleError('Zuschauer können nicht mitspielen.');
       if (!this.hasQuorum()) throw new RuleError(NO_QUORUM);
-      let next = applyAction(game, seat, action);
+      const mixed = this.withFreshRandomness(game);
+      let next = applyAction(mixed, seat, action);
       // Aktionen ohne Wirkung (z. B. ein schon erledigtes Zurückziehen) erzeugen keinen neuen Stand.
-      if (next !== game) {
+      if (next !== mixed) {
         if (env) next = { ...next, acks: { ...next.acks, [clientId]: env } };
         this.game.set(next);
         this.broadcast();
@@ -708,11 +712,19 @@ export class RoomService {
     const action = autoAction(game, seat);
     if (!action) return this.reject(peer, `${target.name} ist gerade nicht dran.`);
     try {
-      this.game.set(applyAction(game, seat, action));
+      this.game.set(applyAction(this.withFreshRandomness(game), seat, action));
       this.broadcast();
     } catch (e) {
       this.reject(peer, e instanceof RuleError ? e.message : 'Unerwarteter Fehler.');
     }
+  }
+
+  /**
+   * Der Zufallszustand steht im Spielstand, den alle sehen. Damit niemand den nächsten Wurf oder die
+   * nächste Karte vorausrechnen kann, mischt der Host vor jeder Aktion frischen Zufall ein.
+   */
+  private withFreshRandomness(game: GameState): GameState {
+    return { ...game, rng: (game.rng ^ this.env.entropy()) | 0 };
   }
 
   private applyClaim(claimantId: string, playerId: string, peer: string | null): void {

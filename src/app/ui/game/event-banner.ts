@@ -3,7 +3,7 @@ import { Resource } from '../../engine';
 import { pieceImage } from '../shared/piece-art';
 import { RESOURCE_ART } from '../shared/resource-art';
 
-export type BannerKind = 'win' | 'road' | 'army' | 'monopoly' | 'plenty' | 'turn';
+export type BannerKind = 'win' | 'road' | 'army' | 'harbor' | 'monopoly' | 'plenty' | 'turn';
 
 export interface BannerEvent {
   id: number;
@@ -88,6 +88,12 @@ export class EventBanner implements OnInit {
         return {
           left: list(3, (i) => at(piece('road'), 'road lay', 0.3 + i * 0.12, { rotate: i % 2 ? 8 : -8 })),
           right: list(1, () => at(MOTIF('signpost'), 'motif pop', 0.8)),
+        };
+      case 'harbor':
+        // Bis es ein eigenes Motiv gibt: Gebäude des Spielers und Münzen aus dem Hafenhandel.
+        return {
+          left: list(2, (i) => at(piece(i ? 'city' : 'settlement'), i ? 'city pop' : 'house pop', 0.3 + i * 0.15)),
+          right: list(2, (i) => at(MOTIF('coin'), 'motif coin fly-r', 0.4 + i * 0.12, { rotate: i ? 12 : -10 })),
         };
       case 'army':
         // Zwei gespiegelte Schwerter ergeben ein gekreuztes Paar.

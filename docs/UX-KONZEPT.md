@@ -78,6 +78,10 @@ Umgesetzt nach Entwurf **02b · Nachtbühne, ruhig** (`output/designs/ui-2026-10
 - „Längste Straße“ und „Rittermacht“ als goldene Abzeichen mit Text, nicht nur als Hervorhebung.
 - Der aktive Spieler hat einen pulsierenden Rahmen und das Label „am Zug“. Getrennte Spieler werden grau mit „getrennt“.
 
+## Varianten
+
+In der Lobby schaltet der Gastgeber kleine Varianten zu: milder Räuber, Hafenvogt, Würfelstapel. Jede hat einen Satz Erklärung direkt am Schalter. Der Hafenvogt erhöht das Siegziel um 1, das passiert beim Umschalten automatisch. Im Spiel stehen die Varianten im Spielkopf. Der Hafenvogt erscheint wie die längste Handelsstraße in der Spielerkarte, in der Punkte-Übersicht und als Banner. Neben den Würfeln zeigt der Würfelstapel, wie viele Karten bis zum Mischen bleiben. Mit dem milden Räuber leuchten im Räubermodus nur die erlaubten Felder.
+
 ## Handel
 
 Prototyp: `output/designs/handel-2026-10-21/index.html`. Gehandelt wird im Dock, nicht in einem Dialog: Das Brett bleibt sichtbar.

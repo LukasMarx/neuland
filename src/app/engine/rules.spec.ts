@@ -479,9 +479,11 @@ describe('Bauen', () => {
   it('Entwicklungskarte kaufen', () => {
     const { s } = buildGame();
     give(s, 0, COSTS.devCard);
-    const top = s.devDeck[s.devDeck.length - 1];
     const n = act(s, 0, { type: 'buyDevCard' });
-    expect(n.players[0].newDevCards).toEqual([top]);
+    // Gezogen wird zufällig, nicht von oben: Die Reihenfolge im Stapel verrät nichts.
+    const [card] = n.players[0].newDevCards;
+    expect(n.players[0].newDevCards).toHaveLength(1);
+    expect(n.devDeck.filter((c) => c === card).length).toBe(s.devDeck.filter((c) => c === card).length - 1);
     expect(n.players[0].devCards).toEqual([]);
     expect(n.devDeck.length).toBe(s.devDeck.length - 1);
     expect(n.players[0].resources).toEqual(res());
@@ -535,7 +537,7 @@ describe('Entwicklungskarten', () => {
   it('nicht im Kaufzug spielbar, ab dem nächsten Zug schon', () => {
     let s = toPhase(game(2), 'main');
     give(s, 0, COSTS.devCard);
-    s.devDeck.push('knight');
+    s.devDeck = ['knight'];
     s = act(s, 0, { type: 'buyDevCard' });
     expectFail(s, 0, { type: 'playKnight' }, /keine spielbare Karte/);
     s = act(s, 0, { type: 'endTurn' });
@@ -552,7 +554,7 @@ describe('Entwicklungskarten', () => {
     let s = toPhase(game(), 'main');
     s.players[0].devCards = ['knight'];
     give(s, 0, COSTS.devCard);
-    s.devDeck.push('knight');
+    s.devDeck = ['knight'];
     s = act(s, 0, { type: 'buyDevCard' });
     s = act(s, 0, { type: 'playKnight' });
     expect(s.players[0].devCards).toEqual([]);
@@ -562,7 +564,7 @@ describe('Entwicklungskarten', () => {
   it('Siegpunktkarten zählen sofort, aber nur verdeckt', () => {
     let s = toPhase(game(), 'main');
     give(s, 0, COSTS.devCard);
-    s.devDeck.push('victoryPoint');
+    s.devDeck = ['victoryPoint'];
     s = act(s, 0, { type: 'buyDevCard' });
     expect(victoryPoints(s, 0, true)).toBe(1);
     expect(victoryPoints(s, 0, false)).toBe(0);
@@ -1111,7 +1113,7 @@ describe('Sonderbauphase (5–6 Spieler)', () => {
     settle(s, 2, far[20]);
     expect(victoryPoints(s, 2, true)).toBe(9);
     give(s, 2, COSTS.devCard);
-    s.devDeck.push('victoryPoint');
+    s.devDeck = ['victoryPoint'];
     s = act(s, 1, { type: 'endTurn' });
     expect(actingSeats(s)).toEqual([2]);
     s = act(s, 2, { type: 'buyDevCard' });
@@ -1156,7 +1158,7 @@ describe('Sieg', () => {
   it('auch eine gekaufte Siegpunktkarte entscheidet sofort', () => {
     const { s } = nearWin();
     give(s, 0, COSTS.devCard);
-    s.devDeck.push('victoryPoint');
+    s.devDeck = ['victoryPoint'];
     expect(act(s, 0, { type: 'buyDevCard' }).winner).toBe(0);
   });
 

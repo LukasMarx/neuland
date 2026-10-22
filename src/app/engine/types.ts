@@ -93,6 +93,8 @@ export interface GameSettings {
   victoryPoints: number;
   /** Karte, Vorgabe „klassisch“. */
   map?: string;
+  /** Zugeschaltete kleine Varianten (siehe variants.ts). */
+  variants?: string[];
 }
 
 export interface LogEntry {
@@ -132,6 +134,10 @@ export interface GameState {
   /** Kartenbewegungen der letzten Aktion. */
   transfers: Transfer[];
   winner: number | null;
+  /** Hafenvogt (Variante): Sitz mit der Sonderkarte, sonst null. */
+  harborMaster?: number | null;
+  /** Würfelstapel (Variante): verbleibende Karten je Summe. Kein Reihenfolge, gezogen wird erst beim Würfeln. */
+  diceDeck?: Record<number, number>;
 }
 
 export type Action =

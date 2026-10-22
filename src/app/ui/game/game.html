@@ -3,7 +3,12 @@
   <header class="topbar">
     <div class="brand">
       <b>Neuland</b>
-      <span class="room">Raum {{ room.code() }} · {{ mapName() }} · bis {{ game.settings.victoryPoints }}</span>
+      <span class="room" [title]="variantNames().join(', ')">
+        Raum {{ room.code() }} · {{ mapName() }} · bis {{ game.settings.victoryPoints }}
+        @if (variantNames().length) {
+          · {{ variantNames().length === 1 ? variantNames()[0] : variantNames().length + ' Varianten' }}
+        }
+      </span>
     </div>
 
     <div class="players">
@@ -41,6 +46,9 @@
               }
               @if (p.largestArmy) {
                 · Rittermacht
+              }
+              @if (p.harborMaster) {
+                · Hafenvogt
               }
             </small>
           </span>
@@ -266,6 +274,9 @@
         (roll)="roll()"
         (landed)="onLanded($event)"
       />
+      @if (diceDeckLeft() !== null) {
+        <span class="dice-deck" title="Würfelstapel: so viele Karten noch, ab 5 wird neu gemischt">{{ diceDeckLeft() }} Karten</span>
+      }
       <button class="primary go" [disabled]="!primary().run" (click)="primary().run?.()">
         {{ primary().label }}
         @if (primary().run) {
@@ -321,6 +332,16 @@
           <span class="muted">{{ d.knights }} Ritter, ab 3</span><b class="none">–</b>
         }
       </dd>
+      @if (d.harborVariant) {
+        <dt>Hafenvogt</dt>
+        <dd>
+          @if (d.harborMaster) {
+            <span class="muted">{{ d.harborPoints }} Hafenpunkte</span><b>2</b>
+          } @else {
+            <span class="muted">{{ d.harborPoints }} Hafenpunkte, ab 3</span><b class="none">–</b>
+          }
+        </dd>
+      }
       <dt>Siegpunktkarten</dt>
       <dd>
         @if (d.vpCards !== null) {

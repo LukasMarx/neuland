@@ -11,8 +11,11 @@ import {
   legalRoadEdges,
   legalSettlementVertices,
   legalSetupRoads,
+  harborPoints,
+  legalRobberHexes,
   legalSetupVertices,
   mapById,
+  VARIANTS,
   piecesLeft,
   RESOURCE_NAMES,
   RESOURCES,
@@ -67,6 +70,14 @@ export class GameView {
 
   protected readonly g = computed(() => this.room.game()!);
   protected readonly mapName = computed(() => mapById(this.g().board.map).name);
+  /** Würfelstapel: verbleibende Karten bis zum Mischen. */
+  protected readonly diceDeckLeft = computed(() => {
+    const deck = this.g().diceDeck;
+    return deck ? Object.values(deck).reduce((a, b) => a + b, 0) : null;
+  });
+  protected readonly variantNames = computed(() =>
+    VARIANTS.filter((v) => this.g().settings.variants?.includes(v.id)).map((v) => v.name),
+  );
 
   /** Sekundentakt für Wartezeiten (abwesende Spieler, Verbindungsanzeige). */
   private readonly now = signal(Date.now());
@@ -202,7 +213,7 @@ export class GameView {
       return phase.step === 'settlement' ? { ...none, vertices: legalSetupVertices(g) } : { ...none, edges: legalSetupRoads(g) };
     }
     if (phase.kind === 'robber' && !this.dialog()) {
-      return { ...none, hexes: g.board.hexes.map((_, i) => i).filter((i) => i !== g.robber) };
+      return { ...none, hexes: legalRobberHexes(g) };
     }
     if (phase.kind === 'roadBuilding') return { ...none, edges: legalRoadEdges(g, seat) };
     switch (this.buildMode()) {
@@ -299,6 +310,7 @@ export class GameView {
       road: g.roadLengths[seat],
       longestRoad: g.longestRoad === seat,
       largestArmy: g.largestArmy === seat,
+      harborMaster: g.harborMaster === seat,
       active: actingSeats(g).includes(seat),
       online: !!members.find((m) => m.id === p.id)?.peerId,
       me: seat === this.seat(),
@@ -363,6 +375,9 @@ export class GameView {
       road: g.roadLengths[i.seat],
       largestArmy: g.largestArmy === i.seat,
       knights: p.knights,
+      harborVariant: g.harborMaster !== undefined,
+      harborMaster: g.harborMaster === i.seat,
+      harborPoints: harborPoints(g, i.seat),
       vpCards: showHidden ? devCards.filter((c) => c === 'victoryPoint').length : null,
       hiddenDev: devCards.length,
       total: victoryPoints(g, i.seat, showHidden),
@@ -526,6 +541,15 @@ export class GameView {
         title: 'Längste Handelsstraße',
         ...who(g.longestRoad),
         tag: from === null ? `+2 Punkte · ${g.roadLengths[g.longestRoad]} Straßen` : `übernimmt von ${g.players[from].name}`,
+      });
+    }
+    if (g.harborMaster != null && g.harborMaster !== prev.harborMaster) {
+      const from = prev.harborMaster;
+      this.pushBanner({
+        kind: 'harbor',
+        title: 'Hafenvogt',
+        ...who(g.harborMaster),
+        tag: from == null ? `+2 Punkte · ${harborPoints(g, g.harborMaster)} Hafenpunkte` : `übernimmt von ${g.players[from].name}`,
       });
     }
     if (g.largestArmy !== null && g.largestArmy !== prev.largestArmy) {

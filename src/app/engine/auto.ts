@@ -1,4 +1,4 @@
-import { actingSeats, applyAction, legalRoadEdges, legalSetupRoads, legalSetupVertices, robberVictims } from './rules';
+import { actingSeats, applyAction, legalRobberHexes, legalRoadEdges, legalSetupRoads, legalSetupVertices, robberVictims } from './rules';
 import { Action, emptyResources, GameState, RESOURCES } from './types';
 
 /**
@@ -34,7 +34,7 @@ export function autoAction(s: GameState, seat: number, random: () => number = Ma
     }
     case 'robber': {
       // Ein Feld, auf dem der Räuber niemandem schadet, sonst irgendeins.
-      const hexes = s.board.hexes.map((_, id) => id).filter((id) => id !== s.robber);
+      const hexes = legalRobberHexes(s);
       const quiet = hexes.filter((id) => robberVictims(s, seat, id).length === 0);
       const hex = pick(quiet.length ? quiet : hexes)!;
       return { type: 'moveRobber', hex, victim: robberVictims(s, seat, hex)[0] ?? null };
