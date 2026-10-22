@@ -1,0 +1,56 @@
+[
+  {
+    "path": "public/banner/papiercollage/ship.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "transparentPixels": 675957,
+    "cornersTransparent": true
+  },
+  {
+    "path": "public/tiles/papiercollage/fog.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "transparentPixels": 564559,
+    "cornersTransparent": true
+  },
+  {
+    "path": "public/tiles/papiercollage/gold.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "transparentPixels": 567063,
+    "cornersTransparent": true
+  },
+  {
+    "path": "public/icons/seewege/island-bonus.png",
+    "size": [
+      256,
+      256
+    ],
+    "transparentPixels": 38099,
+    "cornersTransparent": true
+  },
+  {
+    "path": "public/banner/papiercollage/island.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "transparentPixels": 615862,
+    "cornersTransparent": true
+  },
+  {
+    "path": "public/pieces/papiercollage/pirate.png",
+    "size": [
+      512,
+      512
+    ],
+    "transparentPixels": 190561,
+    "cornersTransparent": true
+  }
+]

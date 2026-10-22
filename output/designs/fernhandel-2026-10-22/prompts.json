@@ -1,0 +1,135 @@
+{
+  "generator": "Built-in image_gen",
+  "transparent_background": true,
+  "boardPerspective": "Near-overhead, approximately 75 degrees above the board plane; user correction 2026-10-22. Banner ships remain side-view as requested by the brief.",
+  "export": "RGBA PNG, proportional resize and transparent centering; tiles retain full canvas geometry. Ship source is normalized by build-piece-assets.py.",
+  "assets": [
+    {
+      "group": "fernhandel",
+      "name": "anchor",
+      "path": "public/icons/fishing/anchor.png",
+      "width": 256,
+      "height": 256,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/icons/resources/sheep.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square canvas. One isolated centered motif, about 85% occupancy, generous fully transparent margin on all sides. No scene backdrop, no ground, no frame or plaque unless explicitly requested. Simplify silhouette and small details for readability. Subject: ONE chunky rusty anchor with a large loop and two wide curved flukes. Blue-gray metal paper with orange-brown rust patches and ONE small green seaweed strip. Friendly warm styling, bold simple silhouette legible at24px. No base or plaque.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-7d2074f9-8201-4373-8ca3-6cedba918409.png"
+    },
+    {
+      "group": "fernhandel",
+      "name": "banner-anchor",
+      "path": "public/banner/papiercollage/anchor.png",
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/banner/papiercollage/horn.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square canvas. One isolated centered motif, about 85% occupancy, generous fully transparent margin on all sides. No scene backdrop, no ground, no frame or plaque unless explicitly requested. Simplify silhouette and small details for readability. Subject: ONE old rusty anchor with orange-brown rust and slate-gray metal paper, large loop, broad crossbar and curved flukes. A little strip of green seaweed clings to one arm. Friendly weathered treasure, no ground. Reads clearly at 100px.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-367eb8a4-0bc2-44d9-9ad8-feb43e16e7ea.png"
+    },
+    {
+      "group": "fernhandel",
+      "name": "fish-1",
+      "path": "public/icons/fishing/fish-1.png",
+      "width": 256,
+      "height": 256,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/icons/resources/sheep.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square canvas. One isolated centered motif, about 85% occupancy, generous fully transparent margin on all sides. No scene backdrop, no ground, no frame or plaque unless explicitly requested. Simplify silhouette and small details for readability. Subject: ONE small cream paper token with EXACTLY 1 separate blue-teal fish silhouette, one fish centered. Each fish has a simple oval body, one clearly separate triangular tail and one tiny eye. Count must be unmistakable at 30px without numbers. No additional fish, waves or decorations. Token has a softly irregular rounded outline.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-536ed93e-051c-4171-8664-7c169d51dca4.png"
+    },
+    {
+      "group": "fernhandel",
+      "name": "fish-2",
+      "path": "public/icons/fishing/fish-2.png",
+      "width": 256,
+      "height": 256,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/icons/resources/sheep.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square canvas. One isolated centered motif, about 85% occupancy, generous fully transparent margin on all sides. No scene backdrop, no ground, no frame or plaque unless explicitly requested. Simplify silhouette and small details for readability. Subject: ONE small cream paper token with EXACTLY 2 separate blue-teal fish silhouettes, arranged in parallel horizontal rows, evenly spaced, not overlapping. Each fish has a simple oval body, one clearly separate triangular tail and one tiny eye. Count must be unmistakable at 30px without numbers. No additional fish, waves or decorations. Token has a softly irregular rounded outline.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-b4ab5ed6-7569-4bf2-a5b9-550360d7e746.png"
+    },
+    {
+      "group": "fernhandel",
+      "name": "fish-3",
+      "path": "public/icons/fishing/fish-3.png",
+      "width": 256,
+      "height": 256,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/icons/resources/sheep.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square canvas. One isolated centered motif, about 85% occupancy, generous fully transparent margin on all sides. No scene backdrop, no ground, no frame or plaque unless explicitly requested. Simplify silhouette and small details for readability. Subject: ONE small cream paper token with EXACTLY 3 separate blue-teal fish silhouettes, arranged in parallel horizontal rows, evenly spaced, not overlapping. Each fish has a simple oval body, one clearly separate triangular tail and one tiny eye. Count must be unmistakable at 30px without numbers. No additional fish, waves or decorations. Token has a softly irregular rounded outline.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-8323d181-4f5d-4194-8d67-b63e8c64e525.png"
+    },
+    {
+      "group": "fernhandel",
+      "name": "ground",
+      "path": "public/icons/fishing/ground.png",
+      "width": 256,
+      "height": 256,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/icons/resources/sheep.png",
+        "F:/Projects/VsCode/angular/neuland/public/tiles/papiercollage/ocean.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square canvas. One isolated centered motif, about 85% occupancy, generous fully transparent margin on all sides. No scene backdrop, no ground, no frame or plaque unless explicitly requested. Simplify silhouette and small details for readability. Subject: ONE light turquoise circular paper fishing token containing one silver-cream fish jumping above two simple blue waves. Bottom-center quarter of token is calm and blank for a number added by code. Clearly a light BLUE fishing token, not a dark resource harbor badge. Bold icon legible at 40px. Circle permitted as the token itself; no decorative outer frame.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-91f062cb-76d5-43b3-8eab-9c674a2cf652.png"
+    },
+    {
+      "group": "fernhandel",
+      "name": "harbor-master",
+      "path": "public/icons/variants/harbor-master.png",
+      "width": 256,
+      "height": 256,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/icons/resources/sheep.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square canvas. One isolated centered motif, about 85% occupancy, generous fully transparent margin on all sides. No scene backdrop, no ground, no frame or plaque unless explicitly requested. Simplify silhouette and small details for readability. Subject: ONE round light cream paper badge containing a compact RED AND CREAM lighthouse silhouette with a dark blue cap and two short golden light rays. Bold minimal design readable at20px. No waves or complex scenery. Badge is allowed, no ornamental outer frame.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-ab88ab30-a9e7-446e-86ad-8f3dd1f1fc83.png"
+    },
+    {
+      "group": "fernhandel",
+      "name": "lake",
+      "path": "public/tiles/papiercollage/lake.png",
+      "width": 1254,
+      "height": 1254,
+      "references": [
+        "C:/Users/marxl/.codex/generated_images/01a15efa-8db3-7691-acf7-efdc86401013/exec-36f6d401-e6ed-4d22-93d1-93c48bfc2189.png"
+      ],
+      "prompt": "Use case: precise-object-edit. Edit this Neuland paper-collage hexagonal LAKE tile. Preserve the exact pointy-top hexagon shape, near-full 1254x1254 framing, overhead camera, paper fibers, blue water, upper reeds/rocks and transparency outside the hexagon. Change only the shoreline: complete a VERY NARROW natural green grassy shore along the lower-left and lower-right edges so the lake is fully enclosed by land on all six sides. This is a lake, not a coastal bay. Keep most of the lower third calm blue water for a UI label; shoreline hugs the extreme hex edges. No text, numbers, labels, border, frame, new objects or outer shadows.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-0ce471ec-cdeb-4d52-ac4c-1fa7650550e1.png",
+      "initialPrompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square 1254x1254 canvas. Exactly one regular POINTY-TOP hexagonal terrain tile, tip at top center and bottom center, vertical left/right edges. Match the reference tile's framing, near-full canvas height and width/height ratio 0.866. The scenery fills the entire hexagon right to its edges, no border, no rim, no raised plinth, transparent outside the hexagon. Steep overhead terrain view. Subject: peaceful lake made from layered blue paper, a narrow natural green shoreline all around, reeds and rocks on upper and side shores. Most of tile is calm blue water. Keep entire LOWER THIRD quiet for a narrow number label added later in code; do not draw the label or numbers. No frame.",
+      "initialReferences": [
+        "F:/Projects/VsCode/angular/neuland/public/tiles/papiercollage/wood.png",
+        "F:/Projects/VsCode/angular/neuland/public/tiles/papiercollage/ocean.png"
+      ]
+    },
+    {
+      "group": "fernhandel",
+      "name": "lighthouse",
+      "path": "public/banner/papiercollage/lighthouse.png",
+      "width": 1024,
+      "height": 1024,
+      "references": [
+        "output/designs/seewege-2026-10-22/stilreferenz-spielfiguren.png",
+        "F:/Projects/VsCode/angular/neuland/public/banner/papiercollage/horn.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square canvas. One isolated centered motif, about 85% occupancy, generous fully transparent margin on all sides. No scene backdrop, no ground, no frame or plaque unless explicitly requested. Simplify silhouette and small details for readability. Subject: ONE cream stone lighthouse with red paper bands and dark slate roof, standing on a tiny stone pier with two or three layered turquoise waves. Cozy miniature paper craft matching village reference, simplified bold forms. Full structure isolated, no wider landscape.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-2bee4b2a-3f94-4822-b1e5-75f253111cd4.png"
+    },
+    {
+      "group": "fernhandel",
+      "name": "token",
+      "path": "public/icons/duel/token.png",
+      "width": 256,
+      "height": 256,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/icons/resources/sheep.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square canvas. One isolated centered motif, about 85% occupancy, generous fully transparent margin on all sides. No scene backdrop, no ground, no frame or plaque unless explicitly requested. Simplify silhouette and small details for readability. Subject: ONE round brass-gold paper trading token bearing TWO broad dark-brown curved ARROWS forming a circular exchange symbol. Bold unmistakable arrowheads, no letters or numbers, no other symbols. Readable at24px.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-9a325695-d1fe-4cce-b9fe-83b770c023b5.png"
+    }
+  ]
+}

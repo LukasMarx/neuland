@@ -19,7 +19,7 @@ def main():
     web.mkdir(parents=True, exist_ok=True)
     (DESIGN / 'masks').mkdir(parents=True, exist_ok=True)
     manifest = {'colors': palette.COLORS, 'assets': {}}
-    sheet = Image.new('RGB', (1000, 1880), '#f3ecdc')
+    sheet = Image.new('RGB', (1000, 120 + len(palette.COLORS) * 220), '#f3ecdc')
     draw = ImageDraw.Draw(sheet)
     draw.text((30, 20), 'Dorf und Stadt - Spielerfarben', font=palette.font(30), fill='#30291e')
     rows = []
@@ -49,13 +49,13 @@ def main():
             sheet.paste(thumb, (x, y), thumb)
             if piece == 'settlement':
                 draw.text((30, y + 80), label, font=palette.font(22), fill='#30291e')
-        print(f'{piece}: 8 RGBA variants, unchanged alpha and neutral pixels verified')
+        print(f'{piece}: {len(palette.COLORS)} RGBA variants, unchanged alpha and neutral pixels verified')
     sheet.save(DESIGN / 'farben-uebersicht.jpg', quality=94)
     (OUT / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
     for key, (label, _, _) in palette.COLORS.items():
         cells = ''.join(f'<img src="../../../public/pieces/papiercollage-organic-v2/{piece}-{key}.png">' for piece in ('settlement', 'city'))
         rows.append(f'<section><h2>{label}</h2>{cells}</section>')
-    html = '<!doctype html><html lang="de"><meta charset="utf-8"><title>Dorf und Stadt</title><style>body{background:#f3ecdc;font:18px system-ui;color:#30291e;margin:32px}section{display:flex;align-items:center;gap:30px}h2{width:130px}img{width:280px}body.small img{width:32px}body.small img:last-child{width:40px}button{padding:12px}</style><h1>Dorf und Stadt – Farbvarianten</h1><button onclick="document.body.classList.toggle(\'small\')">Kompakte Brettgröße / Detailansicht</button>' + ''.join(rows) + '</html>'
+    html = '<!doctype html><html lang="de"><meta charset="utf-8"><title>Dorf und Stadt</title><link rel="stylesheet" href="../../../public/fonts/nunito-sans/fonts.css"><style>body{background:#f3ecdc;font:18px "Nunito Sans",sans-serif;color:#30291e;margin:32px}section{display:flex;align-items:center;gap:30px}h2{width:130px}img{width:280px}body.small img{width:32px}body.small img:last-child{width:40px}button{padding:12px}</style><h1>Dorf und Stadt – Farbvarianten</h1><button onclick="document.body.classList.toggle(\'small\')">Kompakte Brettgröße / Detailansicht</button>' + ''.join(rows) + '</html>'
     (DESIGN / 'preview.html').write_text(html, encoding='utf-8')
 
 if __name__ == '__main__':
