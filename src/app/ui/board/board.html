@@ -3,7 +3,7 @@
   <path class="ocean" [attr.d]="oceanPath()" fill="url(#g-ocean)" />
   <path class="ocean-texture" [attr.d]="oceanPath()" fill="url(#p-ocean-paper)" />
 
-  <!-- Häfen und Fischgründe: die Stege zu den Ecken liegen unter den Feldern, die Schilder weiter unten über den Schiffen. -->
+  <!-- Häfen und Fischgründe: die Stege zu den Ecken liegen unter den Feldern, die Schilder kommen später. -->
   @for (h of harbors(); track $index) {
     <g class="harbor">
       <line [attr.x1]="h.x" [attr.y1]="h.y" [attr.x2]="h.ax" [attr.y2]="h.ay" />
@@ -96,6 +96,30 @@
     }
   }
 
+  <!-- Hafen- und Fischgrundschilder über den Feldern, aber unter Straßen und Schiffen: Spielfiguren gehen vor. -->
+  @for (h of harbors(); track $index) {
+    <g class="harbor" [attr.transform]="h.transform">
+      <title>{{ h.title }}</title>
+      <!-- Symbol und Scheibe teilen sich den Mittelpunkt (0, -4); das Schild sitzt darunter. -->
+      <circle class="harbor-disc" cx="0" cy="-4" r="21" />
+      @if (h.image) {
+        <image class="harbor-art" [attr.href]="h.image" x="-12" y="-16" width="24" height="24" />
+      } @else {
+        <text class="harbor-any" x="0" y="-4">?</text>
+      }
+      <rect class="harbor-plaque" x="-15" y="12" width="30" height="15" rx="7.5" />
+      <text class="harbor-rate" x="0" y="20">{{ h.label }}</text>
+    </g>
+  }
+
+  @for (f of fishingGrounds(); track $index) {
+    <g class="fishing" [class.hit]="f.hit" [attr.transform]="f.transform">
+      <title>{{ f.title }}</title>
+      <image class="fishing-art" href="web/icons/fishing/ground.png" x="-21" y="-21" width="42" height="42" />
+      <text class="fishing-number" [class.red]="f.red" x="0" y="13">{{ f.number }}</text>
+    </g>
+  }
+
   @for (r of roads(); track r.id) {
     <g class="road" [class.bridge]="r.bridge" [attr.data-edge]="r.id">
       <title>{{ r.title }}</title>
@@ -128,29 +152,6 @@
     <g class="pirate">
       <title>Kaperschiff</title>
       <image class="piece-art" href="web/pieces/papiercollage/pirate.png" [attr.x]="p.x - p.size / 2" [attr.y]="p.y - p.size / 2" [attr.width]="p.size" [attr.height]="p.size" />
-    </g>
-  }
-
-  @for (h of harbors(); track $index) {
-    <g class="harbor" [attr.transform]="h.transform">
-      <title>{{ h.title }}</title>
-      <!-- Symbol und Scheibe teilen sich den Mittelpunkt (0, -4); das Schild sitzt darunter. -->
-      <circle class="harbor-disc" cx="0" cy="-4" r="21" />
-      @if (h.image) {
-        <image class="harbor-art" [attr.href]="h.image" x="-12" y="-16" width="24" height="24" />
-      } @else {
-        <text class="harbor-any" x="0" y="-4">?</text>
-      }
-      <rect class="harbor-plaque" x="-15" y="12" width="30" height="15" rx="7.5" />
-      <text class="harbor-rate" x="0" y="20">{{ h.label }}</text>
-    </g>
-  }
-
-  @for (f of fishingGrounds(); track $index) {
-    <g class="fishing" [class.hit]="f.hit" [attr.transform]="f.transform">
-      <title>{{ f.title }}</title>
-      <image class="fishing-art" href="web/icons/fishing/ground.png" x="-21" y="-21" width="42" height="42" />
-      <text class="fishing-number" [class.red]="f.red" x="0" y="13">{{ f.number }}</text>
     </g>
   }
 

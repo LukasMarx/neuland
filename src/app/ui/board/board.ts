@@ -14,7 +14,7 @@ const PIECE_SCALE = { base: 1, ext: 1.2 } as const;
 const MAX_PIECE_SCALE = 1.4;
 /** Wie weit Wasser und Häfen über die Küste hinausragen, in Feldradien. */
 const OCEAN_GROW = 0.8;
-const HARBOR_OFFSET = 0.55;
+const HARBOR_OFFSET = 0.62;
 /** Schiffe in Anteilen der Kantenlänge (Kante ohne die Enden an den Ecken). */
 const SHIP_LENGTH = 0.74;
 const MAX_ZOOM = 3;
@@ -232,10 +232,11 @@ export class Board {
     const len = Math.hypot(mx - hex.x, my - hex.y);
     let out = HARBOR_OFFSET;
     if (awayFrom !== null) {
+      // Nur ein Stück zur Seite (sonst landet das Schild auf dem Bauplatz der anderen Ecke), dafür weiter hinaus.
       const [from, to] = awayFrom === e.a ? [a, b] : [b, a];
-      mx += (to.x - from.x) * 0.35;
-      my += (to.y - from.y) * 0.35;
-      out = HARBOR_OFFSET + 0.3;
+      mx += (to.x - from.x) * 0.18;
+      my += (to.y - from.y) * 0.18;
+      out = HARBOR_OFFSET + 0.42;
     }
     const x = (mx + ((mx - hex.x) / len) * out) * S;
     const y = (my + ((my - hex.y) / len) * out) * S;
@@ -324,13 +325,53 @@ export class Board {
     }),
   );
 
+  /**
+   * Schiffe, deren Bug zur Ecke `a` zeigen soll: Eine Schiffslinie fährt vom eigenen Gebäude weg. Gemessen
+   * wird der Abstand jeder Ecke (in Schiffen) vom nächsten eigenen Gebäude; der Bug zeigt zur ferneren Ecke.
+   */
+  private readonly shipHeadings = computed(() => {
+    const g = this.game();
+    const topo = this.topo();
+    const toA = new Set<number>();
+    if (!g.ships) return toA;
+    for (const owner of new Set(g.ships.filter((o): o is number => o !== null))) {
+      const dist = new Map<number, number>();
+      const queue: number[] = [];
+      g.buildings.forEach((b, v) => {
+        if (b?.owner === owner) {
+          dist.set(v, 0);
+          queue.push(v);
+        }
+      });
+      while (queue.length) {
+        const v = queue.shift()!;
+        for (const e of topo.vertices[v].edges) {
+          if (g.ships[e] !== owner) continue;
+          const w = topo.edges[e].a === v ? topo.edges[e].b : topo.edges[e].a;
+          if (dist.has(w)) continue;
+          dist.set(w, dist.get(v)! + 1);
+          queue.push(w);
+        }
+      }
+      g.ships.forEach((o, e) => {
+        if (o !== owner) return;
+        const { a, b } = topo.edges[e];
+        if ((dist.get(a) ?? Infinity) > (dist.get(b) ?? Infinity)) toA.add(e);
+      });
+    }
+    return toA;
+  });
+
   /** Seewege: Schiffe liegen quer auf ihrer Kante wie Straßen, gedreht nach der Kante. */
   protected readonly ships = computed(() => {
     const g = this.game();
+    const bowToA = this.shipHeadings();
     return (g.ships ?? []).flatMap((owner, id) => {
       if (owner === null) return [];
       const player = g.players[owner];
-      const line = this.edgeLine(id, 0.08);
+      const base = this.edgeLine(id, 0.08);
+      // Bug weg vom eigenen Hafen: zeigt das Bild sonst zur falschen Ecke, wird es gespiegelt.
+      const line = bowToA.has(id) ? { ...base, transform: `${base.transform} scale(-1,1)` } : base;
       // Schiff aus der Draufsicht, Bug in Kantenrichtung; Bild im Seitenverhältnis 2:1. Etwas kürzer als
       // die Kante, damit zwischen zwei Schiffen an einer Ecke Wasser bleibt.
       const width = line.length * SHIP_LENGTH * this.k();
