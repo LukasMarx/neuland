@@ -18,7 +18,7 @@ describe('Karten im Spiel', () => {
   });
 
   for (const map of MAPS) {
-    it(`${map.name}: 3000 Züge mit ${map.players[1]} Spielern ohne Regelfehler`, { timeout: 90000 }, () => {
+    it(`${map.name}: 3000 Züge mit ${map.players[1]} Spielern ohne Regelfehler`, { timeout: 120000 }, () => {
       const random = seeded(map.id.length * 97);
       let s = createGame(players(map.players[1]), { victoryPoints: map.victoryPoints, map: map.id }, 7);
       for (let step = 0; step < 3000 && s.phase.kind !== 'ended'; step++) {

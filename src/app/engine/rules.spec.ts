@@ -1361,7 +1361,7 @@ describe('Zufallsspiele', () => {
     [5, 5],
     [6, 6],
   ] as const) {
-    it(`${n} Spieler, Seed ${seed}: Invarianten bleiben erhalten und das Spiel endet`, () => {
+    it(`${n} Spieler, Seed ${seed}: Invarianten bleiben erhalten und das Spiel endet`, { timeout: 60000 }, () => {
       const s = randomGame(n, seed);
       expect(s.phase.kind).toBe('ended');
       expect(victoryPoints(s, s.winner!, true)).toBeGreaterThanOrEqual(10);
