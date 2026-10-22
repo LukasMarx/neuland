@@ -102,19 +102,6 @@ text {
   }
 }
 
-.robber {
-  ellipse {
-    fill: rgb(0 0 0 / 0.3);
-  }
-
-  path,
-  circle {
-    fill: #333;
-    stroke: #111;
-    stroke-width: 1.5;
-  }
-}
-
 .harbor {
   line {
     stroke: #735536;
@@ -194,12 +181,6 @@ text {
     opacity: 0;
     pointer-events: none;
 
-    path,
-    circle {
-      fill: #333;
-      stroke: #111;
-      stroke-width: 1.5;
-    }
   }
 
   &:hover {

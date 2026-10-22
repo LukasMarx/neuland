@@ -43,9 +43,8 @@
       }
       @if (h.robber) {
         <g class="robber" [attr.transform]="h.robberTransform">
-          <ellipse cx="0" [attr.cy]="S * 0.2" [attr.rx]="S * 0.16" [attr.ry]="S * 0.06" />
-          <path [attr.d]="'M' + -S * 0.13 + ',' + S * 0.2 + ' Q0,' + -S * 0.25 + ' ' + S * 0.13 + ',' + S * 0.2 + ' Z'" />
-          <circle cx="0" [attr.cy]="-S * 0.12" [attr.r]="S * 0.1" />
+          <title>Räuber</title>
+          <image class="piece-art" href="pieces/papiercollage/robber.png" x="-16" y="-16" width="32" height="32" />
         </g>
       }
     </g>
@@ -83,8 +82,7 @@
       <title>Räuber hierhin</title>
       <polygon [attr.points]="h.points" />
       <g class="ghost-robber" [attr.transform]="'translate(' + h.x + ',' + (h.y - S * 0.05) + ')'">
-        <path [attr.d]="'M' + -S * 0.13 + ',' + S * 0.2 + ' Q0,' + -S * 0.25 + ' ' + S * 0.13 + ',' + S * 0.2 + ' Z'" />
-        <circle cx="0" [attr.cy]="-S * 0.12" [attr.r]="S * 0.1" />
+        <image class="piece-art" href="pieces/papiercollage/robber.png" x="-16" y="-16" width="32" height="32" />
       </g>
     </g>
   }
