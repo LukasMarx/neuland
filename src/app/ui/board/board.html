@@ -50,34 +50,60 @@
       <polygon class="shine" [attr.points]="h.points" fill="url(#g-shine)" />
       <polygon class="outline" [attr.points]="h.points" />
       }
-      @if (h.river) {
-        <g class="river">
-          <path class="river-bank" [attr.d]="h.river" />
-          <path class="river-water" [attr.d]="h.river" />
-          <path class="river-shine" [attr.d]="h.river" />
-        </g>
-      }
-      @if (h.lake) {
-        <g class="lake-numbers" [attr.transform]="h.tokenTransform || null">
-          <rect [attr.x]="h.x - 26" [attr.y]="h.y + S * 0.05 - 9" width="52" height="18" rx="9" />
-          <text [attr.x]="h.x" [attr.y]="h.y + S * 0.05">2 3 11 12</text>
-        </g>
-      }
-      @if (h.number) {
-        <g class="token" [class.red]="h.red" [class.blocked]="h.robber" [attr.transform]="h.tokenTransform || null">
-          <circle class="shadow" [attr.cx]="h.x + 1.5" [attr.cy]="h.y + S * 0.05 + 2.5" [attr.r]="S * 0.3" />
-          <circle class="disc" [attr.cx]="h.x" [attr.cy]="h.y + S * 0.05" [attr.r]="S * 0.3" fill="url(#g-token)" />
-          <circle class="ring" [attr.cx]="h.x" [attr.cy]="h.y + S * 0.05" [attr.r]="S * 0.25" />
-          <text class="number" [attr.x]="h.x" [attr.y]="h.y + S * 0.05">{{ h.number }}</text>
-        </g>
-      }
-      @if (h.robber) {
-        <g class="robber" [attr.transform]="h.robberTransform">
-          <title>Räuber</title>
-          <image class="piece-art" href="web/pieces/papiercollage/robber.png" x="-20" y="-20" width="40" height="40" />
-        </g>
-      }
     </g>
+  }
+
+  <!-- Flussläufe: zwischen Gelände und Zahlen, damit die Zahlen lesbar bleiben. -->
+  @for (r of riverShapes(); track r.id) {
+    <g class="river">
+      <clipPath [attr.id]="r.clip">
+        <path [attr.d]="r.water" />
+        <circle [attr.cx]="r.spring.x" [attr.cy]="r.spring.y" [attr.r]="r.spring.r" />
+      </clipPath>
+      <!-- Dunkler, weicher Streifen Ufergrün: Der Fluss liegt im Gelände statt darauf. -->
+      <path class="river-meadow" [attr.d]="r.meadow" />
+      <circle class="river-meadow" [attr.cx]="r.spring.x" [attr.cy]="r.spring.y" [attr.r]="r.spring.r + 11" />
+      <path class="river-bank" [attr.d]="r.bank" />
+      <circle class="river-bank" [attr.cx]="r.spring.x" [attr.cy]="r.spring.y" [attr.r]="r.spring.r + 4" />
+      <g [attr.clip-path]="'url(#' + r.clip + ')'">
+        <!-- Tiefes Wasser, darüber das versetzte helle: Am oberen und linken Ufer bleibt ein Schattenrand. -->
+        <path class="river-deep" [attr.d]="r.water" />
+        <circle class="river-deep" [attr.cx]="r.spring.x" [attr.cy]="r.spring.y" [attr.r]="r.spring.r" />
+        <g transform="translate(1.6,2.2)">
+          <path class="river-water" [attr.d]="r.water" />
+          <circle class="river-water" [attr.cx]="r.spring.x" [attr.cy]="r.spring.y" [attr.r]="r.spring.r" />
+        </g>
+        <path class="river-paper" [attr.d]="r.water" fill="url(#p-ocean-paper)" />
+      </g>
+      <path class="river-shine" [attr.d]="r.shine" />
+    </g>
+  }
+
+  @for (h of hexes(); track h.id) {
+    @if (h.lake || h.number || h.robber) {
+      <g class="hex-top" [attr.data-hex]="h.id" [class.hit]="h.hit" [class.revealed]="h.revealed">
+        @if (h.lake) {
+          <g class="lake-numbers" [attr.transform]="h.tokenTransform || null">
+            <rect [attr.x]="h.x - 26" [attr.y]="h.y + S * 0.05 - 9" width="52" height="18" rx="9" />
+            <text [attr.x]="h.x" [attr.y]="h.y + S * 0.05">2 3 11 12</text>
+          </g>
+        }
+        @if (h.number) {
+          <g class="token" [class.red]="h.red" [class.blocked]="h.robber" [attr.transform]="h.tokenTransform || null">
+            <circle class="shadow" [attr.cx]="h.x + 1.5" [attr.cy]="h.y + S * 0.05 + 2.5" [attr.r]="S * 0.3" />
+            <circle class="disc" [attr.cx]="h.x" [attr.cy]="h.y + S * 0.05" [attr.r]="S * 0.3" fill="url(#g-token)" />
+            <circle class="ring" [attr.cx]="h.x" [attr.cy]="h.y + S * 0.05" [attr.r]="S * 0.25" />
+            <text class="number" [attr.x]="h.x" [attr.y]="h.y + S * 0.05">{{ h.number }}</text>
+          </g>
+        }
+        @if (h.robber) {
+          <g class="robber" [attr.transform]="h.robberTransform">
+            <title>Räuber</title>
+            <image class="piece-art" href="web/pieces/papiercollage/robber.png" x="-20" y="-20" width="40" height="40" />
+          </g>
+        }
+      </g>
+    }
   }
 
   @for (r of roads(); track r.id) {

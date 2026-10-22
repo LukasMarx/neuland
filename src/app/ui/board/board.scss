@@ -197,31 +197,41 @@ text {
   }
 }
 
-// Flussläufe: Fluss in jedem Feld unter der Zahl, mit dunklem Ufer und hellem Glanz.
+// Flussläufe: Der Fluss liegt in einem hellen Uferstreifen, das Wasser ist leicht eingetieft
+// (Schattenrand oben links, Licht kommt von oben links) und trägt die Papierstruktur des Meers.
 .river {
   pointer-events: none;
 
-  path {
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+  .river-meadow {
+    fill: rgb(38 62 24 / 0.28);
+    filter: blur(3px);
   }
 
   .river-bank {
-    stroke: #2b5e74;
-    stroke-width: 9;
+    fill: #cdb98c;
+    filter: drop-shadow(0 1px 1.2px rgb(40 30 10 / 0.35));
+  }
+
+  .river-deep {
+    fill: #24536a;
   }
 
   .river-water {
-    stroke: #4f9bbf;
-    stroke-width: 6;
+    fill: #4f9bbf;
+  }
+
+  .river-paper {
+    opacity: 0.45;
+    mix-blend-mode: multiply;
   }
 
   .river-shine {
-    stroke: #bfe2f0;
-    stroke-width: 1.6;
-    stroke-dasharray: 6 9;
-    opacity: 0.8;
+    fill: none;
+    stroke: #d7eef7;
+    stroke-width: 1.3;
+    stroke-linecap: round;
+    stroke-dasharray: 5 11;
+    opacity: 0.75;
   }
 }
 
@@ -297,9 +307,10 @@ text {
     animation: hit-bright 2.4s ease-out;
   }
 
-  .token .disc {
-    animation: hit-token 2.4s ease-out;
-  }
+}
+
+.hex-top.hit .token .disc {
+  animation: hit-token 2.4s ease-out;
 }
 
 .hex.robbed .outline {
@@ -414,7 +425,8 @@ text {
 }
 
 // Im Dunst: Ein frisch aufgedecktes Feld dreht sich wie eine Karte um.
-.hex.revealed {
+.hex.revealed,
+.hex-top.revealed {
   transform-box: fill-box;
   transform-origin: center;
   animation: reveal 0.9s ease-out;

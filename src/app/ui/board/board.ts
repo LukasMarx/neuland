@@ -197,7 +197,6 @@ export class Board {
         sea: state.terrain === 'sea',
         fog: state.terrain === 'fog',
         lake: state.terrain === 'lake',
-        river: this.riverPaths().get(h.id) ?? null,
         revealed: this.revealed().has(h.id),
         image: tileImage(state.terrain, h.id),
         // Jedes zweite Feld gespiegelt, damit gleiche Gelände nicht wie gestempelt aussehen.
@@ -296,33 +295,27 @@ export class Board {
   });
 
   /**
-   * Flussläufe: das Stück Fluss in jedem Feld, von Kantenmitte zu Kantenmitte, zur Feldmitte hin gebogen.
-   * Es wird im Feld unter der Zahl gezeichnet; an den Kantenmitten treffen sich die Stücke.
+   * Flussläufe: je Fluss ein gewundener Lauf von der Quelle bis ins Meer, schmal an der Quelle und breit
+   * an der Mündung. Gezeichnet zwischen Gelände und Zahlen, mit Ufer, Schatten und Papierstruktur.
    */
-  private readonly riverPaths = computed(() => {
-    const topo = this.topo();
-    const paths = new Map<number, string>();
-    const mid = (e: number) => {
-      const { a, b } = topo.edges[e];
-      return { x: ((topo.vertices[a].x + topo.vertices[b].x) / 2) * S, y: ((topo.vertices[a].y + topo.vertices[b].y) / 2) * S };
-    };
-    const f = (n: number) => n.toFixed(1);
-    for (const river of this.game().board.rivers ?? []) {
-      river.hexes.forEach((h, i) => {
-        const c = { x: topo.hexes[h].x * S, y: topo.hexes[h].y * S };
-        const out = mid(river.edges[i]);
-        let d = i === 0 ? `M${f(c.x)},${f(c.y)} L${f(out.x)},${f(out.y)}` : '';
-        if (i > 0) {
-          const from = mid(river.edges[i - 1]);
-          d = `M${f(from.x)},${f(from.y)} Q${f(c.x)},${f(c.y)} ${f(out.x)},${f(out.y)}`;
-        }
-        // Die Mündung läuft ein Stück ins Meer hinaus.
-        if (i === river.hexes.length - 1) d += ` L${f(out.x + (out.x - c.x) * 0.45)},${f(out.y + (out.y - c.y) * 0.45)}`;
-        paths.set(h, d);
-      });
-    }
-    return paths;
-  });
+  protected readonly riverShapes = computed(() =>
+    (this.game().board.rivers ?? []).map((river, i) => {
+      const { points, widths } = riverLine(this.topo(), river);
+      const spring = points[0];
+      return {
+        id: i,
+        clip: `river-clip-${i}`,
+        meadow: ribbon(points, widths.map((w) => w + 22)),
+        bank: ribbon(points, widths.map((w) => w + 8)),
+        water: ribbon(points, widths),
+        shine: points
+          .slice(2, -2)
+          .map((p, k) => `${k ? 'L' : 'M'}${(p.x - 0.8).toFixed(1)},${(p.y - 1).toFixed(1)}`)
+          .join(' '),
+        spring: { x: spring.x, y: spring.y, r: widths[0] * 1.1 + 2 },
+      };
+    }),
+  );
 
   /** Seewege: Schiffe liegen quer auf ihrer Kante wie Straßen, gedreht nach der Kante. */
   protected readonly ships = computed(() => {
@@ -576,6 +569,69 @@ function loopPoints(topo: Topology, loop: number[]): { x: number; y: number }[] 
 }
 
 /** Ecken weich runden (Chaikin). */
+type Pt = { x: number; y: number };
+
+/**
+ * Mittellinie eines Flusses in Brett-Einheiten: je Feld eine S-Kurve zwischen den Kantenmitten, die an
+ * den Kantenmitten (dort liegen die Brücken) und in der Feldmitte die gerade Linie kreuzt. Dazu die
+ * Breite je Punkt: schmal an der Quelle, breiter zur Küste, an der Mündung fächert der Fluss auf.
+ */
+function riverLine(topo: Topology, river: { hexes: number[]; edges: number[] }): { points: Pt[]; widths: number[] } {
+  const center = (h: number): Pt => ({ x: topo.hexes[h].x * S, y: topo.hexes[h].y * S });
+  const mid = (e: number): Pt => {
+    const { a, b } = topo.edges[e];
+    return { x: ((topo.vertices[a].x + topo.vertices[b].x) / 2) * S, y: ((topo.vertices[a].y + topo.vertices[b].y) / 2) * S };
+  };
+  const points: Pt[] = [];
+  const STEPS = 14;
+  river.hexes.forEach((h, i) => {
+    const c = center(h);
+    const a = i === 0 ? c : mid(river.edges[i - 1]);
+    const b = mid(river.edges[i]);
+    const ctrl = i === 0 ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : c;
+    // Fester Schwung je Feld, damit der Lauf bei jedem Neuzeichnen gleich aussieht.
+    const amp = S * (0.12 + 0.03 * (h % 3)) * (h % 2 ? 1 : -1);
+    for (let k = i === 0 ? 0 : 1; k <= STEPS; k++) {
+      const t = k / STEPS;
+      const u = 1 - t;
+      const p = { x: u * u * a.x + 2 * u * t * ctrl.x + t * t * b.x, y: u * u * a.y + 2 * u * t * ctrl.y + t * t * b.y };
+      const tx = 2 * u * (ctrl.x - a.x) + 2 * t * (b.x - ctrl.x);
+      const ty = 2 * u * (ctrl.y - a.y) + 2 * t * (b.y - ctrl.y);
+      const len = Math.hypot(tx, ty) || 1;
+      const off = amp * Math.sin(2 * Math.PI * t);
+      points.push({ x: p.x - (ty / len) * off, y: p.y + (tx / len) * off });
+    }
+  });
+  const inland = points.length;
+  // Mündung: ein Stück hinaus aufs Meer, senkrecht zur Küste.
+  const last = points[points.length - 1];
+  const c = center(river.hexes[river.hexes.length - 1]);
+  const out = { x: last.x - c.x, y: last.y - c.y };
+  const outLen = Math.hypot(out.x, out.y);
+  for (let k = 1; k <= 4; k++) points.push({ x: last.x + (out.x / outLen) * S * 0.12 * k, y: last.y + (out.y / outLen) * S * 0.12 * k });
+  const widths = points.map((_, i) => (i < inland ? 4.5 + 6.5 * (i / (inland - 1)) : 11 + (i - inland + 1) * 3));
+  return { points, widths };
+}
+
+/** Umriss eines Bands entlang der Punkte mit der jeweiligen Breite, als geschlossener Pfad. */
+function ribbon(points: Pt[], widths: number[]): string {
+  const left: Pt[] = [];
+  const right: Pt[] = [];
+  points.forEach((p, i) => {
+    const prev = points[Math.max(0, i - 1)];
+    const next = points[Math.min(points.length - 1, i + 1)];
+    const dx = next.x - prev.x;
+    const dy = next.y - prev.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+    const half = widths[i] / 2;
+    left.push({ x: p.x + nx * half, y: p.y + ny * half });
+    right.push({ x: p.x - nx * half, y: p.y - ny * half });
+  });
+  return toPath([...left, ...right.reverse()]);
+}
+
 function chaikin(points: { x: number; y: number }[], rounds: number): { x: number; y: number }[] {
   let p = points;
   for (let k = 0; k < rounds; k++) {
