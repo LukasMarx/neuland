@@ -1,6 +1,6 @@
 import { generateBoard, getTopology, placeFishingGrounds, placeRivers, vertexHarbors } from './board';
 import { mapById, mapFits } from './maps';
-import { BRIDGE_COINS, DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, GOODS_SUPPLY, GUARDS_PER_LEVEL, HARBOR_MASTER_POINTS, LAKE_NUMBERS, MAX_WALLS, METROPOLIS_POINTS, NEUTRALS, PROGRESS_LIMIT, RAIDER_TRACK, RIVER_COINS, VariantId } from './variants';
+import { BRIDGE_COINS, DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, GOODS_SUPPLY, GUARDS_PER_LEVEL, HARBOR_MASTER_POINTS, LAKE_NUMBERS, MAX_WALLS, METROPOLIS_POINTS, NEUTRALS, PROGRESS_LIMIT, RAIDER_TRACK, RIVER_COINS, VariantId, VARIANTS } from './variants';
 import { randomInt, RngState, shuffle } from './rng';
 import {
   Action,
@@ -52,10 +52,17 @@ function fail(message: string): never {
   throw new RuleError(message);
 }
 
-export const DEV_DECK: Record<'base' | 'ext', Record<DevCard, number>> = {
+export const DEV_DECK: Record<'base' | 'ext' | 'big', Record<DevCard, number>> = {
   base: { knight: 14, roadBuilding: 2, yearOfPlenty: 2, monopoly: 2, victoryPoint: 5 },
   ext: { knight: 20, roadBuilding: 3, yearOfPlenty: 3, monopoly: 3, victoryPoint: 5 },
+  // Eigene Erweiterung für 7–8 Spieler, im Verhältnis wie 5–6.
+  big: { knight: 26, roadBuilding: 4, yearOfPlenty: 4, monopoly: 4, victoryPoint: 6 },
 };
+
+/** Entwicklungskarten im Stapel je nach Spielerzahl (ohne Neutrale). */
+export function devDeckFor(players: number): Record<DevCard, number> {
+  return DEV_DECK[players > 6 ? 'big' : players > 4 ? 'ext' : 'base'];
+}
 
 const MAX_LOG = 200;
 
@@ -66,10 +73,12 @@ export interface NewPlayer {
 }
 
 export function createGame(players: NewPlayer[], settings: GameSettings, seed: number): GameState {
-  if (players.length < 2 || players.length > 6) fail('Es werden 2 bis 6 Spieler benötigt.');
+  if (players.length < 2 || players.length > 8) fail('Es werden 2 bis 8 Spieler benötigt.');
   const map = mapById(settings.map);
   if (!mapFits(map, players.length)) fail(`${map.name} ist für ${map.players[0]}–${map.players[1]} Spieler.`);
   if (settings.variants?.includes('duell') && players.length !== 2) fail('Das Duell ist nur für zwei Spieler.');
+  const tooMany = VARIANTS.find((v) => v.maxPlayers && settings.variants?.includes(v.id) && players.length > v.maxPlayers);
+  if (tooMany) fail(`${tooMany.name} gibt es nur für bis zu ${tooMany.maxPlayers} Spieler.`);
   if (settings.variants?.includes('flusslaeufe') && map.seafaring) fail('Flussläufe gibt es nur auf Karten ohne Meerfelder.');
   const rng: RngState = { rng: seed | 0 };
   const { board, robber, bank: bankSize, pirate, fog } = generateBoard(map.id, players.length, rng);
@@ -78,7 +87,7 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
   const n = seated.length;
   const deck = shuffle(
     rng,
-    Object.entries(DEV_DECK[n > 4 ? 'ext' : 'base']).flatMap(([card, count]) => Array<DevCard>(count).fill(card as DevCard)),
+    Object.entries(devDeckFor(n)).flatMap(([card, count]) => Array<DevCard>(count).fill(card as DevCard)),
   );
   const bank = emptyResources();
   for (const r of RESOURCES) bank[r] = bankSize;

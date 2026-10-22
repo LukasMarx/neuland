@@ -543,7 +543,7 @@ describe('Mehrspieler: Rückkehr mit 6 Spielern (Prüfung vom 22.10.2026)', () =
   });
 
   it('ein Zuschauer in der Lobby rückt nach, wenn ein Platz frei wird', () => {
-    const { sims, net, code, clock } = setup(six);
+    const { sims, net, code, clock } = setup([...six, 'F', 'G']);
     const [H, , , , E] = sims;
     E.close();
     clock.advance(1000);
@@ -555,5 +555,43 @@ describe('Mehrspieler: Rückkehr mit 6 Spielern (Prüfung vom 22.10.2026)', () =
     clock.advance(500);
     expect(H.svc.room()!.players.map((p) => p.name)).toContain('X');
     expect(H.svc.room()!.spectators).toEqual([]);
+  });
+});
+
+describe('Mehrspieler: 7–8 Spieler', () => {
+  const eight = ['H', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+  it('acht spielen mit, ein neunter schaut zu; alle Farben verschieden', () => {
+    const { sims, net, code, clock } = setup(eight);
+    const [H] = sims;
+    const X = new Sim('X', net);
+    X.svc.join(code, 'X');
+    clock.advance(1000);
+    const room = H.svc.room()!;
+    expect(room.players).toHaveLength(8);
+    expect(room.spectators.map((p) => p.name)).toEqual(['X']);
+    expect(new Set(room.players.map((p) => p.color)).size).toBe(8);
+    H.svc.startGame();
+    clock.advance(500);
+    expect(H.game.players).toHaveLength(8);
+    expect(H.game.board.hexes).toHaveLength(37);
+    expect(X.seat).toBe(-1);
+  });
+
+  it('acht spielen über einen Host-Wechsel hinweg auf demselben Stand weiter', () => {
+    const { sims, clock } = start(eight);
+    const [H, ...rest] = sims;
+    play(sims, 300, seeded(88));
+    expect(versions(sims).size).toBe(1);
+    H.close();
+    clock.advance(3000);
+    expect(hosts(rest)).toHaveLength(1);
+    play(rest, 200, seeded(89));
+    expect(versions(rest).size).toBe(1);
+    const host = hostOf(rest)!;
+    expect(isConsistent(host.game)).toBe(true);
+    // Wer verbunden war, hat seine Karten behalten (nur H wurde neu ausgeteilt).
+    const log = host.game.log.map((l) => l.text).join('\n');
+    expect(log).not.toMatch(/Die Karten von [^\n]*\b(A|B|C|D|E|F|G)\b/);
   });
 });

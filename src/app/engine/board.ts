@@ -1,4 +1,4 @@
-import { BIAS, CLASSIC_BASE, CLASSIC_EXT, FIXED, MapDef, mapById, MaskCell, parseMask, WATER_MARKS } from './maps';
+import { BIAS, CLASSIC_BASE, CLASSIC_BIG, CLASSIC_EXT, FIXED, MapDef, mapById, MaskCell, parseMask, WATER_MARKS } from './maps';
 import { random, randomInt, RngState, shuffle } from './rng';
 import { BoardState, FishingGround, FogPool, HarborType, HexState, Layout, Resource, RESOURCES, River, Terrain } from './types';
 
@@ -10,7 +10,7 @@ export function bankSize(tiles: number): number {
 }
 
 /** Für alte Spielstände und Tests: Bankvorrat der klassischen Bretter. */
-export const BANK_SIZE: Record<Layout, number> = { base: bankSize(19), ext: bankSize(30) };
+export const BANK_SIZE: Record<Layout, number> = { base: bankSize(19), ext: bankSize(30), big: bankSize(37) };
 
 export interface TopoHex {
   id: number;
@@ -88,7 +88,8 @@ const byObject = new WeakMap<object, Topology>();
 /** Felder eines Bretts; alte Spielstände kennen nur das Layout. */
 export function boardCells(board: Pick<BoardState, 'cells' | 'layout'>): [number, number][] {
   if (board.cells) return board.cells;
-  return parseMask(board.layout === 'ext' ? CLASSIC_EXT : CLASSIC_BASE).map((m) => [m.c, m.r]);
+  const mask = board.layout === 'big' ? CLASSIC_BIG : board.layout === 'ext' ? CLASSIC_EXT : CLASSIC_BASE;
+  return parseMask(mask).map((m) => [m.c, m.r]);
 }
 
 /** Die Geometrie hängt nur von den Feldern ab und wird deshalb nicht im Spielstand gespeichert. */
@@ -744,7 +745,7 @@ export function generateBoard(
     harbors: best.harborEdges.map((edge, i) => ({ type: types[i], edge })),
   };
   // Das klassische Brett behält sein Layout zusätzlich, so bleiben alte Werkzeuge und Tests gültig.
-  if (map.id === 'klassisch') board.layout = n > 19 ? 'ext' : 'base';
+  if (map.id === 'klassisch') board.layout = n > 30 ? 'big' : n > 19 ? 'ext' : 'base';
   const result = { board, robber: best.hexes.findIndex((h) => h.terrain === 'desert'), bank: bankSize(n + fogLand), pirate };
   return fog ? { ...result, fog } : result;
 }

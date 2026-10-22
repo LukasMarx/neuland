@@ -1,6 +1,6 @@
 import { bankSize, getTopology } from './board';
 import { shuffle, RngState } from './rng';
-import { DEV_DECK, humanCount } from './rules';
+import { devDeckFor, humanCount } from './rules';
 import { FISH_POOL, GOODS_SUPPLY } from './variants';
 import {
   Card,
@@ -187,7 +187,7 @@ function remaining(s: GameState): {
   const resources = Object.fromEntries(
     CARDS.map((r) => [r, supplyOf(s, r) - count(s.bank, r) - known.reduce((n, p) => n + count(p.resources, r), 0)]),
   ) as Record<Card, number>;
-  const dev: Record<DevCard, number> = { ...DEV_DECK[humanCount(s) > 4 ? 'ext' : 'base'] };
+  const dev: Record<DevCard, number> = { ...devDeckFor(humanCount(s)) };
   for (const c of [...(s.playedDev ?? []), ...known.flatMap((p) => [...p.devCards, ...p.newDevCards])]) dev[c]--;
   // Ohne Liste der ausgespielten Karten (alte Spielstände) zählen wenigstens die Ritter.
   if (!s.playedDev) for (const p of s.players) dev.knight -= p.knights;

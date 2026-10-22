@@ -57,16 +57,18 @@ const rowsMask = (rows: number[]) => {
 
 export const CLASSIC_BASE = rowsMask([3, 4, 5, 4, 3]);
 export const CLASSIC_EXT = rowsMask([3, 4, 5, 6, 5, 4, 3]);
+/** Eigene Erweiterung für 7–8 Spieler: ein größeres Sechseck mit 37 Feldern. */
+export const CLASSIC_BIG = rowsMask([4, 5, 6, 7, 6, 5, 4]);
 
 export const MAPS: MapDef[] = [
   {
     id: 'klassisch',
     name: 'Klassisch',
-    description: 'Das bekannte Sechseck: 19 Felder bis 4 Spieler, 30 Felder ab 5.',
+    description: 'Das bekannte Sechseck: 19 Felder bis 4 Spieler, 30 Felder für 5–6, 37 Felder für 7–8.',
     tags: [],
-    players: [2, 6],
+    players: [2, 8],
     victoryPoints: 10,
-    mask: (p) => (p > 4 ? CLASSIC_EXT : CLASSIC_BASE),
+    mask: (p) => (p > 6 ? CLASSIC_BIG : p > 4 ? CLASSIC_EXT : CLASSIC_BASE),
     evenHarbors: true,
   },
   {

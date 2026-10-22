@@ -11,7 +11,7 @@
       </span>
     </div>
 
-    <div class="players">
+    <div class="players" [class.many]="playerRows().length > 6">
       @for (p of playerRows(); track p.seat) {
         <div
           class="player"

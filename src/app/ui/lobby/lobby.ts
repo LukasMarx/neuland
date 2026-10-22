@@ -434,11 +434,13 @@ export class Lobby {
   protected readonly variantMismatch = computed(() => {
     const n = this.present();
     const sea = !!this.map().seafaring;
-    const v = VARIANTS.find((x) => this.variantOn(x) && ((x.players && x.players !== n) || (x.landOnly && sea)));
+    const v = VARIANTS.find(
+      (x) => this.variantOn(x) && ((x.players && x.players !== n) || (x.maxPlayers && n > x.maxPlayers) || (x.landOnly && sea)),
+    );
     if (!v) return null;
-    return v.players && v.players !== n
-      ? `${v.name} ist nur für ${v.players} Spieler, gerade sind ${n} da.`
-      : `${v.name} gibt es nur auf Karten ohne Meerfelder.`;
+    if (v.players && v.players !== n) return `${v.name} ist nur für ${v.players} Spieler, gerade sind ${n} da.`;
+    if (v.maxPlayers && n > v.maxPlayers) return `${v.name} gibt es nur für bis zu ${v.maxPlayers} Spieler, gerade sind ${n} da.`;
+    return `${v.name} gibt es nur auf Karten ohne Meerfelder.`;
   });
 
   protected fitsNow(map: MapDef): boolean {
@@ -473,6 +475,7 @@ export class Lobby {
   protected blockedReason(v: VariantDef): string | null {
     // Mit nur einem Spieler im Raum ist die Spielerzahl noch offen.
     if (v.players && this.present() >= 2 && v.players !== this.present()) return `Nur für ${v.players} Spieler.`;
+    if (v.maxPlayers && this.present() > v.maxPlayers) return `Nur bis ${v.maxPlayers} Spieler.`;
     if (v.landOnly && this.map().seafaring) return 'Nur auf Karten ohne Meer.';
     return null;
   }

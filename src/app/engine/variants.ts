@@ -13,6 +13,8 @@ export interface VariantDef {
   victoryPoints?: number;
   /** Nur mit genau so vielen Spielern. */
   players?: number;
+  /** Höchstens so viele Spieler (die Erweiterungen sind für bis zu 6 gebaut). */
+  maxPlayers?: number;
   /** Nur auf Karten ohne Meerfelder (keine Seewege). */
   landOnly?: boolean;
 }
@@ -44,6 +46,7 @@ export const VARIANTS: VariantDef[] = [
   {
     id: 'fischgruende',
     kind: 'expansion',
+    maxPlayers: 6,
     short: 'Fische an der Küste als zweite Währung.',
     name: 'Fischgründe',
     description:
@@ -61,6 +64,7 @@ export const VARIANTS: VariantDef[] = [
   {
     id: 'flusslaeufe',
     kind: 'expansion',
+    maxPlayers: 6,
     short: 'Flüsse, Brücken und Münzen.',
     name: 'Flussläufe',
     landOnly: true,
@@ -70,6 +74,7 @@ export const VARIANTS: VariantDef[] = [
   {
     id: 'stadtwacht',
     kind: 'expansion',
+    maxPlayers: 6,
     short: 'Güter, Stadtausbau, Wächter gegen die Flotte, Einflusskarten.',
     name: 'Stadtwacht',
     victoryPoints: 3,

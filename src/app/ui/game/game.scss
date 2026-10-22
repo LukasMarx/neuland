@@ -141,6 +141,39 @@ kbd {
   &.offline {
     opacity: 0.5;
   }
+}
+
+// 7–8 Spieler: kompaktere Einträge, damit die Reihe ab 1280 px passt. Lange Namen enden mit „…“.
+.players.many .player {
+  gap: 6px;
+  padding: 5px 8px 5px 5px;
+
+  .avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  .who {
+    max-width: 92px;
+
+    b,
+    small {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    b {
+      font-size: 13px;
+    }
+
+    small {
+      font-size: 11px;
+    }
+  }
+
+  .vp {
+    font-size: 18px;
+  }
 
   // Duell: neutrale Mitspieler schmal und gedämpft, sie sind nie am Zug.
   &.neutral {

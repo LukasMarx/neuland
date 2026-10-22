@@ -282,6 +282,11 @@ export class RoomService {
       this.showNotice(`${fixed.name} ist nur für ${fixed.players} Spieler.`);
       return;
     }
+    const tooMany = VARIANTS.find((v) => v.maxPlayers && room.settings.variants?.includes(v.id) && present.length > v.maxPlayers);
+    if (tooMany) {
+      this.showNotice(`${tooMany.name} gibt es nur für bis zu ${tooMany.maxPlayers} Spieler.`);
+      return;
+    }
     const landOnly = VARIANTS.find((v) => v.landOnly && room.settings.variants?.includes(v.id) && mapById(room.settings.map).seafaring);
     if (landOnly) {
       this.showNotice(`${landOnly.name} gibt es nur auf Karten ohne Meerfelder.`);

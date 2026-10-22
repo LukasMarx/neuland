@@ -8,11 +8,11 @@ function fixtureGame(): GameState {
   const game = createGame(PLAYER_COLORS.map((color, i) => ({
     id: String(i), name: color.name, color: color.hex,
   })), { victoryPoints: 10 }, 123);
-  for (let seat = 0; seat < 6; seat++) {
+  for (let seat = 0; seat < PLAYER_COLORS.length; seat++) {
     game.buildings[seat * 2] = { owner: seat, type: 'settlement' };
     game.buildings[seat * 2 + 1] = { owner: seat, type: 'city' };
   }
-  game.roads = game.roads.map((_, i) => i % 6);
+  game.roads = game.roads.map((_, i) => i % PLAYER_COLORS.length);
   return game;
 }
 
@@ -29,9 +29,9 @@ describe('Papierfiguren auf dem Brett', () => {
     return { fixture, element, game };
   }
 
-  it('zeigt Stadt, Siedlung und Straßen für alle sechs Lobbyfarben', () => {
+  it('zeigt Stadt, Siedlung und Straßen für alle acht Lobbyfarben', () => {
     const { element, game } = render();
-    for (const color of ['red', 'blue', 'white', 'orange', 'green', 'brown']) {
+    for (const color of ['red', 'blue', 'white', 'orange', 'green', 'brown', 'gold', 'purple']) {
       expect(element.querySelectorAll(`.building image[href$="city-${color}.png"]`)).toHaveLength(1);
       expect(element.querySelectorAll(`.building image[href$="settlement-${color}.png"]`)).toHaveLength(1);
       expect(element.querySelector(`.road image[href$="road-${color}.png"]`)).not.toBeNull();
