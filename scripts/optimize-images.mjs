@@ -21,6 +21,8 @@ const GROUPS = [
   { dir: 'tiles/papiercollage', size: 384, format: 'png', except: { 'ocean.png': { size: 1024, format: 'jpeg' } } },
   { dir: 'icons/resources', size: 96, format: 'png' },
   { dir: 'pieces/papiercollage', size: 160, format: 'png' },
+  // Motive der Ereignis-Banner werden mit etwa 80 bis 140 px Höhe gezeigt.
+  { dir: 'banner/papiercollage', size: 280, format: 'png' },
 ];
 
 const sources = new Set();

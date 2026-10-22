@@ -31,7 +31,8 @@
                   "cards/**",
                   "tiles/**",
                   "icons/**",
-                  "pieces/**"
+                  "pieces/**",
+                  "banner/**"
                 ]
               }
             ],
