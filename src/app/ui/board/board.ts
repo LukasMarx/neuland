@@ -15,6 +15,8 @@ const MAX_PIECE_SCALE = 1.4;
 /** Wie weit Wasser und Häfen über die Küste hinausragen, in Feldradien. */
 const OCEAN_GROW = 0.8;
 const HARBOR_OFFSET = 0.55;
+/** Schiffe in Anteilen der Kantenlänge (Kante ohne die Enden an den Ecken). */
+const SHIP_LENGTH = 0.74;
 const MAX_ZOOM = 3;
 /** Ab so vielen Pixeln Bewegung wird aus einem Klick ein Verschieben. */
 const DRAG_THRESHOLD = 5;
@@ -56,6 +58,7 @@ export class Board {
   readonly hexPick = output<number>();
 
   protected readonly S = S;
+  protected readonly shipLength = SHIP_LENGTH;
   protected readonly k = computed(() => {
     const layout = this.game().board.layout;
     if (layout) return PIECE_SCALE[layout];
@@ -328,8 +331,9 @@ export class Board {
       if (owner === null) return [];
       const player = g.players[owner];
       const line = this.edgeLine(id, 0.08);
-      // Schiff aus der Draufsicht, Bug in Kantenrichtung; Bild im Seitenverhältnis 2:1.
-      const width = line.length * 1.05 * this.k();
+      // Schiff aus der Draufsicht, Bug in Kantenrichtung; Bild im Seitenverhältnis 2:1. Etwas kürzer als
+      // die Kante, damit zwischen zwei Schiffen an einer Ecke Wasser bleibt.
+      const width = line.length * SHIP_LENGTH * this.k();
       return [{
         id, transform: `${line.transform} scale(${this.k()})`, color: player.color, title: `${player.name}: Schiff`,
         image: pieceImage('ship', player.color), imageTransform: line.transform, width, height: width / 2,
