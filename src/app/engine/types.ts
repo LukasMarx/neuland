@@ -4,8 +4,9 @@ export const RESOURCES: readonly Resource[] = ['wood', 'brick', 'sheep', 'wheat'
 /**
  * `sea`, `gold` und `fog` gibt es nur auf Seewege-Karten. Gold liefert einen Rohstoff nach Wahl,
  * `fog` ist ein noch verdecktes Feld (Land oder Meer, entschieden erst beim Aufdecken).
+ * `lake` ist der See der Fischgründe: Land statt Wüste, liefert Fische bei 2, 3, 11 und 12.
  */
-export type Terrain = Resource | 'desert' | 'sea' | 'gold' | 'fog';
+export type Terrain = Resource | 'desert' | 'sea' | 'gold' | 'fog' | 'lake';
 export type ResourceCounts = Record<Resource, number>;
 export type DevCard = 'knight' | 'roadBuilding' | 'yearOfPlenty' | 'monopoly' | 'victoryPoint';
 export type HarborType = Resource | 'any';
@@ -32,6 +33,13 @@ export interface BoardState {
   layout?: Layout;
   hexes: HexState[];
   harbors: HarborState[];
+  /** Fischgründe (Variante): Küstenkanten mit Zahl. */
+  fishing?: FishingGround[];
+}
+
+export interface FishingGround {
+  edge: number;
+  number: number;
 }
 
 export interface Building {
@@ -158,7 +166,16 @@ export interface GameState {
    * was wird, entscheidet erst der Zufall beim Aufdecken, deshalb steht es vorher nirgends im Stand.
    */
   fog?: FogPool;
+  /** Fischgründe: Fischplättchen (Werte 1–3) je Sitz, der verdeckte Stapel als Zählwerk, Inhaber des Rostigen Ankers. */
+  fish?: number[][];
+  fishPool?: Record<string, number>;
+  anchor?: number | null;
 }
+
+/** Was das Ausgeben von Fischen bringt (Fischgründe). */
+export type FishEffect = 'robber' | 'steal' | 'bank' | 'road' | 'devCard';
+
+export const FISH_COSTS: Record<FishEffect, number> = { robber: 2, steal: 3, bank: 4, road: 5, devCard: 7 };
 
 export interface FogPool {
   terrain: Partial<Record<Terrain, number>>;
@@ -192,7 +209,10 @@ export type Action =
   /** Seewege */
   | { type: 'buildShip'; edge: number }
   | { type: 'moveShip'; from: number; to: number }
-  | { type: 'chooseGold'; resources: ResourceCounts };
+  | { type: 'chooseGold'; resources: ResourceCounts }
+  /** Fischgründe */
+  | { type: 'spendFish'; effect: FishEffect; victim?: number | null; resource?: Resource | null }
+  | { type: 'passAnchor'; to: number };
 
 export const RESOURCE_NAMES: Record<Resource, string> = {
   wood: 'Holz',

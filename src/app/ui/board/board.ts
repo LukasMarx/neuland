@@ -1,5 +1,5 @@
 import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, input, linkedSignal, output, signal } from '@angular/core';
-import { GameState, getTopology, mapById, NEIGHBOR_STEPS, RESOURCE_NAMES, Terrain, Topology } from '../../engine';
+import { GameState, getTopology, LAKE_NUMBERS, mapById, NEIGHBOR_STEPS, RESOURCE_NAMES, Terrain, Topology } from '../../engine';
 import { harborLabel } from '../shared/labels';
 import { RESOURCE_ART } from '../shared/resource-art';
 import { TerrainDefs } from './terrain-defs';
@@ -124,7 +124,7 @@ export class Board {
       xs.push(p.x);
       ys.push(p.y);
     }
-    for (const h of this.harbors()) {
+    for (const h of [...this.harbors(), ...this.fishingGrounds()]) {
       xs.push(h.x - 22 * k, h.x + 22 * k);
       ys.push(h.y - 26 * k, h.y + 28 * k);
     }
@@ -196,6 +196,7 @@ export class Board {
         terrain: state.terrain,
         sea: state.terrain === 'sea',
         fog: state.terrain === 'fog',
+        lake: state.terrain === 'lake',
         revealed: this.revealed().has(h.id),
         image: tileImage(state.terrain, h.id),
         // Jedes zweite Feld gespiegelt, damit gleiche Gelände nicht wie gestempelt aussehen.
@@ -206,9 +207,48 @@ export class Board {
         robberTransform: `translate(${h.x * S + S * 0.42 * this.k()},${h.y * S + S * 0.1}) scale(${this.k()})`,
         red: number === 6 || number === 8,
         robber: g.robber === h.id,
-        hit: number !== null && number === this.highlightNumber(),
+        hit:
+          (number !== null && number === this.highlightNumber()) ||
+          (state.terrain === 'lake' && LAKE_NUMBERS.includes(this.highlightNumber() ?? 0)),
       };
     });
+  });
+
+  /**
+   * Punkt vor einer Küstenkante, auf der Wasserseite, dazu die beiden Ecken. Mit `awayFrom` rückt der Punkt
+   * von dieser Ecke weg und weiter hinaus, damit er ein Hafenschild an derselben Ecke nicht verdeckt.
+   */
+  private coastSpot(edge: number, awayFrom: number | null = null) {
+    const e = this.topo().edges[edge];
+    const hex = this.topo().hexes[e.hexes.find((h) => !this.topo().hexes[h].sea) ?? e.hexes[0]];
+    const a = this.topo().vertices[e.a];
+    const b = this.topo().vertices[e.b];
+    let mx = (a.x + b.x) / 2;
+    let my = (a.y + b.y) / 2;
+    const len = Math.hypot(mx - hex.x, my - hex.y);
+    let out = HARBOR_OFFSET;
+    if (awayFrom !== null) {
+      const [from, to] = awayFrom === e.a ? [a, b] : [b, a];
+      mx += (to.x - from.x) * 0.35;
+      my += (to.y - from.y) * 0.35;
+      out = HARBOR_OFFSET + 0.3;
+    }
+    const x = (mx + ((mx - hex.x) / len) * out) * S;
+    const y = (my + ((my - hex.y) / len) * out) * S;
+    return { x, y, ax: a.x * S, ay: a.y * S, bx: b.x * S, by: b.y * S, transform: `translate(${x},${y}) scale(${this.k()})` };
+  }
+
+  /** Fischgründe (Variante): Plättchen mit Zahl vor der Küste, leuchten bei einem Treffer auf. */
+  protected readonly fishingGrounds = computed(() => {
+    const topo = this.topo();
+    const harborCorners = new Set(this.game().board.harbors.flatMap((h) => [topo.edges[h.edge].a, topo.edges[h.edge].b]));
+    return (this.game().board.fishing ?? []).map((f) => ({
+      ...this.coastSpot(f.edge, [topo.edges[f.edge].a, topo.edges[f.edge].b].find((v) => harborCorners.has(v)) ?? null),
+      number: f.number,
+      red: f.number === 6 || f.number === 8,
+      hit: f.number === this.highlightNumber(),
+      title: `Fischgrund ${f.number}: Siedlungen an den beiden Ecken fangen 1 Fisch, Städte 2`,
+    }));
   });
 
   protected readonly harbors = computed(() =>

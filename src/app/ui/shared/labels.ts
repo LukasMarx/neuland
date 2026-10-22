@@ -10,6 +10,7 @@ export const TERRAIN_ICONS: Record<Terrain, string> = {
   sea: '🌊',
   gold: '✨',
   fog: '☁️',
+  lake: '🐟',
 };
 
 export const TERRAIN_COLORS: Record<Terrain, string> = {
@@ -22,6 +23,7 @@ export const TERRAIN_COLORS: Record<Terrain, string> = {
   sea: '#2c6d8f',
   gold: '#e0b33c',
   fog: '#c9d0d4',
+  lake: '#4f9bbf',
 };
 
 export const RESOURCE_ICONS: Record<Resource, string> = {

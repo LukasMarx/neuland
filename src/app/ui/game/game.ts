@@ -1,10 +1,14 @@
 import { afterRenderEffect, Component, computed, DestroyRef, effect, ElementRef, inject, isDevMode, output, signal, untracked, viewChild } from '@angular/core';
 import {
   actingSeats,
+  canSpendFish,
   COSTS,
   DEV_CARD_NAMES,
   DevCard,
   emptyResources,
+  FISH_COSTS,
+  FishEffect,
+  fishTotal,
   GameState,
   hasResources,
   legalCityVertices,
@@ -26,6 +30,7 @@ import {
   robberVictims,
   totalResources,
   victoryPoints,
+  victoryTarget,
 } from '../../engine';
 import { AWAY_MS, RoomService } from '../../net/room.service';
 import { Board } from '../board/board';
@@ -44,7 +49,19 @@ import { hasOfferView, offerFor, OfferPanel } from './offer-panel';
 import { TradeTable, withdrawOffers } from './trade-table';
 
 type BuildMode = 'road' | 'settlement' | 'city' | 'ship' | 'moveShip';
-type Dialog = { kind: 'yearOfPlenty' } | { kind: 'monopoly' } | { kind: 'victim'; hex: number; victims: number[] };
+type Dialog =
+  | { kind: 'yearOfPlenty' }
+  | { kind: 'monopoly' }
+  | { kind: 'victim'; hex: number; victims: number[] }
+  | { kind: 'fish'; step: 'menu' | 'steal' | 'bank' };
+
+const FISH_EFFECTS: { effect: FishEffect; label: string }[] = [
+  { effect: 'robber', label: 'Räuber vom Brett nehmen' },
+  { effect: 'steal', label: 'Eine Karte bei einem Mitspieler ziehen' },
+  { effect: 'bank', label: 'Einen Rohstoff aus der Bank nehmen' },
+  { effect: 'road', label: 'Eine Straße kostenlos bauen' },
+  { effect: 'devCard', label: 'Eine Entwicklungskarte kostenlos ziehen' },
+];
 type PrimaryAction = { label: string; run: (() => void) | null };
 
 const PLAYABLE: DevCard[] = ['knight', 'roadBuilding', 'yearOfPlenty', 'monopoly'];
@@ -375,6 +392,7 @@ export class GameView {
       longestRoad: g.longestRoad === seat,
       largestArmy: g.largestArmy === seat,
       harborMaster: g.harborMaster === seat,
+      anchor: g.anchor === seat,
       active: actingSeats(g).includes(seat),
       online: !!members.find((m) => m.id === p.id)?.peerId,
       me: seat === this.seat(),
@@ -443,11 +461,37 @@ export class GameView {
       harborVariant: g.harborMaster !== undefined,
       harborMaster: g.harborMaster === i.seat,
       harborPoints: harborPoints(g, i.seat),
+      fishing: !!g.fish,
+      fishCount: g.fish?.[i.seat].length ?? 0,
+      anchor: g.anchor === i.seat,
+      target: victoryTarget(g, i.seat),
       vpCards: showHidden ? devCards.filter((c) => c === 'victoryPoint').length : null,
       hiddenDev: devCards.length,
       total: victoryPoints(g, i.seat, showHidden),
       cards: totalResources(p.resources),
     };
+  });
+
+  /** Fischgründe: eigene Plättchen, was man damit gerade tun kann, an wen der Anker darf. */
+  protected readonly fishing = computed(() => !!this.g().fish);
+  protected readonly myFish = computed(() => [...(this.g().fish?.[this.seat()] ?? [])].sort((a, b) => b - a));
+  protected readonly myFishTotal = computed(() => fishTotal(this.g(), this.seat()));
+  protected readonly holdsAnchor = computed(() => this.g().anchor === this.seat());
+  protected readonly fishOptions = computed(() => {
+    const g = this.g();
+    const seat = this.seat();
+    return FISH_EFFECTS.map((e) => ({ ...e, cost: FISH_COSTS[e.effect], enabled: seat >= 0 && canSpendFish(g, seat, e.effect) }));
+  });
+  protected readonly fishVictims = computed(() => {
+    const g = this.g();
+    return g.players.flatMap((p, i) => (i !== this.seat() && totalResources(p.resources) > 0 ? [i] : []));
+  });
+  protected readonly anchorTargets = computed(() => {
+    const g = this.g();
+    const seat = this.seat();
+    if (g.anchor !== seat || !this.isCurrent() || g.phase.kind !== 'main') return [];
+    const mine = victoryPoints(g, seat, false);
+    return g.players.flatMap((_, i) => (i !== seat && victoryPoints(g, i, false) >= mine ? [i] : []));
   });
 
   protected readonly canPlayDev = computed(() => {
@@ -771,6 +815,34 @@ export class GameView {
         this.dialog.set({ kind: 'monopoly' });
         break;
     }
+  }
+
+  protected openFish(): void {
+    this.dialog.set({ kind: 'fish', step: 'menu' });
+  }
+
+  protected spendFish(effect: FishEffect): void {
+    if (effect === 'steal' || effect === 'bank') {
+      this.dialog.set({ kind: 'fish', step: effect });
+      return;
+    }
+    this.room.act({ type: 'spendFish', effect });
+    this.dialog.set(null);
+  }
+
+  protected fishSteal(victim: number): void {
+    this.room.act({ type: 'spendFish', effect: 'steal', victim });
+    this.dialog.set(null);
+  }
+
+  protected fishBank(resource: Resource): void {
+    this.room.act({ type: 'spendFish', effect: 'bank', resource });
+    this.dialog.set(null);
+  }
+
+  protected passAnchor(to: number): void {
+    this.room.act({ type: 'passAnchor', to });
+    this.dialog.set(null);
   }
 
   protected confirmPlenty(): void {

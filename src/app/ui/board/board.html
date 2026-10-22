@@ -22,6 +22,19 @@
     </g>
   }
 
+  @for (f of fishingGrounds(); track $index) {
+    <g class="fishing" [class.hit]="f.hit">
+      <title>{{ f.title }}</title>
+      <line [attr.x1]="f.x" [attr.y1]="f.y" [attr.x2]="f.ax" [attr.y2]="f.ay" />
+      <line [attr.x1]="f.x" [attr.y1]="f.y" [attr.x2]="f.bx" [attr.y2]="f.by" />
+      <g [attr.transform]="f.transform">
+        <circle class="fishing-disc" cx="0" cy="0" r="19" />
+        <use href="#fish" x="0" y="-7" />
+        <text class="fishing-number" [class.red]="f.red" x="0" y="9">{{ f.number }}</text>
+      </g>
+    </g>
+  }
+
   @for (h of hexes(); track h.id) {
     <g class="hex" [attr.data-hex]="h.id" [class.hit]="h.hit" [class.robbed]="h.hit && h.robber" [class.sea]="h.sea" [class.fog]="h.fog" [class.revealed]="h.revealed">
       @if (h.sea) {
@@ -36,6 +49,12 @@
       }
       <polygon class="shine" [attr.points]="h.points" fill="url(#g-shine)" />
       <polygon class="outline" [attr.points]="h.points" />
+      }
+      @if (h.lake) {
+        <g class="lake-numbers" [attr.transform]="h.tokenTransform || null">
+          <rect [attr.x]="h.x - 26" [attr.y]="h.y + S * 0.05 - 9" width="52" height="18" rx="9" />
+          <text [attr.x]="h.x" [attr.y]="h.y + S * 0.05">2 3 11 12</text>
+        </g>
       }
       @if (h.number) {
         <g class="token" [class.red]="h.red" [class.blocked]="h.robber" [attr.transform]="h.tokenTransform || null">

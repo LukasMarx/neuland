@@ -331,6 +331,8 @@ Eine Sammlung voneinander unabhängiger Szenarien für 3–4 Spieler. Die enthal
 
 #### Fischgründe
 
+> **Umgesetzt am 22.10.2026** als Variante `fischgruende` (Lobby-Schalter, auf allen Karten): See statt der Wüste des Räubers (Fische bei 2, 3, 11, 12), Räuber beginnt neben dem Brett (`robber = -1`), 6 Fischgründe an der Küste (8 auf großen Karten), Fischplättchen 1–3 als Zählwerk mit Rostigem Anker, Ausgeben mit `spendFish` nur im eigenen Zug nach dem Würfeln (kleinste passende Summe, kein Wechselgeld), Anker mit `passAnchor` an Gleichstarke oder Stärkere. Fischwerte liegen wie alles andere offen im Spielstand, angezeigt wird bei Mitspielern nur die Anzahl. Grafiken (See, Fischgrund, Plättchen, Anker) sind SVG-Platzhalter.
+
 **Regel:** An der Küste liegen sechs Fischgründe mit Zahl, dazu ein See auf einem Binnenfeld (statt Wüste). Wer daran baut, zieht bei einem Treffer verdeckte Fischplättchen (Wert 1–3). Fische ausgeben: 2 = Räuber zurück in die Wüste, 3 = einen Rohstoff bei einem Mitspieler ziehen, 4 = Rohstoff aus der Bank, 5 = kostenlose Straße, 7 = kostenlose Entwicklungskarte. Unter den Plättchen ist ein **Rostiger Anker**: wer ihn hat, braucht einen Punkt mehr zum Sieg und darf ihn an jemanden weitergeben, der gleich viele oder mehr Punkte hat.
 
 **Engine:** Fischgründe als Objekte auf Küstenkanten mit Zahl (`ext.fishingGrounds`), See als Feldart `'lake'`. Fischstapel als Zählwerk. Neue Aktionen `spendFish { effect }`, `passAnchor`. Hook `production`, Hook `victoryTarget` für den Anker.

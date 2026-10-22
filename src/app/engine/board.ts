@@ -1,6 +1,6 @@
 import { BIAS, CLASSIC_BASE, CLASSIC_EXT, FIXED, MapDef, mapById, MaskCell, parseMask, WATER_MARKS } from './maps';
 import { random, randomInt, RngState, shuffle } from './rng';
-import { BoardState, FogPool, HarborType, HexState, Layout, Resource, RESOURCES, Terrain } from './types';
+import { BoardState, FishingGround, FogPool, HarborType, HexState, Layout, Resource, RESOURCES, Terrain } from './types';
 
 const SQ3 = Math.sqrt(3);
 
@@ -773,6 +773,45 @@ function knownCoast(topo: Topology, marks: string[]): Topology {
 function evenHarborEdges(topo: Topology, count: number): number[] {
   const coast = topo.coast;
   return Array.from({ length: count }, (_, i) => coast[Math.round((i * coast.length) / count)]);
+}
+
+/**
+ * Fischgründe: Küstenkanten mit den Zahlen 4–6 und 8–10 (auf großen Brettern zwei mehr), gleichmäßig
+ * über die Küsten verteilt. Nie auf einer Hafenkante und nie Ecke an Ecke mit einem anderen Fischgrund;
+ * eine Ecke mit einem Hafen teilen sie nur, wenn in der Nähe kein anderer Platz frei ist (sonst überdecken
+ * sich die Schilder).
+ */
+export function placeFishingGrounds(board: BoardState, rng: RngState): FishingGround[] {
+  const topo = getTopology(board);
+  const land = topo.hexes.filter((h) => !h.sea).length;
+  const numbers = shuffle(rng, land > 22 ? [4, 5, 6, 8, 9, 10, 5, 9] : [4, 5, 6, 8, 9, 10]);
+  const harborEdges = new Set(board.harbors.map((h) => h.edge));
+  const harborCorners = new Set(board.harbors.flatMap((h) => [topo.edges[h.edge].a, topo.edges[h.edge].b]));
+  const ring = topo.coastLoops.filter((l) => !l.lake).flatMap((l) => l.edges);
+  const used = new Set<number>();
+  const free = (e: number, strict: boolean) => {
+    const { a, b } = topo.edges[e];
+    return (
+      !harborEdges.has(e) &&
+      [a, b].every((v) => !used.has(v) && !(strict && harborCorners.has(v)) && topo.vertices[v].neighbors.every((w) => !used.has(w)))
+    );
+  };
+  const chosen: FishingGround[] = [];
+  const offset = randomInt(rng, ring.length);
+  for (let i = 0; i < numbers.length; i++) {
+    const target = offset + Math.round((i * ring.length) / numbers.length);
+    // Von der Sollstelle aus abwechselnd vor und zurück suchen, zuerst nahe und ohne Hafenecke.
+    const around = (d: number) => ring[(((target + (d % 2 ? (d + 1) / 2 : -d / 2)) % ring.length) + ring.length) % ring.length];
+    const near = Math.min(ring.length, 9);
+    let e: number | undefined;
+    for (let d = 0; d < near && e === undefined; d++) if (free(around(d), true)) e = around(d);
+    for (let d = 0; d < ring.length && e === undefined; d++) if (free(around(d), false)) e = around(d);
+    if (e === undefined) continue;
+    chosen.push({ edge: e, number: numbers[i] });
+    used.add(topo.edges[e].a);
+    used.add(topo.edges[e].b);
+  }
+  return chosen;
 }
 
 /** Hafentyp je Ecke, abgeleitet aus den Häfen auf dem Brett. */

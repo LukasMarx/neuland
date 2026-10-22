@@ -50,6 +50,9 @@
               @if (p.harborMaster) {
                 · Hafenvogt
               }
+              @if (p.anchor) {
+                · Anker
+              }
             </small>
           </span>
           <span class="vp" title="Siegpunkte">{{ p.vp }}</span>
@@ -212,6 +215,17 @@
             </div>
           }
         }
+        @if (fishing()) {
+          <span class="divider"></span>
+          <button class="fish-stack" [title]="'Fische: ' + (myFish().join(' + ') || 'keine') + ' · Klicken zum Ausgeben'" (click)="openFish()">
+            <svg viewBox="-11 -8 22 16" aria-hidden="true"><use href="#fish" /></svg>
+            <b>{{ myFishTotal() }}</b>
+            <small>{{ myFish().length === 1 ? '1 Fisch' : myFish().length + ' Fische' }}</small>
+            @if (holdsAnchor()) {
+              <span class="anchor" title="Rostiger Anker: du brauchst einen Punkt mehr zum Sieg">⚓</span>
+            }
+          </button>
+        }
       </div>
 
       <div class="build">
@@ -359,6 +373,14 @@
           }
         </dd>
       }
+      @if (d.fishing) {
+        <dt>Fische</dt>
+        <dd><span class="muted">{{ d.fishCount }} Plättchen</span><b class="none">–</b></dd>
+        @if (d.anchor) {
+          <dt>Rostiger Anker</dt>
+          <dd><span class="muted">braucht {{ d.target }} zum Sieg</span><b>+1</b></dd>
+        }
+      }
       <dt>Siegpunktkarten</dt>
       <dd>
         @if (d.vpCards !== null) {
@@ -430,6 +452,58 @@
         <div class="row end mt">
           <button (click)="dialog.set(null)">Abbrechen</button>
           <button class="primary" [disabled]="total(plentyPick()) !== 2" (click)="confirmPlenty()">Nehmen</button>
+        </div>
+      </div>
+    </div>
+  }
+  @case ('fish') {
+    <div class="modal-backdrop" (click)="dialog.set(null)">
+      <div class="modal" (click)="$event.stopPropagation()">
+        @switch ($any(dialog()).step) {
+          @case ('steal') {
+            <h3>Bei wem ziehst du eine Karte?</h3>
+            <div class="choice-list">
+              @for (v of fishVictims(); track v) {
+                <button (click)="fishSteal(v)">
+                  <span class="color-dot" [style.background]="game.players[v].color"></span>
+                  {{ game.players[v].name }} <span class="muted">({{ total(game.players[v].resources) }} Karten)</span>
+                </button>
+              }
+            </div>
+          }
+          @case ('bank') {
+            <h3>Welchen Rohstoff nimmst du?</h3>
+            <div class="choice-list">
+              @for (r of resources; track r) {
+                <button [disabled]="!game.bank[r]" (click)="fishBank(r)"><img class="choice-icon" [src]="resourceArt[r]" alt="" /> {{ resourceNames[r] }}</button>
+              }
+            </div>
+          }
+          @default {
+            <h3>Fische ausgeben</h3>
+            <p class="muted">
+              Du hast {{ myFishTotal() }} ({{ myFish().join(' + ') || 'keine' }}). Wechselgeld gibt es nicht, bezahlt wird mit der kleinsten passenden Summe.
+            </p>
+            <div class="choice-list">
+              @for (o of fishOptions(); track o.effect) {
+                <button [disabled]="!o.enabled" (click)="spendFish(o.effect)"><b class="fish-cost">{{ o.cost }}</b> {{ o.label }}</button>
+              }
+            </div>
+            @if (holdsAnchor()) {
+              <h3 class="mt">Rostiger Anker</h3>
+              <p class="muted">Du brauchst {{ game.settings.victoryPoints + 1 }} Punkte zum Sieg. Abgeben darfst du ihn an jemanden mit mindestens so vielen Punkten.</p>
+              <div class="choice-list">
+                @for (v of anchorTargets(); track v) {
+                  <button (click)="passAnchor(v)"><span class="color-dot" [style.background]="game.players[v].color"></span> An {{ game.players[v].name }} weitergeben</button>
+                } @empty {
+                  <span class="muted">Gerade an niemanden, oder du bist nicht am Zug.</span>
+                }
+              </div>
+            }
+          }
+        }
+        <div class="row end mt">
+          <button (click)="dialog.set(null)">Schließen</button>
         </div>
       </div>
     </div>

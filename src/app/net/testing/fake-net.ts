@@ -317,6 +317,12 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
         ...legalRoadEdges(g, seat).map((edge) => () => ({ type: 'buildRoad', edge }) as Action),
         () => ({ type: 'buyDevCard' }),
         ...legalShipEdges(g, seat).map((edge) => () => ({ type: 'buildShip', edge }) as Action),
+        // Fischgründe: Fische ausgeben oder den Anker weiterreichen.
+        ...(g.fish && g.fish[seat].length
+          ? (['robber', 'steal', 'bank', 'road', 'devCard'] as const).map((effect) => () =>
+              ({ type: 'spendFish', effect, victim: pick(g.players.map((_, i) => i).filter((i) => i !== seat)), resource: pick([...RESOURCES]) }) as Action)
+          : []),
+        ...(g.anchor === seat ? g.players.map((_, to) => () => ({ type: 'passAnchor', to }) as Action) : []),
         ...movableShips(g, seat).map((from) => () => {
           const to = legalShipEdges({ ...g, ships: g.ships!.map((o, e) => (e === from ? null : o)) }, seat).filter((e) => e !== from);
           return to.length ? ({ type: 'moveShip', from, to: pick(to) } as Action) : null;

@@ -1,6 +1,6 @@
-import { generateBoard, getTopology, vertexHarbors } from './board';
+import { generateBoard, getTopology, placeFishingGrounds, vertexHarbors } from './board';
 import { mapById, mapFits } from './maps';
-import { DICE_DECK, DICE_DECK_RESHUFFLE, HARBOR_MASTER_POINTS, VariantId } from './variants';
+import { DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, HARBOR_MASTER_POINTS, LAKE_NUMBERS, VariantId } from './variants';
 import { randomInt, RngState, shuffle } from './rng';
 import {
   Action,
@@ -8,6 +8,8 @@ import {
   DEV_CARD_NAMES,
   DevCard,
   emptyResources,
+  FISH_COSTS,
+  FishEffect,
   formatResources,
   GameSettings,
   GameState,
@@ -108,6 +110,7 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
     if (fog) state.fog = fog;
   }
   if (hasVariant(state, 'wuerfelstapel')) state.diceDeck = { ...DICE_DECK };
+  if (hasVariant(state, 'fischgruende')) setUpFishing(state);
   log(state, null, `Spiel gestartet mit ${n} Spielern. ${seated[0].name} beginnt mit der Aufbauphase.`);
   return state;
 }
@@ -203,6 +206,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
       return;
     }
     const gold = produce(s, sum);
+    if (s.fish) catchFish(s, sum);
     s.phase = gold.some((n) => n > 0) ? { kind: 'gold', pending: gold } : { kind: 'main' };
   },
 
@@ -507,6 +511,68 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     revealFog(s, seat, to);
   },
 
+  spendFish(s, seat, { effect, victim, resource }) {
+    if (!s.fish) fail('In diesem Spiel gibt es keine Fische.');
+    requireTurn(s, seat, 'main');
+    if (!Object.hasOwn(FISH_COSTS, effect)) fail('Unbekannter Fischtausch.');
+    const cost = FISH_COSTS[effect];
+    if (fishTotal(s, seat) < cost) fail(`Dafür brauchst du Fische im Wert von ${cost}.`);
+    switch (effect) {
+      case 'robber':
+        if (s.robber < 0) fail('Der Räuber ist schon vom Brett.');
+        payFish(s, seat, cost);
+        s.robber = -1;
+        log(s, seat, `${name(s, seat)} gibt ${cost} Fische ab und schickt den Räuber vom Brett.`);
+        break;
+      case 'steal': {
+        if (victim == null || victim === seat || !s.players[victim]) fail('Wähle einen Mitspieler.');
+        if (totalResources(s.players[victim].resources) === 0) fail(`${name(s, victim)} hat keine Karten.`);
+        payFish(s, seat, cost);
+        const pool = RESOURCES.flatMap((r) => Array<Resource>(s.players[victim].resources[r]).fill(r));
+        const stolen = pool[randomInt(s, pool.length)];
+        s.players[victim].resources[stolen]--;
+        s.players[seat].resources[stolen]++;
+        s.transfers.push({ from: seatPoint(victim), to: seatPoint(seat), card: stolen, count: 1, hidden: true });
+        log(s, seat, `${name(s, seat)} gibt ${cost} Fische ab und zieht eine Karte bei ${name(s, victim)}.`);
+        break;
+      }
+      case 'bank':
+        if (!resource || !isResource(resource)) fail('Wähle einen Rohstoff.');
+        if (s.bank[resource] <= 0) fail(`Die Bank hat kein ${RESOURCE_NAMES[resource]} mehr.`);
+        payFish(s, seat, cost);
+        s.bank[resource]--;
+        s.players[seat].resources[resource]++;
+        transfer(s, BANK, seatPoint(seat), resource, 1);
+        log(s, seat, `${name(s, seat)} gibt ${cost} Fische ab und nimmt 1 ${RESOURCE_NAMES[resource]}.`);
+        break;
+      case 'road':
+        if (!canLayFreePiece(s, seat)) fail('Du kannst gerade keine Straße legen.');
+        payFish(s, seat, cost);
+        s.phase = { kind: 'roadBuilding', remaining: 1, returnTo: 'main' };
+        log(s, seat, `${name(s, seat)} gibt ${cost} Fische ab für eine Straße.`);
+        break;
+      case 'devCard': {
+        if (s.devDeck.length === 0) fail('Es gibt keine Entwicklungskarten mehr.');
+        payFish(s, seat, cost);
+        const [card] = s.devDeck.splice(randomInt(s, s.devDeck.length), 1);
+        s.players[seat].newDevCards.push(card);
+        transfer(s, BANK, seatPoint(seat), 'dev', 1);
+        log(s, seat, `${name(s, seat)} gibt ${cost} Fische ab für eine Entwicklungskarte.`);
+        break;
+      }
+    }
+  },
+
+  passAnchor(s, seat, { to }) {
+    if (s.anchor === undefined) fail('In diesem Spiel gibt es keinen Anker.');
+    if (s.anchor !== seat) fail('Du hast den Rostigen Anker nicht.');
+    requireTurn(s, seat, 'main');
+    if (to === seat || !s.players[to]) fail('Unbekannter Spieler.');
+    if (victoryPoints(s, to, false) < victoryPoints(s, seat, false)) fail('Den Anker bekommt nur, wer mindestens so viele Punkte hat wie du.');
+    s.anchor = to;
+    log(s, seat, `${name(s, seat)} gibt den Rostigen Anker an ${name(s, to)} weiter.`);
+  },
+
   endTurn(s, seat) {
     const phase = s.phase;
     if (phase.kind === 'specialBuild') {
@@ -788,6 +854,7 @@ const TERRAIN_NAMES: Record<Exclude<Terrain, 'fog'>, string> = {
   desert: 'Wüste',
   gold: 'Goldfluss',
   sea: 'Meer',
+  lake: 'See',
 };
 
 /** Zieht einen Schlüssel aus einem Zählwerk, gewichtet nach Anzahl, und zählt ihn herunter. */
@@ -840,6 +907,106 @@ function revealFog(s: GameState, seat: number, edge: number): void {
     }
   }
   s.board = { ...s.board, hexes };
+}
+
+/** Siegziel eines Spielers: Wer den Rostigen Anker hat, braucht einen Punkt mehr. */
+export function victoryTarget(s: GameState, seat: number): number {
+  return s.settings.victoryPoints + (s.anchor === seat ? 1 : 0);
+}
+
+/** Fischgründe: Der See ersetzt die Wüste des Räubers, der Räuber beginnt neben dem Brett. */
+function setUpFishing(s: GameState): void {
+  const lake = s.robber;
+  s.board = { ...s.board, hexes: s.board.hexes.map((h, i) => (i === lake ? { terrain: 'lake', number: null } : h)) };
+  s.robber = -1;
+  s.board.fishing = placeFishingGrounds(s.board, s);
+  s.fish = s.players.map(() => []);
+  s.fishPool = { ...FISH_POOL };
+  s.anchor = null;
+}
+
+/** Fischgründe mit der gewürfelten Zahl und der See (2, 3, 11, 12): je Siedlung 1, je Stadt 2 Plättchen. */
+function catchFish(s: GameState, sum: number): void {
+  const topo = getTopology(s.board);
+  const catches = s.players.map(() => 0);
+  const credit = (v: number) => {
+    const b = s.buildings[v];
+    if (b) catches[b.owner] += b.type === 'city' ? 2 : 1;
+  };
+  for (const f of s.board.fishing ?? []) {
+    if (f.number !== sum) continue;
+    credit(topo.edges[f.edge].a);
+    credit(topo.edges[f.edge].b);
+  }
+  if (LAKE_NUMBERS.includes(sum)) {
+    s.board.hexes.forEach((h, id) => {
+      if (h.terrain === 'lake' && id !== s.robber) topo.hexes[id].corners.forEach(credit);
+    });
+  }
+  catches.forEach((n, seat) => {
+    let caught = 0;
+    for (let i = 0; i < n; i++) {
+      const token = drawFrom<string>(s, s.fishPool!);
+      if (token === null) break;
+      if (token === 'anchor') {
+        s.anchor = seat;
+        log(s, seat, `${name(s, seat)} zieht den Rostigen Anker und braucht jetzt einen Punkt mehr zum Sieg.`);
+      } else {
+        s.fish![seat].push(Number(token));
+        caught++;
+      }
+    }
+    if (caught) log(s, seat, `${name(s, seat)} fängt ${caught === 1 ? 'einen Fisch' : `${caught} Fische`}.`);
+  });
+}
+
+/** Summe der Fischplättchen eines Spielers. */
+export function fishTotal(s: GameState, seat: number): number {
+  return (s.fish?.[seat] ?? []).reduce((a, b) => a + b, 0);
+}
+
+/** Kann der Spieler das jetzt mit Fischen bezahlen und ausführen? */
+export function canSpendFish(s: GameState, seat: number, effect: FishEffect): boolean {
+  if (!s.fish || s.current !== seat || s.phase.kind !== 'main' || fishTotal(s, seat) < FISH_COSTS[effect]) return false;
+  switch (effect) {
+    case 'robber':
+      return s.robber >= 0;
+    case 'steal':
+      return s.players.some((p, i) => i !== seat && totalResources(p.resources) > 0);
+    case 'bank':
+      return RESOURCES.some((r) => s.bank[r] > 0);
+    case 'road':
+      return canLayFreePiece(s, seat);
+    case 'devCard':
+      return s.devDeck.length > 0;
+  }
+}
+
+/**
+ * Bezahlt mit Fischplättchen: die kleinste Summe ab `cost` (Wechselgeld gibt es nicht), bei gleicher
+ * Summe mit möglichst wenigen Plättchen. Die Plättchen gehen zurück in den Stapel.
+ */
+function payFish(s: GameState, seat: number, cost: number): void {
+  const tokens = s.fish![seat];
+  const reach = new Map<number, number[]>([[0, []]]);
+  tokens.forEach((value, i) => {
+    for (const [sum, picked] of [...reach]) {
+      const next = [...picked, i];
+      const old = reach.get(sum + value);
+      if (!old || next.length < old.length) reach.set(sum + value, next);
+    }
+  });
+  let best: number[] | null = null;
+  let bestSum = Infinity;
+  for (const [sum, picked] of reach) {
+    if (sum >= cost && (sum < bestSum || (sum === bestSum && picked.length < best!.length))) {
+      best = picked;
+      bestSum = sum;
+    }
+  }
+  if (!best) fail(`Dafür brauchst du Fische im Wert von ${cost}.`);
+  for (const i of best) s.fishPool![tokens[i]] = (s.fishPool![tokens[i]] ?? 0) + 1;
+  s.fish![seat] = tokens.filter((_, i) => !best.includes(i));
 }
 
 /** Hat der Spieler schon ein Gebäude auf der Insel dieser Ecke? */
@@ -1048,7 +1215,7 @@ function checkWinner(s: GameState): void {
   const kind = s.phase.kind;
   if (kind === 'setup' || kind === 'specialBuild' || kind === 'ended') return;
   const vp = victoryPoints(s, s.current, true);
-  if (vp >= s.settings.victoryPoints) {
+  if (vp >= victoryTarget(s, s.current)) {
     s.winner = s.current;
     s.phase = { kind: 'ended' };
     log(s, s.current, `${name(s, s.current)} gewinnt mit ${vp} Siegpunkten!`);
