@@ -39,6 +39,8 @@
                 neutral
               } @else if (!p.online) {
                 getrennt
+              } @else if (p.discarding) {
+                wirft ab · {{ p.cards }} Karten
               } @else if (p.active) {
                 am Zug
               } @else {
@@ -222,8 +224,8 @@
       <button role="tab" [class.on]="sideTab() === 'log'" [attr.aria-selected]="sideTab() === 'log'" (click)="sideTab.set('log')">Verlauf</button>
       <button role="tab" [class.on]="sideTab() === 'chat'" [attr.aria-selected]="sideTab() === 'chat'" (click)="sideTab.set('chat')">
         Chat
-        @if (room.chat().length) {
-          <span class="count">{{ room.chat().length }}</span>
+        @if (unreadChat()) {
+          <span class="count">{{ unreadChat() }}</span>
         }
       </button>
     </div>
@@ -870,7 +872,7 @@
   }
 }
 
-@if (game.phase.kind === 'ended' && winnerReady()) {
+@if (game.phase.kind === 'ended' && winnerReady() && !winnerHidden()) {
   <div class="modal-backdrop">
     <div class="confetti" aria-hidden="true">
       @for (c of confetti; track $index) {
@@ -895,10 +897,13 @@
         }
       </ol>
       <div class="row end">
+        @if (!room.isHost()) {
+          <span class="muted">Der Gastgeber kann eine neue Runde starten.</span>
+        }
+        <button (click)="winnerHidden.set(true)">Brett ansehen</button>
+        <button (click)="leave.emit()">Verlassen</button>
         @if (room.isHost()) {
           <button class="primary" (click)="room.backToLobby()">Neue Runde</button>
-        } @else {
-          <span class="muted">Der Gastgeber kann eine neue Runde starten.</span>
         }
       </div>
     </div>

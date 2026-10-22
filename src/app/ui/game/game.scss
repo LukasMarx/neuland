@@ -27,8 +27,9 @@ kbd {
   grid-area: top;
   display: grid;
   // Die Spieler stehen mittig über dem Brett, nicht über dem ganzen Fenster: Die letzte Spalte liegt über
-  // dem Verlauf (320 px, abzüglich Rand und Lücke der Kopfzeile).
-  grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr) 304px;
+  // dem Verlauf (320 px, abzüglich Rand und Lücke der Kopfzeile). Unter 1600 px fehlt dafür der Platz,
+  // siehe unten: Dann zählt, dass alle Spieler sichtbar sind.
+  grid-template-columns: minmax(0, 1fr) minmax(0, max-content) minmax(0, 1fr) 304px;
   align-items: center;
   gap: 16px;
   min-height: 64px;
@@ -57,7 +58,8 @@ kbd {
 
 .players {
   display: flex;
-  justify-content: center;
+  // „safe“: Ist die Reihe zu breit, beginnt sie links statt den ersten Spieler unerreichbar abzuschneiden.
+  justify-content: safe center;
   gap: 4px;
   min-width: 0;
   overflow-x: auto;
@@ -174,6 +176,16 @@ kbd {
 
   &:hover:not(:disabled) {
     color: var(--text);
+  }
+}
+
+@media (max-width: 1600px) {
+  .topbar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, max-content) auto;
+  }
+
+  .tools {
+    grid-column: 3;
   }
 }
 
@@ -723,6 +735,10 @@ kbd {
   position: relative;
   overflow: hidden;
   min-width: 170px;
+  // Lange Hinweise brechen um, statt die Hand aus dem Bild zu schieben.
+  max-width: 260px;
+  white-space: normal;
+  line-height: 1.15;
   height: 50px;
   padding: 0 22px;
   border-radius: 10px;
@@ -1058,15 +1074,18 @@ kbd {
   }
 }
 
-@media (max-width: 1280px) {
+// Nur auf breiten Bildschirmen; unter 961 px gilt die einspaltige Anordnung weiter unten.
+@media (min-width: 961px) and (max-width: 1280px) {
   .dock {
     @include stacked-dock;
   }
 }
 
-// Stadtwacht: Güter und Einflusskarten machen die Hand so breit, dass das Bauraster immer darunter kommt.
-.dock.wide:not(.trading) {
-  @include stacked-dock;
+// Breite Hand (Entwicklung, Güter, Einfluss …): Das Bauraster kommt immer unter die Hand.
+@media (min-width: 961px) {
+  .dock.wide:not(.trading) {
+    @include stacked-dock;
+  }
 }
 
 // ---------------------------------------------------------------------------

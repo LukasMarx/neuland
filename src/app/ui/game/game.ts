@@ -368,6 +368,9 @@ export class GameView {
   /** Geöffnete Punkte-Übersicht eines Spielers, verankert unter seinem Eintrag. */
   protected readonly info = signal<{ seat: number; left: number; top: number } | null>(null);
   protected readonly sideTab = signal<'log' | 'chat'>('log');
+  /** Chatnachrichten, die ich schon gesehen habe (Chat-Reiter offen); der Zähler zeigt nur neue. */
+  private readonly chatSeen = signal(0);
+  protected readonly unreadChat = computed(() => Math.max(0, this.room.chat().length - this.chatSeen()));
   // Beim Entwickeln standardmäßig stumm, sonst an, solange man ihn nicht ausschaltet.
   protected readonly sound = signal(
     isDevMode() ? localStorage.getItem('neuland:sound') === 'on' : localStorage.getItem('neuland:sound') !== 'off',
@@ -722,7 +725,7 @@ export class GameView {
     }
     if (phase === 'main' && this.isCurrent()) return { label: 'Zug beenden', run: () => this.endTurn() };
     if (phase === 'specialBuild' && this.myTurn()) return { label: 'Fertig mit Bauen', run: () => this.endTurn() };
-    if (phase === 'ended') return { label: 'Spiel beendet', run: null };
+    if (phase === 'ended') return { label: 'Endstand zeigen', run: this.winnerHidden() ? () => this.winnerHidden.set(false) : null };
     if (this.myTurn()) {
       // Die Aktion passiert auf dem Brett oder in einem Dialog: sagen, was zu tun ist.
       const hint: Partial<Record<typeof phase, string>> = {
@@ -739,9 +742,13 @@ export class GameView {
       return { label: hint[phase] ?? 'Du bist dran', run: null };
     }
     const waitingFor = actingSeats(g).map((s) => g.players[s].name);
+    // Die Uhr der anderen ist nur ein Hinweis: Würfeln tut der Client des Spielers am Zug. Ist er getrennt oder
+    // hält ein Dialog seine Uhr an, steht hier nach Ablauf wieder „Warte auf …“.
     const seconds = this.rollSeconds();
-    if (phase === 'roll' && seconds !== null) return { label: `${g.players[g.current].name} würfelt in ${seconds}`, run: null };
-    return { label: `Warte auf ${waitingFor.join(', ')}`, run: null };
+    const online = !!this.room.room()?.players.find((p) => p.id === g.players[g.current].id)?.peerId;
+    if (phase === 'roll' && seconds && online) return { label: `${g.players[g.current].name} würfelt in ${seconds}`, run: null };
+    // Bei vielen Wartenden (etwa beim Abwerfen nach einer 7) nur die Anzahl, sonst wird der Knopf zu breit.
+    return { label: waitingFor.length > 2 ? `Warte auf ${waitingFor.length} Spieler` : `Warte auf ${waitingFor.join(', ')}`, run: null };
   });
 
   protected readonly playerRows = computed(() => {
@@ -767,6 +774,8 @@ export class GameView {
       coinRank: coinPoints(g, seat),
       honors: g.honors?.[seat] ?? 0,
       active: actingSeats(g).includes(seat),
+      // Beim Abwerfen sind mehrere „dran“; dort zählt die Kartenzahl, also kein „am Zug“.
+      discarding: g.phase.kind === 'discard' && (g.phase.pending[seat] ?? 0) > 0,
       online: !!members.find((m) => m.id === p.id)?.peerId,
       me: seat === this.seat(),
     }));
@@ -898,9 +907,15 @@ export class GameView {
     this.g().log.map((e) => ({ text: e.text, color: e.seat !== null ? this.g().players[e.seat].color : 'transparent' })),
   );
 
-  protected readonly finalRanking = computed(() =>
-    [...this.playerRows()].sort((a, b) => victoryPoints(this.g(), b.seat, true) - victoryPoints(this.g(), a.seat, true)),
-  );
+  /** Endstand: der Sieger zuerst (bei Punktgleichstand gewinnt, wer am Zug war), dann nach Punkten. */
+  protected readonly finalRanking = computed(() => {
+    const g = this.g();
+    return [...this.playerRows()].sort(
+      (a, b) => Number(b.seat === g.winner) - Number(a.seat === g.winner) || victoryPoints(g, b.seat, true) - victoryPoints(g, a.seat, true),
+    );
+  });
+  /** Endstand weggeklickt, um das Brett anzusehen. */
+  protected readonly winnerHidden = signal(false);
 
   protected readonly confetti = Array.from({ length: 70 }, (_, i) => ({
     left: Math.random() * 100,
@@ -914,6 +929,11 @@ export class GameView {
     const clock = setInterval(() => this.now.set(Date.now()), 1000);
     inject(DestroyRef).onDestroy(() => clearInterval(clock));
 
+    effect(() => {
+      const count = this.room.chat().length;
+      if (this.sideTab() === 'chat') untracked(() => this.chatSeen.set(count));
+    });
+
     // Automatisch würfeln: Steht der Wurf an, läuft eine Uhr (bei allen sichtbar). Ein offener Dialog hält sie
     // an, danach beginnt sie von vorn. Würfeln tut nur der Client dessen, der am Zug ist.
     let rollKey: string | null = null;
@@ -926,7 +946,8 @@ export class GameView {
     inject(DestroyRef).onDestroy(stopRollClock);
     effect(() => {
       const g = this.g();
-      const waiting = g.phase.kind === 'roll' && !this.dialog() && !this.inspect();
+      // Dialoge und Banner halten die Uhr an; danach beginnt sie von vorn.
+      const waiting = g.phase.kind === 'roll' && !this.dialog() && !this.inspect() && !this.banner();
       const key = waiting ? `${g.id}:${g.turn}:${g.current}` : null;
       untracked(() => {
         if (key === rollKey) return;
@@ -941,7 +962,8 @@ export class GameView {
         rollTicker = setInterval(() => this.rollTick.set(Date.now()), 200);
         rollTimer = setTimeout(() => {
           clearInterval(rollTicker);
-          if (this.isCurrent() && this.g().phase.kind === 'roll' && !this.dialog() && !this.inspect()) this.roll();
+          // Läuft schon eine eigene Aktion (etwa ein Klick auf „Würfeln“ bei langsamer Verbindung), nicht nachlegen.
+          if (this.isCurrent() && this.g().phase.kind === 'roll' && !this.dialog() && !this.inspect() && this.room.pending() === 0) this.roll();
         }, AUTO_ROLL_MS);
       });
     });
@@ -1027,8 +1049,10 @@ export class GameView {
         lastRollKey = rollKey;
         if (isNew) this.fly()?.play(g.transfers ?? [], this.seat(), delay);
         if (isNew && lastGame) this.detectEvents(lastGame, g, delay);
-        if (g.phase.kind !== 'ended') this.winnerReady.set(false);
-        else if (!lastGame || switched) this.winnerReady.set(true);
+        if (g.phase.kind !== 'ended') {
+          this.winnerReady.set(false);
+          this.winnerHidden.set(false);
+        } else if (!lastGame || switched) this.winnerReady.set(true);
         lastGame = g;
 
         if (current && previous) {
