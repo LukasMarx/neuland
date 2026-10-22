@@ -440,9 +440,12 @@ kbd {
   gap: 10px;
   align-items: flex-end;
   min-width: 0;
-  margin-top: -36px;
-  padding-top: 10px;
+  // Platz über und rechts der Karten für die „+1“-Marken, sonst blendet ihr Aufsteigen kurz eine Scrollleiste ein.
+  margin-top: -50px;
+  padding: 24px 12px 0 0;
   overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
 
   &.spectating {
     margin-top: 0;

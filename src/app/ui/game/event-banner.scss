@@ -45,6 +45,27 @@
     bottom: 10px;
   }
 
+  // „Du bist dran“: schmaler und schnell wieder weg (TURN_BANNER_MS).
+  &.turn {
+    height: 112px;
+    animation:
+      band-open 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both,
+      band-close 0.3s ease-in 1.3s forwards;
+
+    .title b {
+      font-size: clamp(22px, 2.8vw, 32px);
+    }
+
+    .motif,
+    .knight {
+      width: 64px;
+    }
+  }
+
+  &.closing {
+    animation: band-close 0.2s ease-in forwards;
+  }
+
   &.win {
     height: 196px;
 

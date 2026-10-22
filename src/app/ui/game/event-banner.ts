@@ -1,4 +1,4 @@
-import { Component, computed, input, OnInit, output } from '@angular/core';
+import { Component, computed, input, OnDestroy, OnInit, output, signal } from '@angular/core';
 import { Resource } from '../../engine';
 import { pieceImage } from '../shared/piece-art';
 import { RESOURCE_ART } from '../shared/resource-art';
@@ -32,6 +32,10 @@ const MOTIF = (
 
 /** Gesamtdauer bis zum Ausblenden, danach meldet das Banner `done`. */
 export const BANNER_MS = 4100;
+/** „Du bist dran“ kommt in jedem Zug: kurz, damit es nicht im Weg steht. */
+export const TURN_BANNER_MS = 1600;
+/** So lange blendet ein weggeklicktes Banner aus. */
+const DISMISS_MS = 200;
 
 /**
  * Breites, halbtransparentes Band über dem Brett. Links und rechts treten freigestellte
@@ -40,7 +44,7 @@ export const BANNER_MS = 4100;
 @Component({
   selector: 'app-event-banner',
   template: `
-    <div class="band" [class.win]="event().kind === 'win'" role="status" aria-live="polite">
+    <div class="band" [class.win]="event().kind === 'win'" [class.turn]="event().kind === 'turn'" [class.closing]="closing()" role="status" aria-live="polite">
       <div class="props left">
         @for (p of props().left; track $index) {
           <img [src]="p.src" [class]="p.cls" [style.--d.s]="p.delay" [style.--r.deg]="p.rotate ?? 0" [class.mirror]="p.mirror" alt="" />
@@ -65,10 +69,15 @@ export const BANNER_MS = 4100;
     }
   `,
   styleUrl: './event-banner.scss',
+  // „Du bist dran“ verschwindet beim ersten Klick oder Tastendruck; der Klick selbst geht durch ans Brett.
+  host: { '(document:pointerdown)': 'dismiss()', '(document:keydown)': 'dismiss()' },
 })
-export class EventBanner implements OnInit {
+export class EventBanner implements OnInit, OnDestroy {
   readonly event = input.required<BannerEvent>();
   readonly done = output<void>();
+  protected readonly closing = signal(false);
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private finished = false;
 
   protected readonly confetti = Array.from({ length: 90 }, (_, i) => ({
     left: Math.random() * 100,
@@ -162,6 +171,23 @@ export class EventBanner implements OnInit {
   });
 
   ngOnInit(): void {
-    setTimeout(() => this.done.emit(), BANNER_MS);
+    this.timer = setTimeout(() => this.finish(), this.event().kind === 'turn' ? TURN_BANNER_MS : BANNER_MS);
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.timer);
+  }
+
+  protected dismiss(): void {
+    if (this.event().kind !== 'turn' || this.closing() || this.finished) return;
+    this.closing.set(true);
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.finish(), DISMISS_MS);
+  }
+
+  private finish(): void {
+    if (this.finished) return;
+    this.finished = true;
+    this.done.emit();
   }
 }
