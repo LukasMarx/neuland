@@ -208,10 +208,11 @@ export class GameView {
         COSTS.ship,
         piecesLeft(g, seat, 'ship') <= 0 ? 'Keine Schiffe mehr' : 'Kein Platz an deinen Küsten und Schiffen',
       ),
-      moveShip: {
-        enabled: g.phase.kind === 'main' && g.current === seat && movableShips(g, seat).length > 0,
-        reason: g.shipMoved ? 'Schon ein Schiff versetzt' : 'Kein Schiff am offenen Ende einer Linie',
-      },
+      moveShip: (() => {
+        const enabled = g.phase.kind === 'main' && g.current === seat && movableShips(g, seat).length > 0;
+        const reason = g.shipMoved ? 'Schon ein Schiff versetzt' : 'Kein Schiff am offenen Ende einer Linie';
+        return { enabled, reason: enabled ? null : reason };
+      })(),
     };
   });
 
