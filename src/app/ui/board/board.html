@@ -1,5 +1,10 @@
 <svg [attr.viewBox]="viewBox()" role="img" aria-label="Spielbrett">
-  <defs><g appTerrainDefs></g></defs>
+  <defs>
+    <g appTerrainDefs></g>
+    <!-- Palisade: hintere Hälfte des Rings hinter der Stadt, vordere davor. -->
+    <clipPath id="wall-back" clipPathUnits="objectBoundingBox"><rect width="1" height="0.5" /></clipPath>
+    <clipPath id="wall-front" clipPathUnits="objectBoundingBox"><rect y="0.5" width="1" height="0.5" /></clipPath>
+  </defs>
   <path class="ocean" [attr.d]="oceanPath()" fill="url(#g-ocean)" />
   <path class="ocean-texture" [attr.d]="oceanPath()" fill="url(#p-ocean-paper)" />
   <!-- Bewegtes Wasser: eine zweite, leicht durchsichtige Lage treibt langsam, an der Küste schäumt Brandung. -->
@@ -211,7 +216,8 @@
     <g class="building" [attr.data-vertex]="b.id" [attr.transform]="'translate(' + b.x + ',' + b.y + ')'">
       <title>{{ b.title }}</title>
       @if (b.wall) {
-        <image class="wall-art" href="web/pieces/papiercollage/wall.png" [attr.x]="-b.wallSize / 2" [attr.y]="-b.wallSize / 2" [attr.width]="b.wallSize" [attr.height]="b.wallSize" />
+        <image class="wall-art" href="web/pieces/papiercollage/wall.png" clip-path="url(#wall-back)"
+          [attr.x]="-b.wallSize / 2" [attr.y]="-b.wallSize / 2" [attr.width]="b.wallSize" [attr.height]="b.wallSize" />
       }
       @if (b.image) {
         <image class="piece-art" [attr.href]="b.image" [attr.x]="-b.size / 2" [attr.y]="-b.size / 2"
@@ -220,6 +226,10 @@
         <path [attr.fill]="b.color" d="M-16,11 L16,11 L16,-4 L4,-4 L4,-10 L-6,-19 L-16,-10 Z" />
       } @else {
         <path [attr.fill]="b.color" d="M-10,9 L10,9 L10,-3 L0,-12 L-10,-3 Z" />
+      }
+      @if (b.wall) {
+        <image class="wall-art" href="web/pieces/papiercollage/wall.png" clip-path="url(#wall-front)"
+          [attr.x]="-b.wallSize / 2" [attr.y]="-b.wallSize / 2" [attr.width]="b.wallSize" [attr.height]="b.wallSize" />
       }
       @if (b.metro) {
         <g class="metro" [attr.data-track]="b.metro" [attr.transform]="'translate(' + b.size * 0.34 + ',' + -b.size * 0.36 + ')'">
