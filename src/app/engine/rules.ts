@@ -1,6 +1,6 @@
 import { generateBoard, getTopology, placeFishingGrounds, placeRivers, vertexHarbors } from './board';
 import { mapById, mapFits } from './maps';
-import { BRIDGE_COINS, DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, GOODS_SUPPLY, HARBOR_MASTER_POINTS, LAKE_NUMBERS, MAX_WALLS, METROPOLIS_POINTS, NEUTRALS, RIVER_COINS, VariantId } from './variants';
+import { BRIDGE_COINS, DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, GOODS_SUPPLY, GUARDS_PER_LEVEL, HARBOR_MASTER_POINTS, LAKE_NUMBERS, MAX_WALLS, METROPOLIS_POINTS, NEUTRALS, RAIDER_TRACK, RIVER_COINS, VariantId } from './variants';
 import { randomInt, RngState, shuffle } from './rng';
 import {
   Action,
@@ -30,6 +30,8 @@ import {
   count,
   isCommodity,
   setCount,
+  EventFace,
+  Guard,
   Track,
   TRACK_GOODS,
   TRACK_NAMES,
@@ -134,6 +136,10 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
     state.improvements = state.players.map(() => ({ market: 0, council: 0, scholars: 0 }));
     state.metropolis = { market: null, council: null, scholars: null };
     state.walls = [];
+    state.guards = topo.vertices.map(() => null);
+    state.raiders = { position: 0, attacked: false };
+    state.honors = state.players.map(() => 0);
+    state.event = null;
     // Keine Entwicklungskarten; die Einflusskarten kommen später.
     state.devDeck = [];
   }
@@ -231,34 +237,22 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     const dice = s.diceDeck ? drawDiceCard(s) : ([randomInt(s, 6) + 1, randomInt(s, 6) + 1] as [number, number]);
     s.dice = dice;
     const sum = dice[0] + dice[1];
-    log(s, seat, `${name(s, seat)} würfelt ${sum} (${dice[0]} + ${dice[1]}).`);
-    if (sum === 7) {
-      const pending = s.players.map((p, i) => {
-        const total = totalResources(p.resources);
-        return total > handLimit(s, i) ? Math.floor(total / 2) : 0;
-      });
-      if (pending.some((n) => n > 0)) {
-        s.phase = { kind: 'discard', pending };
-        const who = pending.flatMap((n, i) => (n > 0 ? [`${name(s, i)} (${n})`] : []));
-        log(s, null, `Räuber! Karten abwerfen müssen: ${who.join(', ')}.`);
-      } else {
-        s.phase = { kind: 'robber', returnTo: 'main' };
-      }
-      return;
-    }
-    const { gold, got } = produce(s, sum);
-    if (s.fish) catchFish(s, sum);
-    // Stadtwacht, Gelehrte ab Stufe 3: Wer nichts bekommt, nimmt sich einen Rohstoff nach Wahl.
-    if (s.improvements) {
-      let left = RESOURCES.reduce((n, r) => n + s.bank[r], 0) - gold.reduce((a, b) => a + b, 0);
-      s.players.forEach((p, i) => {
-        if (p.neutral || got[i] || s.improvements![i].scholars < 3 || left <= 0) return;
-        gold[i]++;
-        left--;
-        log(s, i, `${name(s, i)} bekommt nichts und nimmt sich dank der Gelehrten einen Rohstoff.`);
-      });
-    }
-    s.phase = gold.some((n) => n > 0) ? { kind: 'gold', pending: gold } : { kind: 'main' };
+    // Stadtwacht: Zuerst der Ereigniswürfel; ein Schiff bringt die Plündererflotte näher.
+    if (s.raiders) s.event = EVENT_FACES[randomInt(s, 6)];
+    const event = s.raiders ? ` · ${s.event === 'ship' ? 'Schiff' : `Tor ${TRACK_NAMES[s.event as Track]}`}` : '';
+    log(s, seat, `${name(s, seat)} würfelt ${sum} (${dice[0]} + ${dice[1]})${event}.`);
+    if (s.raiders && s.event === 'ship' && advanceRaiders(s, sum)) return;
+    afterRoll(s, sum);
+  },
+
+  loseCity(s, seat, { vertex }) {
+    const phase = s.phase;
+    if (phase.kind !== 'raid') fail('Gerade fällt keine Stadt.');
+    if (!phase.pending[seat]) fail('Du musst keine Stadt abgeben.');
+    if (!vulnerableCities(s, seat).includes(vertex)) fail('Wähle eine eigene Stadt, die keine Prachtstadt ist.');
+    downgradeCity(s, vertex);
+    phase.pending[seat] = 0;
+    if (phase.pending.every((n) => n === 0)) afterRoll(s, phase.sum);
   },
 
   chooseGold(s, seat, { resources }) {
@@ -291,7 +285,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     transferAll(s, seatPoint(seat), BANK, resources);
     phase.pending[seat] = 0;
     log(s, seat, `${name(s, seat)} wirft ${due} Karten ab.`);
-    if (phase.pending.every((n) => n === 0)) s.phase = { kind: 'robber', returnTo: 'main' };
+    if (phase.pending.every((n) => n === 0)) robberOrOn(s);
   },
 
   moveRobber(s, seat, { hex, victim }) {
@@ -756,6 +750,82 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     log(s, seat, `${name(s, seat)} baut eine Palisade (Handkartenlimit ${handLimit(s, seat)}).`);
   },
 
+  buildGuard(s, seat, { vertex }) {
+    if (!s.guards) fail('Wächter gibt es nur mit Stadtwacht.');
+    requireBuilder(s, seat);
+    if (guardCount(s, seat, 1) >= GUARDS_PER_LEVEL) fail(`Du hast schon ${GUARDS_PER_LEVEL} einfache Wächter.`);
+    if (!canPlaceGuard(s, seat, vertex)) fail('Ein Wächter kommt auf eine freie Ecke an einer eigenen Straße.');
+    pay(s, seat, COSTS.guard, { kind: 'vertex', id: vertex });
+    s.guards[vertex] = { owner: seat, level: 1, active: false };
+    updateLongestRoad(s);
+    log(s, seat, `${name(s, seat)} stellt einen Wächter auf.`);
+  },
+
+  upgradeGuard(s, seat, { vertex }) {
+    requireBuilder(s, seat);
+    const g = ownGuard(s, seat, vertex);
+    if (g.level >= 3) fail('Dieser Wächter hat schon die höchste Stufe.');
+    if (g.level === 2 && s.improvements![seat].council < 3) fail('Mächtige Wächter gibt es erst mit dem Rat auf Stufe 3.');
+    const next = (g.level + 1) as 2 | 3;
+    if (guardCount(s, seat, next) >= GUARDS_PER_LEVEL) fail(`Du hast schon ${GUARDS_PER_LEVEL} Wächter der Stufe ${next}.`);
+    pay(s, seat, COSTS.guard, { kind: 'vertex', id: vertex });
+    g.level = next;
+    log(s, seat, `${name(s, seat)} wertet einen Wächter auf Stufe ${next} auf.`);
+  },
+
+  activateGuard(s, seat, { vertex }) {
+    requireBuilder(s, seat);
+    const g = ownGuard(s, seat, vertex);
+    if (g.active) fail('Dieser Wächter ist schon einsatzbereit.');
+    pay(s, seat, COSTS.activate, { kind: 'vertex', id: vertex });
+    g.active = true;
+    // Erst ab dem nächsten Zug darf er ziehen, verdrängen oder den Räuber vertreiben.
+    g.ready = s.turn + 1;
+    log(s, seat, `${name(s, seat)} macht einen Wächter einsatzbereit.`);
+  },
+
+  moveGuard(s, seat, { from, to }) {
+    requireTurn(s, seat, 'main');
+    const g = readyGuard(s, seat, from);
+    if (!guardTargets(s, seat, from).includes(to)) fail('Dorthin kommt der Wächter nicht.');
+    const other = s.guards![to];
+    s.guards![from] = null;
+    s.guards![to] = { ...g, active: false };
+    if (other) {
+      log(s, seat, `${name(s, seat)} verdrängt einen Wächter von ${name(s, other.owner)}.`);
+      if (guardSpots(s, other.owner).length) s.phase = { kind: 'displace', seat: other.owner, guard: other };
+      else log(s, other.owner, `Der Wächter von ${name(s, other.owner)} findet keinen Platz und geht zurück in den Vorrat.`);
+    } else {
+      log(s, seat, `${name(s, seat)} zieht einen Wächter.`);
+    }
+    updateLongestRoad(s);
+  },
+
+  placeDisplaced(s, seat, { vertex }) {
+    const phase = s.phase;
+    if (phase.kind !== 'displace' || phase.seat !== seat) fail('Du musst gerade keinen Wächter umsetzen.');
+    const spots = guardSpots(s, seat);
+    if (vertex === null) {
+      if (spots.length) fail('Wähle einen Platz für den Wächter.');
+    } else {
+      if (!spots.includes(vertex)) fail('Dort kann der Wächter nicht stehen.');
+      s.guards![vertex] = { ...phase.guard };
+      log(s, seat, `${name(s, seat)} setzt den verdrängten Wächter um.`);
+    }
+    s.phase = { kind: 'main' };
+    updateLongestRoad(s);
+  },
+
+  chaseRobber(s, seat, { vertex }) {
+    requireTurn(s, seat, 'main');
+    const g = readyGuard(s, seat, vertex);
+    if (!robberActive(s)) fail('Der Räuber ist noch nicht im Spiel.');
+    if (s.robber < 0 || !getTopology(s.board).hexes[s.robber].corners.includes(vertex)) fail('Der Wächter steht nicht am Feld des Räubers.');
+    g.active = false;
+    s.phase = { kind: 'robber', returnTo: 'main' };
+    log(s, seat, `${name(s, seat)} vertreibt mit einem Wächter den Räuber.`);
+  },
+
   endTurn(s, seat) {
     const phase = s.phase;
     if (phase.kind === 'specialBuild') {
@@ -788,6 +858,10 @@ export function actingSeats(s: GameState): number[] {
       return phase.pending.flatMap((n, i) => (n > 0 ? [i] : []));
     case 'specialBuild':
       return [phase.queue[0]];
+    case 'raid':
+      return phase.pending.flatMap((n, i) => (n > 0 ? [i] : []));
+    case 'displace':
+      return [phase.seat];
     case 'ended':
       return [];
     default:
@@ -803,6 +877,7 @@ export function victoryPoints(s: GameState, seat: number, includeHidden: boolean
   if (s.harborMaster === seat) vp += 2;
   vp += s.islandBonus?.[seat] ?? 0;
   vp += coinPoints(s, seat);
+  vp += s.honors?.[seat] ?? 0;
   if (s.metropolis) vp += TRACKS.filter((t) => s.metropolis![t] !== null && s.buildings[s.metropolis![t]!]?.owner === seat).length * METROPOLIS_POINTS;
   if (includeHidden) {
     const p = s.players[seat];
@@ -816,6 +891,7 @@ export function isFreeForSettlement(s: GameState, vertex: number): boolean {
   return (
     !!v &&
     s.buildings[vertex] === null &&
+    !s.guards?.[vertex] &&
     v.neighbors.every((n) => s.buildings[n] === null) &&
     v.hexes.some((h) => isLand(s.board.hexes[h].terrain))
   );
@@ -840,7 +916,10 @@ export function legalBridgeEdges(s: GameState, seat: number): number[] {
   return (s.board.rivers ?? []).flatMap((r) => r.edges).filter((e) => canBuildBridge(s, seat, e));
 }
 
-/** Freie Landkante, die an ein eigenes Gebäude oder eine eigene Straße anschließt (fremde Gebäude unterbrechen). */
+/**
+ * Freie Landkante, die an ein eigenes Gebäude oder eine eigene Straße anschließt. Fremde Gebäude und
+ * (Stadtwacht) fremde Wächter unterbrechen.
+ */
 function roadFits(s: GameState, seat: number, edge: number): boolean {
   const topo = getTopology(s.board);
   const e = topo.edges[edge];
@@ -849,6 +928,8 @@ function roadFits(s: GameState, seat: number, edge: number): boolean {
     const b = s.buildings[v];
     if (b?.owner === seat) return true;
     if (b) return false;
+    const g = s.guards?.[v];
+    if (g && g.owner !== seat) return false;
     return topo.vertices[v].edges.some((other) => other !== edge && s.roads[other] === seat);
   });
 }
@@ -1213,6 +1294,161 @@ export function coinPoints(s: GameState, seat: number): number {
   return s.coins[seat] === max ? 1 : s.coins[seat] === min ? -2 : 0;
 }
 
+/** Ereigniswürfel: drei Seiten Schiff, je eine Seite ein Tor. */
+const EVENT_FACES: readonly EventFace[] = ['ship', 'ship', 'ship', 'market', 'council', 'scholars'];
+
+/** Stadtwacht: Der Räuber kommt erst nach dem ersten Angriff der Flotte ins Spiel. */
+export function robberActive(s: GameState): boolean {
+  return !s.raiders || s.raiders.attacked;
+}
+
+/** Nach der 7 und dem Abwerfen: Räuber versetzen, oder (Stadtwacht vor dem ersten Angriff) weiter. */
+function robberOrOn(s: GameState): void {
+  if (robberActive(s)) {
+    s.phase = { kind: 'robber', returnTo: 'main' };
+  } else {
+    log(s, null, 'Der Räuber kommt erst nach dem ersten Angriff der Flotte ins Spiel.');
+    s.phase = { kind: 'main' };
+  }
+}
+
+/** Stärke der Flotte: alle Städte der Spieler, Prachtstädte eingeschlossen. */
+export function raiderStrength(s: GameState): number {
+  return s.buildings.filter((b) => b?.type === 'city' && !s.players[b.owner].neutral).length;
+}
+
+/** Verteidigung je Sitz: Summe der Stufen aller einsatzbereiten Wächter. */
+export function defenseOf(s: GameState, seat: number): number {
+  return (s.guards ?? []).reduce((n, g) => n + (g && g.owner === seat && g.active ? g.level : 0), 0);
+}
+
+/** Städte, die die Flotte nehmen kann: gewöhnliche, keine Prachtstädte. */
+export function vulnerableCities(s: GameState, seat: number): number[] {
+  return s.buildings.flatMap((b, v) => (b?.owner === seat && b.type === 'city' && !isMetropolis(s, v) ? [v] : []));
+}
+
+function downgradeCity(s: GameState, vertex: number): void {
+  const owner = s.buildings[vertex]!.owner;
+  s.buildings[vertex] = { owner, type: 'settlement' };
+  if (s.walls) s.walls = s.walls.filter((v) => v !== vertex);
+  log(s, owner, `${name(s, owner)} verliert eine Stadt an die Plündererflotte.`);
+}
+
+/**
+ * Die Flotte rückt vor; am Ende der Leiste greift sie an. Liefert true, wenn Spieler eine Stadt
+ * wählen müssen (Phase `raid`), sonst geht der Wurf gleich weiter.
+ */
+function advanceRaiders(s: GameState, sum: number): boolean {
+  const r = s.raiders!;
+  r.position++;
+  if (r.position < RAIDER_TRACK) {
+    log(s, null, `Die Plündererflotte rückt vor (${r.position} von ${RAIDER_TRACK}).`);
+    return false;
+  }
+  r.position = 0;
+  r.attacked = true;
+  const humans = s.players.flatMap((p, i) => (p.neutral ? [] : [i]));
+  const strength = raiderStrength(s);
+  const contrib = s.players.map((_, i) => defenseOf(s, i));
+  const defense = humans.reduce((n, i) => n + contrib[i], 0);
+  log(s, null, `Die Plündererflotte greift an: Stärke ${strength} gegen Verteidigung ${defense}.`);
+  const pending = s.players.map(() => 0);
+  if (strength > defense) {
+    // Wer am wenigsten beigetragen hat und eine gewöhnliche Stadt besitzt, verliert eine.
+    const exposed = humans.filter((i) => vulnerableCities(s, i).length > 0);
+    const least = Math.min(...exposed.map((i) => contrib[i]));
+    for (const i of exposed.filter((i) => contrib[i] === least)) {
+      const cities = vulnerableCities(s, i);
+      if (cities.length === 1) downgradeCity(s, cities[0]);
+      else pending[i] = 1;
+    }
+    if (!exposed.length) log(s, null, 'Die Flotte findet keine Stadt, die sie nehmen kann.');
+  } else {
+    const most = Math.max(...humans.map((i) => contrib[i]));
+    const leaders = humans.filter((i) => contrib[i] === most);
+    if (most > 0 && leaders.length === 1) {
+      s.honors![leaders[0]]++;
+      log(s, leaders[0], `${name(s, leaders[0])} hat am meisten verteidigt und bekommt einen Ehrenschild (1 Siegpunkt).`);
+    } else {
+      log(s, null, 'Die Flotte ist abgewehrt. Mehrere haben gleich viel verteidigt, einen Ehrenschild gibt es diesmal nicht.');
+    }
+  }
+  // Nach jedem Angriff ruhen alle Wächter.
+  for (const g of s.guards ?? []) if (g) g.active = false;
+  if (pending.some((n) => n > 0)) {
+    s.phase = { kind: 'raid', pending, sum };
+    return true;
+  }
+  return false;
+}
+
+function guardCount(s: GameState, seat: number, level: 1 | 2 | 3): number {
+  return (s.guards ?? []).filter((g) => g?.owner === seat && g.level === level).length;
+}
+
+function ownGuard(s: GameState, seat: number, vertex: number): Guard {
+  const g = s.guards?.[vertex];
+  if (!g || g.owner !== seat) fail('Dort steht kein eigener Wächter.');
+  return g;
+}
+
+function readyGuard(s: GameState, seat: number, vertex: number): Guard {
+  const g = ownGuard(s, seat, vertex);
+  if (!g.active) fail('Der Wächter ist nicht einsatzbereit.');
+  if ((g.ready ?? 0) > s.turn) fail('Ein gerade bereit gemachter Wächter handelt erst im nächsten Zug.');
+  return g;
+}
+
+/** Freie Ecke (kein Gebäude, kein Wächter) an einer eigenen Straße. */
+export function canPlaceGuard(s: GameState, seat: number, vertex: number): boolean {
+  const v = getTopology(s.board).vertices[vertex];
+  if (!v || !s.guards || s.buildings[vertex] || s.guards[vertex]) return false;
+  return v.edges.some((e) => s.roads[e] === seat);
+}
+
+export function legalGuardVertices(s: GameState, seat: number): number[] {
+  if (!s.guards || guardCount(s, seat, 1) >= GUARDS_PER_LEVEL) return [];
+  return getTopology(s.board).vertices.filter((v) => canPlaceGuard(s, seat, v.id)).map((v) => v.id);
+}
+
+/** Wohin ein verdrängter Wächter darf: freie Ecken an den Straßen seines Besitzers. */
+export function guardSpots(s: GameState, seat: number): number[] {
+  return getTopology(s.board).vertices.filter((v) => canPlaceGuard(s, seat, v.id)).map((v) => v.id);
+}
+
+/**
+ * Ziele eines Wächters: über eigene Straßen erreichbar, ohne durch fremde Gebäude oder Wächter zu gehen.
+ * Frei oder mit einem schwächeren fremden Wächter (der wird verdrängt).
+ */
+export function guardTargets(s: GameState, seat: number, from: number): number[] {
+  const g = s.guards?.[from];
+  if (!g || g.owner !== seat) return [];
+  const topo = getTopology(s.board);
+  const seen = new Set([from]);
+  const queue = [from];
+  const targets: number[] = [];
+  while (queue.length) {
+    const v = queue.shift()!;
+    for (const e of topo.vertices[v].edges) {
+      if (s.roads[e] !== seat) continue;
+      const edge = topo.edges[e];
+      const w = edge.a === v ? edge.b : edge.a;
+      if (seen.has(w)) continue;
+      seen.add(w);
+      const b = s.buildings[w];
+      const other = s.guards![w];
+      if (b && b.owner !== seat) continue;
+      if (other && other.owner !== seat) {
+        if (other.level < g.level) targets.push(w);
+        continue;
+      }
+      if (!b && !other) targets.push(w);
+      queue.push(w);
+    }
+  }
+  return targets;
+}
+
 /** Handkartenlimit beim Würfeln einer 7: 7, mit Palisaden (Stadtwacht) je 2 mehr. */
 export function handLimit(s: GameState, seat: number): number {
   return 7 + 2 * wallsOf(s, seat);
@@ -1401,6 +1637,7 @@ export function canBuildAnything(s: GameState, seat: number): boolean {
   if (s.coins && hasResources(res, COSTS.bridge) && piecesLeft(s, seat, 'bridge') > 0 && legalBridgeEdges(s, seat).length > 0) return true;
   if (s.improvements && TRACKS.some((t) => canImprove(s, seat, t))) return true;
   if (s.walls && hasResources(res, COSTS.wall) && legalWallVertices(s, seat).length > 0) return true;
+  if (s.guards && hasResources(res, COSTS.guard) && legalGuardVertices(s, seat).length > 0) return true;
   return hasResources(res, COSTS.road) && piecesLeft(s, seat, 'road') > 0 && legalRoadEdges(s, seat).length > 0;
 }
 
@@ -1499,6 +1736,37 @@ function playDevCard(s: GameState, seat: number, card: DevCard): ReturnPhase {
 }
 
 /** Verteilt den Ertrag; liefert, wie viele Rohstoffe jeder aus Goldfeldern noch selbst wählt. */
+/** Der Rest eines Wurfs: bei einer 7 abwerfen und Räuber, sonst Ertrag. Mit Stadtwacht erst nach der Flotte. */
+function afterRoll(s: GameState, sum: number): void {
+  if (sum === 7) {
+    const pending = s.players.map((p, i) => {
+      const total = totalResources(p.resources);
+      return total > handLimit(s, i) ? Math.floor(total / 2) : 0;
+    });
+    if (pending.some((n) => n > 0)) {
+      s.phase = { kind: 'discard', pending };
+      const who = pending.flatMap((n, i) => (n > 0 ? [`${name(s, i)} (${n})`] : []));
+      log(s, null, `Räuber! Karten abwerfen müssen: ${who.join(', ')}.`);
+    } else {
+      robberOrOn(s);
+    }
+    return;
+  }
+  const { gold, got } = produce(s, sum);
+  if (s.fish) catchFish(s, sum);
+  // Stadtwacht, Gelehrte ab Stufe 3: Wer nichts bekommt, nimmt sich einen Rohstoff nach Wahl.
+  if (s.improvements) {
+    let left = RESOURCES.reduce((n, r) => n + s.bank[r], 0) - gold.reduce((a, b) => a + b, 0);
+    s.players.forEach((p, i) => {
+      if (p.neutral || got[i] || s.improvements![i].scholars < 3 || left <= 0) return;
+      gold[i]++;
+      left--;
+      log(s, i, `${name(s, i)} bekommt nichts und nimmt sich dank der Gelehrten einen Rohstoff.`);
+    });
+  }
+  s.phase = gold.some((n) => n > 0) ? { kind: 'gold', pending: gold } : { kind: 'main' };
+}
+
 /**
  * Verteilt den Ertrag; liefert, wie viele Rohstoffe jeder aus Goldfeldern noch selbst wählt, und wer
  * überhaupt etwas bekam. Stadtwacht: Städte auf Wald, Weide und Gebirge liefern 1 Rohstoff und 1 Gut.
@@ -1655,7 +1923,8 @@ export function longestRoad(s: GameState, seat: number): number {
       const next = edge.a === vertex ? edge.b : edge.a;
       visited.add(e);
       const blocker = s.buildings[next];
-      if (blocker && blocker.owner !== seat) best = Math.max(best, length + 1);
+      const guard = s.guards?.[next];
+      if ((blocker && blocker.owner !== seat) || (guard && guard.owner !== seat)) best = Math.max(best, length + 1);
       else walk(next, length + 1, kind);
       visited.delete(e);
     }

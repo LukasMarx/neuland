@@ -278,6 +278,31 @@ text {
   }
 }
 
+// Stadtwacht: Wächter als runde Marke in Spielerfarbe, Stufe als Ringe; ruhende Wächter gedämpft.
+.guard {
+  filter: drop-shadow(0 1.5px 1.5px rgb(0 0 0 / 0.5));
+
+  .guard-base {
+    stroke: #1b2832;
+    stroke-width: 2;
+  }
+
+  .guard-ring {
+    fill: none;
+    stroke: rgb(255 255 255 / 0.85);
+    stroke-width: 1.4;
+  }
+
+  .guard-helm {
+    fill: rgb(255 255 255 / 0.85);
+  }
+
+  &.resting {
+    opacity: 0.55;
+    filter: grayscale(0.5);
+  }
+}
+
 // Ohne Aufhellung des Bretts hält ein dünner, leicht transparenter dunkler Rand
 // die Figuren auf jedem Gelände lesbar (Variante E1, output/designs/board-kontrast-2026-10-21).
 .piece-art {

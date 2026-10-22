@@ -1,4 +1,4 @@
-import { actingSeats, applyAction, legalRobberHexes, legalRoadEdges, legalSetupRoads, legalSetupVertices, legalShipEdges, neutralSpots, robberVictims } from './rules';
+import { actingSeats, applyAction, guardSpots, legalRobberHexes, legalRoadEdges, legalSetupRoads, legalSetupVertices, legalShipEdges, neutralSpots, robberVictims, vulnerableCities } from './rules';
 import { Action, CARDS, count, emptyResources, GameState, RESOURCES, setCount } from './types';
 
 /**
@@ -64,6 +64,13 @@ export function autoAction(s: GameState, seat: number, random: () => number = Ma
       const spot = pick(choice.spots)!;
       return phase.piece === 'road' ? { type: 'placeNeutral', owner: choice.owner, edge: spot } : { type: 'placeNeutral', owner: choice.owner, vertex: spot };
     }
+    case 'raid': {
+      // Stadtwacht: irgendeine gewöhnliche Stadt abgeben.
+      const vertex = pick(vulnerableCities(s, seat));
+      return vertex === undefined ? null : { type: 'loseCity', vertex };
+    }
+    case 'displace':
+      return { type: 'placeDisplaced', vertex: pick(guardSpots(s, seat)) ?? null };
     case 'main':
     case 'specialBuild':
       return { type: 'endTurn' };

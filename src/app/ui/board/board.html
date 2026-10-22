@@ -143,6 +143,17 @@
     </g>
   }
 
+  @for (w of guards(); track w.id) {
+    <g class="guard" [class.resting]="!w.active" [attr.data-vertex]="w.id" [attr.transform]="'translate(' + w.x + ',' + w.y + ')'">
+      <title>{{ w.title }}</title>
+      <circle class="guard-base" [attr.r]="w.r" [attr.fill]="w.color" />
+      @for (i of w.rings; track i) {
+        <circle class="guard-ring" [attr.r]="w.r * (0.35 + 0.22 * i)" />
+      }
+      <path class="guard-helm" [attr.d]="'M' + -w.r * 0.45 + ',' + -w.r * 0.15 + ' L0,' + -w.r * 0.75 + ' L' + w.r * 0.45 + ',' + -w.r * 0.15 + ' Z'" />
+    </g>
+  }
+
   @for (b of buildings(); track b.id) {
     <g class="building" [attr.data-vertex]="b.id" [attr.transform]="'translate(' + b.x + ',' + b.y + ')'">
       <title>{{ b.title }}</title>

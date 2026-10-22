@@ -1,4 +1,4 @@
-# Auftrag: Grafiken für Stadtwacht I
+# Auftrag: Grafiken für Stadtwacht I und II
 
 ## Worum es geht
 
@@ -7,6 +7,13 @@ Neuland bekommt die Erweiterung **Stadtwacht** in drei Schritten. Der erste Schr
 - **Güter:** Städte auf Wald, Weide und Gebirge liefern neben dem Rohstoff ein Gut: **Schriften** (Wald), **Stoff** (Weide) und **Silber** (Gebirge). Güter liegen auf der Hand wie Rohstoffe.
 - **Stadtausbau:** drei Richtungen mit je fünf Stufen: **Markt** (zahlt mit Stoff), **Rat** (Silber), **Gelehrte** (Schriften). Wer zuerst Stufe 4 erreicht, macht eine Stadt zur **Prachtstadt**.
 - **Palisade:** ein Ring unter einer Stadt, erhöht das Handkartenlimit.
+
+Der zweite Schritt ist ebenfalls spielbar:
+
+- **Ereigniswürfel:** ein dritter Würfel mit drei Schiffsseiten und drei Toren (gelb, blau, grün).
+- **Plündererflotte:** rückt bei jedem Schiff auf einer Leiste mit 7 Feldern vor und greift dann an.
+- **Wächter:** Figuren auf Ecken in drei Stufen (einfach, erfahren, mächtig), einsatzbereit oder ruhend.
+- **Ehrenschild:** 1 Siegpunkt für den stärksten Verteidiger.
 
 Im Spiel stehen dafür Platzhalter: Güterkarten und -symbole als schlichte SVGs (`src/app/ui/shared/goods-art.ts`), die Prachtstadt als farbiges Abzeichen mit Anfangsbuchstaben, die Palisade als gestrichelter Ring. Gebraucht werden Grafiken im bestehenden **Papiercollage-Stil**. Regeln: `docs/ERWEITUNGEN.md`, Abschnitt 2.3.
 
@@ -42,6 +49,16 @@ In Prompts nur die Neuland-Begriffe verwenden (Schriften, Stoff, Silber, Markt, 
 |---|---|---|---|
 | `public/pieces/papiercollage/wall.png` | **Palisade:** Ring aus angespitzten Holzpfählen, von schräg oben | 512 × 512, transparent, Mitte frei | liegt unter der Stadtfigur, die Mitte bleibt für die Stadt frei; neutral, nicht eingefärbt |
 
+### Stadtwacht II
+
+| Datei | Motiv | Format | Hinweise |
+|---|---|---|---|
+| `output/designs/pieces-2026-10-21/sources/guard1.png`, `guard2.png`, `guard3.png` | **Wächter** in drei Stufen: Wachmann mit Speer, mit Schild und Helm, mit Rüstung und Banner | wie die übrigen Figuren (Grundbild + Maske) | Umhang und Wimpel einfärbbar; die Stufe muss auch bei 24 Pixeln an der Silhouette erkennbar sein. Ruhende Wächter dimmt das Spiel per Filter. |
+| `public/pieces/papiercollage/raiders.png` | **Plündererflotte:** Langschiff mit dunklen Segeln | 512 × 256, transparent | für die Leiste neben der Bank und das Banner, nicht eingefärbt |
+| `public/icons/city/event-ship.png`, `event-market.png`, `event-council.png`, `event-scholars.png` | **Ereigniswürfel:** Schiff und drei Tore in Gelb, Blau, Grün | 256 × 256, transparent | als Würfelseite, etwa 28 Pixel |
+| `public/icons/city/honor.png` | **Ehrenschild:** kleiner Schild mit Lorbeer | 256 × 256, transparent | Punkteübersicht und Spielerleiste |
+| `public/banner/papiercollage/raiders.png` | **Banner-Motiv Angriff:** Langschiff vor einer Stadtmauer | 1024 × 1024, transparent, Motiv ca. 85 % | für „Flotte abgewehrt“ und „Die Flotte plündert“; heute ersatzweise Schild und Schwerter |
+
 ## Technische Vorgaben
 
 - Echte Transparenz, keine eingezeichneten Schachbrettmuster.
@@ -53,6 +70,8 @@ In Prompts nur die Neuland-Begriffe verwenden (Schriften, Stoff, Silber, Markt, 
 - **Richtungssymbole:** Kopf der Spalten in `src/app/ui/game/city-panel.ts`, Abzeichen `.metro` in `src/app/ui/board/board.html`.
 - **Prachtstadt:** über die Pipeline in `scripts/build-organic-piece-assets.py` in allen Farben, dann `pieceImage('metropolis', …)` für Ecken mit Prachtstadt.
 - **Palisade:** in `board.html` den Ring `.wall` durch das Bild ersetzen.
+- **Wächter:** in `board.html` die Marke `.guard` durch `pieceImage('guard' + Stufe, Farbe)` ersetzen (neue `PieceKind`), den Bauknopf „Wächter“ in `game.html` ebenso.
+- **Flotte, Ereigniswürfel, Ehrenschild:** `.raiders` und `.event-die` in `game.html`, Banner-Fall `raid` in `event-banner.ts`.
 
 ## Abnahme
 

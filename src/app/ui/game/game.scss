@@ -648,6 +648,61 @@ kbd {
   }
 }
 
+.event-die {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  font-weight: 900;
+  font-size: 0.9rem;
+  color: #1b2832;
+  background: #e8e2d6;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.4);
+
+  &.ship {
+    background: #2b4a5c;
+    color: #fff;
+  }
+  &.market {
+    background: #e3b84f;
+  }
+  &.council {
+    background: #5b8bd8;
+  }
+  &.scholars {
+    background: #5aa66a;
+  }
+}
+
+.raiders {
+  display: grid;
+  gap: 3px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+
+  .track {
+    display: flex;
+    gap: 2px;
+  }
+
+  i {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: rgb(255 255 255 / 0.12);
+
+    &.on {
+      background: #c55a4a;
+    }
+  }
+
+  b.danger {
+    color: #ff8a7a;
+  }
+}
+
 .dice-deck {
   color: var(--muted);
   font-size: 12px;

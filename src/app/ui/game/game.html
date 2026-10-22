@@ -118,6 +118,20 @@
           <img [src]="resourceArt[r]" alt="" /> <b>{{ n(game.bank, r) }}</b>
         </span>
       }
+      @if (raiders(); as r) {
+        <span class="raiders" [title]="'Plündererflotte: ' + r.position + ' von ' + r.steps.length + '. Bei einem Angriff Stärke ' + r.strength + ' (alle Städte) gegen Verteidigung ' + r.defense + ' (bereite Wächter).'">
+          <small>Flotte</small>
+          <span class="track">
+            @for (on of r.steps; track $index) {
+              <i [class.on]="on"></i>
+            }
+          </span>
+          <b [class.danger]="r.strength > r.defense">{{ r.strength }} : {{ r.defense }}</b>
+          @if (!r.robber) {
+            <small class="muted">Räuber wartet</small>
+          }
+        </span>
+      }
       @if (!cityWatch()) {
         <span class="bstack" data-bank="dev" title="Entwicklungskarten im Stapel">
           <img class="deck" [src]="cardArt.back" alt="" /> <b>{{ deckSize(game) }}</b>
@@ -313,6 +327,11 @@
             <span class="label">Palisade</span>
             <span class="cost">@for (c of costArt(costs.wall); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
           </button>
+          <button [disabled]="!opts.guards.enabled" [class.selected]="buildMode() === 'guards' || buildMode() === 'guardMove'" [title]="opts.guards.reason ?? 'Wächter aufstellen (1 Wolle, 1 Erz) oder einen eigenen Wächter anklicken'" (click)="toggleBuild('guards')">
+            <span class="figure"><svg viewBox="-12 -12 24 24" aria-hidden="true"><circle r="9" [attr.fill]="myColor()" stroke="#1b2832" stroke-width="2" /><path d="M-4,-1 L0,-7 L4,-1 Z" fill="#fff" /></svg></span>
+            <span class="label">Wächter</span>
+            <span class="cost">@for (c of costArt(costs.guard); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
+          </button>
           <button [class.selected]="cityOpen()" title="Stadtausbau: Markt, Rat und Gelehrte" (click)="cityOpen.set(!cityOpen())">
             <span class="figure trade">▲</span>
             <span class="label">Ausbau</span>
@@ -365,6 +384,9 @@
         (roll)="roll()"
         (landed)="onLanded($event)"
       />
+      @if (eventFace(); as e) {
+        <span class="event-die" [class]="'event-die ' + e.cls" [title]="e.title">{{ e.label }}</span>
+      }
       @if (diceDeckLeft() !== null) {
         <span class="dice-deck" title="Würfelstapel: so viele Karten noch, ab 5 wird neu gemischt">{{ diceDeckLeft() }} Karten</span>
       }
@@ -436,6 +458,10 @@
             <span class="muted">{{ d.harborPoints }} Hafenpunkte, ab 3</span><b class="none">–</b>
           }
         </dd>
+      }
+      @if (d.defense !== null) {
+        <dt>Ehrenschilde</dt>
+        <dd><span class="muted">Verteidigung {{ d.defense }}</span><b [class.none]="!d.honors">{{ d.honors || '–' }}</b></dd>
       }
       @if (d.improvements; as imp) {
         <dt>Stadtausbau</dt>
@@ -531,6 +557,25 @@
         <div class="row end mt">
           <button (click)="dialog.set(null)">Abbrechen</button>
           <button class="primary" [disabled]="total(plentyPick()) !== 2" (click)="confirmPlenty()">Nehmen</button>
+        </div>
+      </div>
+    </div>
+  }
+  @case ('guard') {
+    <div class="modal-backdrop" (click)="dialog.set(null)">
+      <div class="modal" (click)="$event.stopPropagation()">
+        @if (guardOptions(); as o) {
+          <h3>Wächter, Stufe {{ o.level }} · {{ o.active ? 'einsatzbereit' : 'ruht' }}</h3>
+          <div class="choice-list">
+            <button [disabled]="!o.activate" (click)="guardAct('activate')">Bereit machen <span class="muted">1 Getreide</span></button>
+            <button [disabled]="!o.upgrade" [title]="o.upgradeHint ?? ''" (click)="guardAct('upgrade')">Aufwerten <span class="muted">1 Wolle, 1 Erz{{ o.upgradeHint ? ' · ' + o.upgradeHint : '' }}</span></button>
+            <button [disabled]="!o.move" (click)="guardAct('move')">Ziehen oder verdrängen <span class="muted">einsatzbereit, danach ruht er</span></button>
+            <button [disabled]="!o.chase" (click)="guardAct('chase')">Räuber vertreiben <span class="muted">am Feld des Räubers</span></button>
+          </div>
+          <p class="muted">Ein gerade bereit gemachter Wächter zieht oder vertreibt erst im nächsten Zug.</p>
+        }
+        <div class="row end mt">
+          <button (click)="dialog.set(null)">Schließen</button>
         </div>
       </div>
     </div>

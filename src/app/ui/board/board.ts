@@ -338,6 +338,22 @@ export class Board {
     return { transform: `translate(${h.x * S},${h.y * S}) scale(${1.25 * this.k()})` };
   });
 
+  /** Stadtwacht: Wächter auf Ecken, Stufe als Ringe, ruhende Wächter gedämpft. */
+  protected readonly guards = computed(() => {
+    const g = this.game();
+    return (g.guards ?? []).flatMap((guard, id) => {
+      if (!guard) return [];
+      const v = this.topo().vertices[id];
+      const player = g.players[guard.owner];
+      const level = ['einfacher', 'erfahrener', 'mächtiger'][guard.level - 1];
+      return [{
+        id, x: v.x * S, y: v.y * S, color: player.color, level: guard.level, active: guard.active,
+        r: 11 * this.k(), rings: Array.from({ length: guard.level }, (_, i) => i),
+        title: `${player.name}: ${level} Wächter, ${guard.active ? 'einsatzbereit' : 'ruht'}`,
+      }];
+    });
+  });
+
   protected readonly buildings = computed(() => {
     const g = this.game();
     return g.buildings.flatMap((b, id) => {

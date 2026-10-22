@@ -39,6 +39,15 @@ import {
   robberVictims,
   canSpendTokens,
   coinPoints,
+  defenseOf,
+  getTopology,
+  guardSpots,
+  guardTargets,
+  legalGuardVertices,
+  RAIDER_TRACK,
+  raiderStrength,
+  robberActive,
+  vulnerableCities,
   legalWallVertices,
   metropolisCandidates,
   Track,
@@ -68,14 +77,15 @@ import { hasOfferView, offerFor, OfferPanel } from './offer-panel';
 import { TradeTable, withdrawOffers } from './trade-table';
 import { CityPanel } from './city-panel';
 
-type BuildMode = 'road' | 'settlement' | 'city' | 'ship' | 'moveShip' | 'bridge' | 'wall' | 'metropolis';
+type BuildMode = 'road' | 'settlement' | 'city' | 'ship' | 'moveShip' | 'bridge' | 'wall' | 'metropolis' | 'guards' | 'guardMove';
 type Dialog =
   | { kind: 'yearOfPlenty' }
   | { kind: 'monopoly' }
   | { kind: 'victim'; hex: number; victims: number[] }
   | { kind: 'fish'; step: 'menu' | 'steal' | 'bank' }
   | { kind: 'tokens'; step: 'menu' | 'trade' }
-  | { kind: 'coins' };
+  | { kind: 'coins' }
+  | { kind: 'guard'; vertex: number };
 
 const FISH_EFFECTS: { effect: FishEffect; label: string }[] = [
   { effect: 'robber', label: 'Räuber vom Brett nehmen' },
@@ -175,6 +185,53 @@ export class GameView {
   protected readonly cityOpen = signal(false);
   protected readonly metroTrack = signal<Track | null>(null);
   protected readonly cityWatch = computed(() => !!this.g().improvements);
+  /** Stadtwacht II: Wächter, von dem aus gerade ein Ziel gewählt wird. */
+  protected readonly guardFrom = signal<number | null>(null);
+  /** Plündererflotte: Stand der Leiste, Stärke gegen Verteidigung, ob der Räuber schon da ist. */
+  protected readonly raiders = computed(() => {
+    const g = this.g();
+    if (!g.raiders) return null;
+    const humans = g.players.flatMap((p, i) => (p.neutral ? [] : [i]));
+    return {
+      position: g.raiders.position,
+      steps: Array.from({ length: RAIDER_TRACK }, (_, i) => i < g.raiders!.position),
+      strength: raiderStrength(g),
+      defense: humans.reduce((n, i) => n + defenseOf(g, i), 0),
+      robber: robberActive(g),
+    };
+  });
+  protected readonly eventFace = computed(() => {
+    const e = this.g().event;
+    if (!e) return null;
+    return e === 'ship' ? { cls: 'ship', label: '⛵', title: 'Ereigniswürfel: Schiff' } : { cls: e, label: TRACK_NAMES[e][0], title: `Ereigniswürfel: Tor ${TRACK_NAMES[e]}` };
+  });
+  /** Was ein eigener Wächter gerade tun kann (für den Dialog). */
+  protected readonly guardOptions = computed(() => {
+    const d = this.dialog();
+    const g = this.g();
+    const seat = this.seat();
+    if (d?.kind !== 'guard') return null;
+    const guard = g.guards?.[d.vertex];
+    if (!guard || guard.owner !== seat) return null;
+    const me = this.me();
+    const can = this.canBuildNow() && !!me;
+    const afford = (cost: ResourceCounts) => !!me && hasResources(me.resources, cost);
+    const turn = g.phase.kind === 'main' && g.current === seat;
+    const ready = guard.active && (guard.ready ?? 0) <= g.turn && turn;
+    const nextLevel = guard.level + 1;
+    const levelFull = (g.guards ?? []).filter((x) => x?.owner === seat && x.level === nextLevel).length >= 2;
+    const atRobber = g.robber >= 0 && getTopology(g.board).hexes[g.robber]?.corners.includes(d.vertex);
+    return {
+      vertex: d.vertex,
+      level: guard.level,
+      active: guard.active,
+      activate: can && !guard.active && afford(COSTS.activate),
+      upgrade: can && guard.level < 3 && !levelFull && afford(COSTS.guard) && (guard.level < 2 || (g.improvements?.[seat].council ?? 0) >= 3),
+      move: ready && guardTargets(g, seat, d.vertex).length > 0,
+      chase: ready && robberActive(g) && !!atRobber,
+      upgradeHint: guard.level === 2 && (g.improvements?.[seat].council ?? 0) < 3 ? 'Stufe 3 erst mit dem Rat auf Stufe 3' : null,
+    };
+  });
   /** Vorbefüllung des Tauschtischs, z. B. das gespiegelte Angebot für ein Gegenangebot. */
   protected readonly tradePrefill = signal<{ give: ResourceCounts; want: ResourceCounts } | null>(null);
   /** Der Tisch bleibt offen, solange für den aktiven Spieler Angebote laufen, auch nach dem Neuladen. */
@@ -293,6 +350,11 @@ export class GameView {
         COSTS.ship,
         piecesLeft(g, seat, 'ship') <= 0 ? 'Keine Schiffe mehr' : 'Kein Platz an deinen Küsten und Schiffen',
       ),
+      guards: (() => {
+        const own = (g.guards ?? []).some((x) => x?.owner === seat);
+        const enabled = can && (own || (afford(COSTS.guard) && legalGuardVertices(g, seat).length > 0));
+        return { enabled, reason: enabled ? null : !this.canBuildNow() ? 'Gerade nicht dran' : !afford(COSTS.guard) ? this.missing(COSTS.guard) : 'Kein freier Platz an deinen Straßen' };
+      })(),
       wall: option(
         can && !!g.walls && afford(COSTS.wall) && legalWallVertices(g, seat).length > 0,
         COSTS.wall,
@@ -325,6 +387,10 @@ export class GameView {
         return 'Wähle eine Flusskante für die Brücke';
       case 'wall':
         return 'Wähle eine eigene Stadt für die Palisade';
+      case 'guards':
+        return 'Freie Ecke: neuer Wächter. Eigener Wächter: bereit machen, aufwerten, ziehen';
+      case 'guardMove':
+        return 'Wähle das Ziel: freie Ecke an deinen Straßen oder ein schwächerer fremder Wächter';
       case 'metropolis':
         return `Wähle die Stadt, die Prachtstadt ${TRACK_NAMES[this.metroTrack() ?? 'market']} wird`;
       case 'moveShip':
@@ -363,6 +429,8 @@ export class GameView {
       return { ...none, hexes: legalRobberHexes(g) };
     }
     if (phase.kind === 'roadBuilding') return { ...none, edges: [...legalRoadEdges(g, seat), ...legalShipEdges(g, seat)] };
+    if (phase.kind === 'raid') return { ...none, vertices: phase.pending[seat] ? vulnerableCities(g, seat) : [] };
+    if (phase.kind === 'displace') return { ...none, vertices: phase.seat === seat ? guardSpots(g, seat) : [] };
     if (phase.kind === 'neutral') {
       const nc = this.neutralChoice();
       if (!nc) return none;
@@ -377,6 +445,16 @@ export class GameView {
         return { ...none, edges: legalBridgeEdges(g, seat) };
       case 'wall':
         return { ...none, vertices: legalWallVertices(g, seat) };
+      case 'guards': {
+        const own = (g.guards ?? []).flatMap((x, v) => (x?.owner === seat ? [v] : []));
+        const me = this.me();
+        const free = me && hasResources(me.resources, COSTS.guard) ? legalGuardVertices(g, seat) : [];
+        return { ...none, vertices: [...free, ...own] };
+      }
+      case 'guardMove': {
+        const from = this.guardFrom();
+        return { ...none, vertices: from === null ? [] : guardTargets(g, seat, from) };
+      }
       case 'metropolis':
         return { ...none, vertices: metropolisCandidates(g, seat) };
       case 'moveShip': {
@@ -442,6 +520,12 @@ export class GameView {
           : `${name(g.current)} baut kostenlose Straßen`;
       case 'specialBuild':
         return mine ? 'Sonderbauphase: Du darfst bauen' : `Sonderbauphase: ${name(phase.queue[0])} baut`;
+      case 'raid':
+        return phase.pending[this.seat()]
+          ? 'Die Flotte plündert: Wähle die Stadt, die du verlierst'
+          : `Die Flotte plündert: Warte auf ${phase.pending.flatMap((n, i) => (n ? [name(i)] : [])).join(', ')}`;
+      case 'displace':
+        return phase.seat === this.seat() ? 'Dein Wächter wurde verdrängt: Wähle einen neuen Platz' : `${name(phase.seat)} setzt einen verdrängten Wächter um`;
       case 'neutral': {
         const what = phase.piece === 'road' ? 'eine Straße' : 'eine Siedlung';
         const nc = this.neutralChoice();
@@ -474,6 +558,8 @@ export class GameView {
         robber: 'Feld für den Räuber wählen',
         roadBuilding: 'Straßen auf dem Brett wählen',
         neutral: 'Neutrales Teil setzen',
+        raid: 'Stadt auf dem Brett wählen',
+        displace: 'Neuen Platz wählen',
         discard: 'Karten abwerfen',
       };
       return { label: hint[phase] ?? 'Du bist dran', run: null };
@@ -573,6 +659,8 @@ export class GameView {
       fishCount: p.hidden?.fish ?? g.fish?.[i.seat].length ?? 0,
       coins: g.coins?.[i.seat] ?? null,
       improvements: g.improvements?.[i.seat] ?? null,
+      defense: g.guards ? defenseOf(g, i.seat) : null,
+      honors: g.honors?.[i.seat] ?? 0,
       metropolises: g.metropolis ? TRACKS.filter((t) => g.metropolis![t] !== null && g.buildings[g.metropolis![t]!]?.owner === i.seat).length : 0,
       coinPoints: coinPoints(g, i.seat),
       anchor: g.anchor === i.seat,
@@ -784,6 +872,17 @@ export class GameView {
         tag: from == null ? `+2 Punkte · ${harborPoints(g, g.harborMaster)} Hafenpunkte` : `übernimmt von ${g.players[from].name}`,
       });
     }
+    // Stadtwacht: Die Flotte hat angegriffen (Leiste wieder bei 0, vorher am Ende).
+    if (g.raiders && prev.raiders && g.raiders.position === 0 && prev.raiders.position === RAIDER_TRACK - 1 && g.event === 'ship') {
+      const lost = g.buildings.some((b, v) => b?.type === 'settlement' && prev.buildings[v]?.type === 'city');
+      const shield = (g.honors ?? []).findIndex((h, i) => h > (prev.honors?.[i] ?? 0));
+      this.pushBanner({
+        kind: 'raid',
+        title: lost ? 'Die Flotte plündert' : 'Flotte abgewehrt',
+        ...(shield >= 0 ? who(shield) : { name: 'Alle', color: '#d4b06a' }),
+        tag: shield >= 0 ? 'Ehrenschild, +1 Punkt' : lost ? 'Städte fallen' : 'Gleichstand bei der Verteidigung',
+      });
+    }
     if (g.largestArmy !== null && g.largestArmy !== prev.largestArmy) {
       const from = prev.largestArmy;
       this.pushBanner({
@@ -855,7 +954,26 @@ export class GameView {
   protected onVertex(vertex: number): void {
     const g = this.g();
     const nc = this.neutralChoice();
+    if (g.phase.kind === 'raid') {
+      this.room.act({ type: 'loseCity', vertex });
+      return;
+    }
+    if (g.phase.kind === 'displace') {
+      this.room.act({ type: 'placeDisplaced', vertex });
+      return;
+    }
+    if (this.buildMode() === 'guards' && g.guards?.[vertex]?.owner === this.seat()) {
+      this.dialog.set({ kind: 'guard', vertex });
+      return;
+    }
+    if (this.buildMode() === 'guardMove' && this.guardFrom() !== null) {
+      this.room.act({ type: 'moveGuard', from: this.guardFrom()!, to: vertex });
+      this.guardFrom.set(null);
+      this.buildMode.set(null);
+      return;
+    }
     if (nc) this.room.act({ type: 'placeNeutral', owner: nc.active.owner, vertex });
+    else if (this.buildMode() === 'guards') this.room.act({ type: 'buildGuard', vertex });
     else if (this.buildMode() === 'wall') this.room.act({ type: 'buildWall', vertex });
     else if (this.buildMode() === 'metropolis' && this.metroTrack()) {
       this.room.act({ type: 'improveCity', track: this.metroTrack()!, vertex });
@@ -938,6 +1056,22 @@ export class GameView {
       case 'monopoly':
         this.dialog.set({ kind: 'monopoly' });
         break;
+    }
+  }
+
+  /** Wächter-Dialog: einfache Aktionen gleich, Ziehen über das Brett. */
+  protected guardAct(kind: 'activate' | 'upgrade' | 'move' | 'chase'): void {
+    const o = this.guardOptions();
+    if (!o) return;
+    this.dialog.set(null);
+    if (kind === 'activate') this.room.act({ type: 'activateGuard', vertex: o.vertex });
+    else if (kind === 'upgrade') this.room.act({ type: 'upgradeGuard', vertex: o.vertex });
+    else if (kind === 'chase') {
+      this.buildMode.set(null);
+      this.room.act({ type: 'chaseRobber', vertex: o.vertex });
+    } else {
+      this.guardFrom.set(o.vertex);
+      this.buildMode.set('guardMove');
     }
   }
 

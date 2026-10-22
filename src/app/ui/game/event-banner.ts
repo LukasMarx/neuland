@@ -3,7 +3,7 @@ import { Resource } from '../../engine';
 import { pieceImage } from '../shared/piece-art';
 import { RESOURCE_ART } from '../shared/resource-art';
 
-export type BannerKind = 'win' | 'road' | 'army' | 'harbor' | 'island' | 'monopoly' | 'plenty' | 'turn';
+export type BannerKind = 'win' | 'road' | 'army' | 'harbor' | 'island' | 'monopoly' | 'plenty' | 'turn' | 'raid';
 
 export interface BannerEvent {
   id: number;
@@ -103,6 +103,7 @@ export class EventBanner implements OnInit {
             ...list(1, () => at(MOTIF('star'), 'motif small pop', 0.75)),
           ],
         };
+      case 'raid':
       case 'army':
         // Zwei gespiegelte Schwerter ergeben ein gekreuztes Paar.
         return {

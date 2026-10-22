@@ -124,6 +124,13 @@ export type Phase =
   | { kind: 'gold'; pending: number[] }
   /** Duell: Nach einem Bau setzt der Spieler ein Teil für einen neutralen Mitspieler. */
   | { kind: 'neutral'; piece: 'road' | 'settlement' }
+  /**
+   * Stadtwacht: Die Plündererflotte hat gesiegt; pending[seat] = 1, wer noch eine Stadt abgeben muss.
+   * Danach geht der Wurf `sum` weiter (Ertrag oder 7).
+   */
+  | { kind: 'raid'; pending: number[]; sum: number }
+  /** Stadtwacht: Ein verdrängter Wächter sucht einen neuen Platz an den Straßen seines Besitzers. */
+  | { kind: 'displace'; seat: number; guard: Guard }
   | { kind: 'ended' };
 
 /** Wo eine Karte herkommt oder hingeht, für die Flug-Animation. */
@@ -229,7 +236,23 @@ export interface GameState {
   improvements?: Improvements[];
   metropolis?: Record<Track, number | null>;
   walls?: number[];
+  /** Stadtwacht II: Wächter je Ecke, Plündererflotte, Ehrenschilde je Sitz und das Ergebnis des Ereigniswürfels. */
+  guards?: (Guard | null)[];
+  raiders?: { position: number; attacked: boolean };
+  honors?: number[];
+  event?: EventFace | null;
 }
+
+/** Stadtwacht: Wächter auf einer Ecke. `ready` = Zug, ab dem er nach dem Aktivieren handeln darf. */
+export interface Guard {
+  owner: number;
+  level: 1 | 2 | 3;
+  active: boolean;
+  ready?: number;
+}
+
+/** Ereigniswürfel: drei Seiten Schiff, je eine Seite ein Tor in der Farbe einer Ausbaurichtung. */
+export type EventFace = 'ship' | Track;
 
 /** Stadtwacht: die drei Ausbaurichtungen, bezahlt mit Stoff, Silber und Schriften. */
 export type Track = 'market' | 'council' | 'scholars';
@@ -290,7 +313,15 @@ export type Action =
   | { type: 'tradeCoins'; resource: Resource }
   /** Stadtwacht */
   | { type: 'improveCity'; track: Track; vertex?: number }
-  | { type: 'buildWall'; vertex: number };
+  | { type: 'buildWall'; vertex: number }
+  | { type: 'buildGuard'; vertex: number }
+  | { type: 'upgradeGuard'; vertex: number }
+  | { type: 'activateGuard'; vertex: number }
+  /** Ziehen oder, wenn dort ein schwächerer fremder Wächter steht, verdrängen. */
+  | { type: 'moveGuard'; from: number; to: number }
+  | { type: 'chaseRobber'; vertex: number }
+  | { type: 'loseCity'; vertex: number }
+  | { type: 'placeDisplaced'; vertex: number | null };
 
 export const RESOURCE_NAMES: Record<Resource, string> = {
   wood: 'Holz',
@@ -316,6 +347,8 @@ export const COSTS = {
   ship: { wood: 1, brick: 0, sheep: 1, wheat: 0, ore: 0 },
   bridge: { wood: 1, brick: 2, sheep: 0, wheat: 0, ore: 0 },
   wall: { wood: 0, brick: 2, sheep: 0, wheat: 0, ore: 0 },
+  guard: { wood: 0, brick: 0, sheep: 1, wheat: 0, ore: 1 },
+  activate: { wood: 0, brick: 0, sheep: 0, wheat: 1, ore: 0 },
 } satisfies Record<string, ResourceCounts>;
 
 export const PIECE_LIMITS = { road: 15, settlement: 5, city: 4, ship: 15, bridge: 3 };

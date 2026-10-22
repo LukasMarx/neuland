@@ -1,6 +1,6 @@
 import { Injector, runInInjectionContext } from '@angular/core';
-import { Action, actingSeats, applyAction, emptyResources, GameState, legalCityVertices, legalRoadEdges } from '../../engine';
-import { autoAction, canImprove, CARDS, count, legalBridgeEdges, legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, legalShipEdges, legalWallVertices, metropolisCandidates, movableShips, RESOURCES, robberVictims, setCount, TRACKS } from '../../engine';
+import { Action, actingSeats, applyAction, emptyResources, GameState, getTopology, legalCityVertices, legalRoadEdges } from '../../engine';
+import { autoAction, canImprove, CARDS, count, guardTargets, legalBridgeEdges, legalGuardVertices, legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, legalShipEdges, legalWallVertices, metropolisCandidates, movableShips, RESOURCES, robberVictims, setCount, TRACKS } from '../../engine';
 import { NetMessage } from '../protocol';
 import { NET_ENV, NetEnv, RoomService } from '../room.service';
 import { TransportHandlers } from '../transport';
@@ -289,16 +289,9 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
         : { seat, action: { type: 'placeRoad', edge: pick(legalSetupRoads(g)) } };
     case 'roll':
       return { seat, action: { type: 'roll' } };
-    case 'discard': {
-      const left = { ...g.players[seat].resources };
-      const out = emptyResources();
-      for (let i = 0; i < p.pending[seat]; i++) {
-        const r = CARDS.find((k) => count(left, k) > 0)!;
-        setCount(left, r, count(left, r) - 1);
-        setCount(out, r, count(out, r) + 1);
-      }
-      return { seat, action: { type: 'discard', resources: out } };
-    }
+    case 'discard':
+      // Wie der Automat: von den größten Stapeln, damit verschiedene Sorten bleiben.
+      return { seat, action: autoAction(g, seat, random)! };
     case 'robber': {
       const hex = pick(legalRobberHexes(g));
       return { seat, action: { type: 'moveRobber', hex, victim: robberVictims(g, seat, hex)[0] ?? null } };
@@ -306,6 +299,8 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
     case 'roadBuilding':
     case 'gold':
     case 'neutral':
+    case 'raid':
+    case 'displace':
       return { seat, action: autoAction(g, seat, random)! };
     case 'specialBuild':
       return { seat, action: { type: 'endTurn' } };
@@ -325,6 +320,21 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
             )
           : []),
         ...legalWallVertices(g, seat).map((vertex) => () => ({ type: 'buildWall', vertex }) as Action),
+        // Stadtwacht II: Wächter aufstellen, aufwerten, bereit machen, ziehen, Räuber vertreiben.
+        ...legalGuardVertices(g, seat).map((vertex) => () => ({ type: 'buildGuard', vertex }) as Action),
+        ...(g.guards ?? []).flatMap((guard, vertex) =>
+          guard?.owner === seat
+            ? [
+                () => ({ type: 'upgradeGuard', vertex }) as Action,
+                () => ({ type: 'activateGuard', vertex }) as Action,
+                () => ({ type: 'chaseRobber', vertex }) as Action,
+                () => {
+                  const to = guardTargets(g, seat, vertex);
+                  return to.length ? ({ type: 'moveGuard', from: vertex, to: pick(to) } as Action) : null;
+                },
+              ]
+            : [],
+        ),
         // Flussläufe: Brücken bauen und Münzen tauschen.
         ...legalBridgeEdges(g, seat).map((edge) => () => ({ type: 'buildBridge', edge }) as Action),
         ...(g.coins && g.coins[seat] >= 2 ? [() => ({ type: 'tradeCoins', resource: pick([...RESOURCES]) }) as Action] : []),
@@ -352,6 +362,33 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
         }),
       ];
       // Brücken sind selten erlaubt und teuer: wenn es geht, meistens bauen, damit die Partien sie abdecken.
+      // Im Dunst: Straßen und Schiffe an den Nebel meistens bauen, damit die Partien auch aufdecken.
+      // Dazu Schiffe in Richtung Nebel: das Schiff, das am nächsten an ein verdecktes Feld heranführt.
+      const fogHexes = g.fog ? g.board.hexes.flatMap((h, i) => (h.terrain === 'fog' ? [i] : [])) : [];
+      if (fogHexes.length) {
+        const topo = getTopology(g.board);
+        const mid = (e: number) => {
+          const { a, b } = topo.edges[e];
+          return { x: (topo.vertices[a].x + topo.vertices[b].x) / 2, y: (topo.vertices[a].y + topo.vertices[b].y) / 2 };
+        };
+        const toFog = (e: number) => Math.min(...fogHexes.map((h) => Math.hypot(topo.hexes[h].x - mid(e).x, topo.hexes[h].y - mid(e).y)));
+        const options = [
+          ...legalShipEdges(g, seat).map((edge) => ({ type: 'buildShip', edge }) as Action),
+          ...legalRoadEdges(g, seat).map((edge) => ({ type: 'buildRoad', edge }) as Action),
+        ].filter(legal);
+        if (options.length && random() < 0.6) {
+          const best = options.reduce((a, b) => (toFog((a as { edge: number }).edge) <= toFog((b as { edge: number }).edge) ? a : b));
+          return { seat, action: best };
+        }
+      }
+      // Stadtwacht: Rückt die Flotte näher, meistens Wächter aufstellen oder bereit machen (nur dann Zufall ziehen).
+      if (g.raiders && g.raiders.position >= 3) {
+        const guardMoves: Action[] = [
+          ...legalGuardVertices(g, seat).map((vertex) => ({ type: 'buildGuard', vertex }) as Action),
+          ...(g.guards ?? []).flatMap((guard, vertex) => (guard?.owner === seat && !guard.active ? [{ type: 'activateGuard', vertex } as Action] : [])),
+        ].filter(legal);
+        if (guardMoves.length && random() < 0.8) return { seat, action: pick(guardMoves) };
+      }
       // Zufall nur ziehen, wenn es Brücken gibt, damit Partien ohne Flüsse genauso laufen wie vorher.
       const bridges = legalBridgeEdges(g, seat);
       if (bridges.length && random() < 0.7) {
