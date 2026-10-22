@@ -169,7 +169,7 @@ export class RoomService {
   /** Neuen Raum eröffnen, der Ersteller ist Host. */
   create(name: string): string {
     this.setName(name);
-    const code = Array.from({ length: 6 }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join('');
+    const code = Array.from({ length: 6 }, () => CODE_ALPHABET[(this.env.entropy() >>> 0) % CODE_ALPHABET.length]).join('');
     this.connect(code);
     this.becomeHost(this.freshRoom(code), null);
     return code;
@@ -266,7 +266,7 @@ export class RoomService {
     const gone = room.players.filter((p) => !present.includes(p));
     if (gone.length) this.showNotice(`Ohne ${gone.map((p) => p.name).join(', ')} gestartet, nicht verbunden.`);
     const players = present.map(({ id, name, color }) => ({ id, name, color }));
-    const seed = Math.floor(Math.random() * 2 ** 31);
+    const seed = this.env.entropy() >>> 1;
     this.room.set(nextRound({ ...room, players: present }));
     this.game.set({ ...createGame(players, room.settings, seed), id: this.env.randomId() });
     this.broadcast();
@@ -591,7 +591,8 @@ export class RoomService {
       // einem neuen Host, dem der letzte Stand fehlt. Dem bieten wir unseren an.
       if (peer === this.hostPeer) this.lastHostSignal = this.env.now();
       else if (this.hostPeer === null && this.offerNewer(peer, game)) this.followHost(peer);
-      return;
+      // Ohne Host und mit demselben Stand übernehmen wir seinen Raum (siehe onTick).
+      if (peer === this.hostPeer || this.hostPeer !== null || !this.sameStand(game)) return;
     } else if (order === 0 && peer !== this.hostPeer && this.hostPeer !== null) {
       return;
     }
@@ -646,9 +647,17 @@ export class RoomService {
     if (d > 0 && this.peerClients.has(peer)) this.transport?.send({ t: 'sync' }, peer);
     else if (d < 0 && this.isHost()) this.sendRoom(peer);
     else if (d === 0 && this.hostPeer === null && !this.isHost() && this.peerClients.get(peer) === room.hostId) this.followHost(peer);
-    else if (d < 0 && this.hostPeer === null && this.offerNewer(peer, gameId ? { id: gameId, version: rank[2] } : null)) {
-      this.followHost(peer);
+    else if (d < 0 && this.hostPeer === null) {
+      const theirs = gameId ? { id: gameId, version: rank[2] } : null;
+      if (this.offerNewer(peer, theirs)) this.followHost(peer);
+      // Gleicher Stand, nur eine ältere Wahl: Unser neuerer Host ist weg, also dem lebenden folgen.
+      else if (this.sameStand(theirs) && this.peerClients.has(peer)) this.transport?.send({ t: 'sync' }, peer);
     }
+  }
+
+  private sameStand(theirs: Pick<GameState, 'id' | 'version'> | null): boolean {
+    const mine = this.game();
+    return !!mine?.id && !!theirs && theirs.id === mine.id && theirs.version === mine.version;
   }
 
   /** Meldung eines Mitspielers, wem er folgt. Folgt er einem Host mit höherem Rang als wir, treten wir zurück. */

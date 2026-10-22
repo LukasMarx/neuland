@@ -176,6 +176,13 @@ export class Net {
 }
 
 let pages = 0;
+let netRandom = seeded(1);
+
+/** Seiten-Nummern und Zufall der simulierten Tabs zurücksetzen, damit ein Lauf wiederholbar ist. */
+export function resetNet(seed: number): void {
+  pages = 0;
+  netRandom = seeded(seed);
+}
 
 /** Ein simulierter Browser-Tab mit eigenem RoomService. */
 export class Sim {
@@ -198,8 +205,8 @@ export class Sim {
       now: () => clock.now,
       setTimeout: (fn, ms) => clock.schedule(fn, this.throttled ? Math.max(ms, 60000) : ms),
       clearTimeout: (handle) => clock.cancel(handle),
-      randomId: () => `${this.pageId}-${++ids}-${Math.random().toString(36).slice(2, 8)}`,
-      entropy: () => Math.floor(Math.random() * 2 ** 32) | 0,
+      randomId: () => `${this.pageId}-${++ids}-${netRandom().toString(36).slice(2, 8)}`,
+      entropy: () => Math.floor(netRandom() * 2 ** 32) | 0,
     };
     const injector = Injector.create({ providers: [{ provide: NET_ENV, useValue: env }] });
     this.svc = runInInjectionContext(injector, () => new RoomService());
@@ -302,19 +309,27 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
     case 'specialBuild':
       return { seat, action: { type: 'endTurn' } };
     case 'main': {
-      const candidates: Action[] = [
-        ...legalCityVertices(g, seat).map((vertex): Action => ({ type: 'buildCity', vertex })),
-        ...legalSettlementVertices(g, seat).map((vertex): Action => ({ type: 'buildSettlement', vertex })),
-        ...legalRoadEdges(g, seat).map((edge): Action => ({ type: 'buildRoad', edge })),
-        { type: 'buyDevCard' },
-        ...legalShipEdges(g, seat).map((edge): Action => ({ type: 'buildShip', edge })),
-        ...movableShips(g, seat).flatMap((from): Action[] => {
+      // Mögliche Züge erst nur benennen, dann in zufälliger Reihenfolge prüfen, bis einer erlaubt ist.
+      // Alle vorab zu prüfen wäre auf großen Karten mit Schiffen sehr langsam.
+      const candidates: (() => Action | null)[] = [
+        ...legalCityVertices(g, seat).map((vertex) => () => ({ type: 'buildCity', vertex }) as Action),
+        ...legalSettlementVertices(g, seat).map((vertex) => () => ({ type: 'buildSettlement', vertex }) as Action),
+        ...legalRoadEdges(g, seat).map((edge) => () => ({ type: 'buildRoad', edge }) as Action),
+        () => ({ type: 'buyDevCard' }),
+        ...legalShipEdges(g, seat).map((edge) => () => ({ type: 'buildShip', edge }) as Action),
+        ...movableShips(g, seat).map((from) => () => {
           const to = legalShipEdges({ ...g, ships: g.ships!.map((o, e) => (e === from ? null : o)) }, seat).filter((e) => e !== from);
-          return to.length ? [{ type: 'moveShip', from, to: pick(to) }] : [];
+          return to.length ? ({ type: 'moveShip', from, to: pick(to) } as Action) : null;
         }),
       ];
-      const options = candidates.filter(legal);
-      return { seat, action: options.length && random() < 0.8 ? pick(options) : { type: 'endTurn' } };
+      if (random() < 0.8) {
+        for (let tries = 0; tries < 12 && candidates.length; tries++) {
+          const [make] = candidates.splice(Math.floor(random() * candidates.length), 1);
+          const action = make();
+          if (action && legal(action)) return { seat, action };
+        }
+      }
+      return { seat, action: { type: 'endTurn' } };
     }
     default:
       return null;

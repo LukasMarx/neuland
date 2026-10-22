@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { actingSeats, ResourceCounts } from '../engine';
 import { AWAY_MS } from './room.service';
-import { bySeat, Clock, hostOf, Net, play, seeded, setup, Sim } from './testing/fake-net';
+import { bySeat, Clock, hostOf, Net, play, resetNet, seeded, setup, Sim } from './testing/fake-net';
 
 const board = (s: Sim) => s.game.board.hexes.map((h) => h.terrain).join();
 const versions = (sims: Sim[]) => new Set(sims.map((s) => s.v));
@@ -377,6 +377,7 @@ describe('Mehrspieler: Identität und Bedienung', () => {
 
 describe('Mehrspieler: Chaos', () => {
   it.each([1, 2, 3, 4, 5, 6, 7, 8])('läuft nach zufälligen Störungen wieder auf einen Host und einen Stand zusammen (Lauf %i)', (seed) => {
+    resetNet(seed);
     const random = seeded(seed * 7919);
     const { sims, code, net, clock } = start(['H', 'A', 'B', 'C']);
     const tabs = [...sims];
