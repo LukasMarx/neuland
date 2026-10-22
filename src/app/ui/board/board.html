@@ -53,9 +53,16 @@
     </g>
   }
 
-  <!-- Flussläufe: zwischen Gelände und Zahlen, damit die Zahlen lesbar bleiben. -->
+  <!-- Flussläufe: zwischen Gelände und Zahlen, damit die Zahlen lesbar bleiben; an der Küste abgeschnitten. -->
+  @if (riverShapes().length) {
+    <clipPath id="land-clip">
+      @for (p of landOutline(); track $index) {
+        <polygon [attr.points]="p" />
+      }
+    </clipPath>
+  }
   @for (r of riverShapes(); track r.id) {
-    <g class="river">
+    <g class="river" clip-path="url(#land-clip)">
       <clipPath [attr.id]="r.clip">
         <path [attr.d]="r.water" />
         <circle [attr.cx]="r.spring.x" [attr.cy]="r.spring.y" [attr.r]="r.spring.r" />

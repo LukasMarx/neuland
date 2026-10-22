@@ -294,9 +294,12 @@ export class Board {
     });
   });
 
+  /** Umrisse aller Landfelder: Flüsse enden genau an der Küste und ragen nicht ins Meer. */
+  protected readonly landOutline = computed(() => this.hexes().filter((h) => !h.sea && !h.fog).map((h) => h.points));
+
   /**
-   * Flussläufe: je Fluss ein gewundener Lauf von der Quelle bis ins Meer, schmal an der Quelle und breit
-   * an der Mündung. Gezeichnet zwischen Gelände und Zahlen, mit Ufer, Schatten und Papierstruktur.
+   * Flussläufe: je Fluss ein gewundener Lauf von der Quelle bis zur Küste, schmal an der Quelle und als
+   * Trichter an der Mündung. Gezeichnet zwischen Gelände und Zahlen, mit Ufer, Schatten und Papierstruktur.
    */
   protected readonly riverShapes = computed(() =>
     (this.game().board.rivers ?? []).map((river, i) => {
@@ -603,13 +606,19 @@ function riverLine(topo: Topology, river: { hexes: number[]; edges: number[] }):
     }
   });
   const inland = points.length;
-  // Mündung: ein Stück hinaus aufs Meer, senkrecht zur Küste.
+  // Ein kurzes Stück über die Küste hinaus; das schneidet die Landmaske genau an der Küstenlinie ab.
   const last = points[points.length - 1];
   const c = center(river.hexes[river.hexes.length - 1]);
   const out = { x: last.x - c.x, y: last.y - c.y };
   const outLen = Math.hypot(out.x, out.y);
-  for (let k = 1; k <= 4; k++) points.push({ x: last.x + (out.x / outLen) * S * 0.12 * k, y: last.y + (out.y / outLen) * S * 0.12 * k });
-  const widths = points.map((_, i) => (i < inland ? 4.5 + 6.5 * (i / (inland - 1)) : 11 + (i - inland + 1) * 3));
+  for (let k = 1; k <= 2; k++) points.push({ x: last.x + (out.x / outLen) * S * 0.1 * k, y: last.y + (out.y / outLen) * S * 0.1 * k });
+  // Breite: schmal an der Quelle, langsam breiter, auf dem letzten Stück ein Trichter zum Meer hin.
+  const flare = Math.floor(STEPS * 0.6);
+  const widths = points.map((_, i) => {
+    const base = 4.5 + 6.5 * Math.min(1, i / (inland - 1));
+    const f = Math.max(0, (i - (inland - 1 - flare)) / flare);
+    return base + 14 * f * f;
+  });
   return { points, widths };
 }
 
