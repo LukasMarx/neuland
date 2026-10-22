@@ -416,6 +416,8 @@ kbd {
 // Dock: Hand, Bauen, Würfel
 
 .dock {
+  // Breite der Handkarten (Rohstoffe, Güter, Entwicklung, Einfluss); die Höhe folgt im Verhältnis 2:3.
+  --card-w: 92px;
   grid-area: dock;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -437,7 +439,7 @@ kbd {
 
 .hand {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-end;
   min-width: 0;
   // Platz über und rechts der Karten für die „+1“-Marken, sonst blendet ihr Aufsteigen kurz eine Scrollleiste ein.
@@ -456,7 +458,7 @@ kbd {
 .rcard {
   position: relative;
   flex: none;
-  width: 78px;
+  width: var(--card-w);
   transition:
     transform 0.15s,
     opacity 0.2s;
@@ -508,7 +510,7 @@ kbd {
 .dcard {
   position: relative;
   flex: none;
-  width: 78px;
+  width: var(--card-w);
 
   app-card-face {
     box-shadow: 0 6px 14px rgb(0 0 0 / 0.35);
@@ -1064,6 +1066,10 @@ kbd {
 // Schmale Bildschirme
 
 @media (max-width: 960px) {
+  .dock {
+    --card-w: 78px;
+  }
+
   .layout {
     grid-template-columns: 1fr;
     grid-template-rows: auto 62vh auto auto;
@@ -1168,8 +1174,9 @@ kbd {
   flex-direction: column;
   justify-content: space-between;
   gap: 6px;
-  width: 78px;
-  min-height: 108px;
+  // Einflusskarten tragen nur Text: etwas schmaler, gleich hoch wie die Bildkarten.
+  width: calc(var(--card-w) - 8px);
+  min-height: calc(var(--card-w) * 1.5);
   padding: 8px 6px 7px;
   border-radius: 8px;
   border: 0;
@@ -1190,13 +1197,18 @@ kbd {
   }
 
   b {
-    font-size: 0.78rem;
+    font-size: 0.85rem;
     line-height: 1.15;
     hyphens: manual;
   }
 
   &.ready:hover {
     transform: translateY(-4px);
+  }
+
+  // Wie eine aufgefächerte Hand leicht überlappend, damit auch vier Karten neben acht Bildkarten passen.
+  & + .pcard {
+    margin-left: -14px;
   }
 
   &.empty {

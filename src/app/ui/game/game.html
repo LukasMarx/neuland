@@ -239,7 +239,7 @@
     }
   </aside>
 
-  <section class="dock" [class.trading]="showTable() || offerView()" [class.wide]="cityWatch()">
+  <section class="dock" [class.trading]="showTable() || offerView()" [class.wide]="wideHand()">
     @if (showTable()) {
       <app-trade-table [game]="game" [seat]="seat()" [prefill]="tradePrefill()" (close)="closeTrade()" />
     } @else if (offerView()) {
