@@ -1,4 +1,4 @@
-import { actingSeats, applyAction, legalRobberHexes, legalRoadEdges, legalSetupRoads, legalSetupVertices, legalShipEdges, robberVictims } from './rules';
+import { actingSeats, applyAction, legalRobberHexes, legalRoadEdges, legalSetupRoads, legalSetupVertices, legalShipEdges, neutralSpots, robberVictims } from './rules';
 import { Action, emptyResources, GameState, RESOURCES } from './types';
 
 /**
@@ -55,6 +55,14 @@ export function autoAction(s: GameState, seat: number, random: () => number = Ma
       if (edge !== undefined) return { type: 'buildRoad', edge };
       const ship = pick(legalShipEdges(s, seat));
       return ship === undefined ? null : { type: 'buildShip', edge: ship };
+    }
+    case 'neutral': {
+      // Duell: irgendein erlaubter Platz für irgendeinen Neutralen.
+      const options = neutralSpots(s, phase.piece).filter((n) => n.spots.length);
+      const choice = pick(options);
+      if (!choice) return null;
+      const spot = pick(choice.spots)!;
+      return phase.piece === 'road' ? { type: 'placeNeutral', owner: choice.owner, edge: spot } : { type: 'placeNeutral', owner: choice.owner, vertex: spot };
     }
     case 'main':
     case 'specialBuild':

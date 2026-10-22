@@ -1,6 +1,6 @@
 import { generateBoard, getTopology, placeFishingGrounds, vertexHarbors } from './board';
 import { mapById, mapFits } from './maps';
-import { DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, HARBOR_MASTER_POINTS, LAKE_NUMBERS, VariantId } from './variants';
+import { DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, HARBOR_MASTER_POINTS, LAKE_NUMBERS, NEUTRALS, VariantId } from './variants';
 import { randomInt, RngState, shuffle } from './rng';
 import {
   Action,
@@ -22,6 +22,7 @@ import {
   ResourceCounts,
   ReturnPhase,
   Terrain,
+  TokenEffect,
   totalResources,
   TransferPoint,
 } from './types';
@@ -49,6 +50,7 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
   if (players.length < 2 || players.length > 6) fail('Es werden 2 bis 6 Spieler benötigt.');
   const map = mapById(settings.map);
   if (!mapFits(map, players.length)) fail(`${map.name} ist für ${map.players[0]}–${map.players[1]} Spieler.`);
+  if (settings.variants?.includes('duell') && players.length !== 2) fail('Das Duell ist nur für zwei Spieler.');
   const rng: RngState = { rng: seed | 0 };
   const { board, robber, bank: bankSize, pirate, fog } = generateBoard(map.id, players.length, rng);
   const topo = getTopology(board);
@@ -109,6 +111,7 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
     state.islandBonus = state.players.map(() => 0);
     if (fog) state.fog = fog;
   }
+  if (hasVariant(state, 'duell')) setUpDuel(state);
   if (hasVariant(state, 'wuerfelstapel')) state.diceDeck = { ...DICE_DECK };
   if (hasVariant(state, 'fischgruende')) setUpFishing(state);
   log(state, null, `Spiel gestartet mit ${n} Spielern. ${seated[0].name} beginnt mit der Aufbauphase.`);
@@ -137,9 +140,11 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (phase.kind !== 'setup' || phase.step !== 'settlement') fail('Jetzt wird keine Siedlung gesetzt.');
     if (phase.order[phase.index] !== seat) fail('Du bist nicht dran.');
     if (!legalSetupVertices(s).includes(vertex)) fail('Hier darf keine Siedlung stehen.');
-    s.buildings[vertex] = { owner: seat, type: 'settlement' };
-    const secondRound = phase.index >= s.players.length;
-    let text = `${name(s, seat)} setzt eine Siedlung.`;
+    const owner = phase.owners?.[phase.index] ?? seat;
+    s.buildings[vertex] = { owner, type: 'settlement' };
+    const humans = humanCount(s);
+    const secondRound = owner === seat && phase.index >= humans && phase.index < 2 * humans;
+    let text = owner === seat ? `${name(s, seat)} setzt eine Siedlung.` : `${name(s, seat)} setzt eine Siedlung für ${name(s, owner)}.`;
     if (secondRound) {
       const gained = emptyResources();
       for (const h of getTopology(s.board).vertices[vertex].hexes) {
@@ -169,9 +174,10 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (!e || s.roads[edge] !== null) fail('Hier ist kein Platz für eine Straße.');
     if (e.a !== phase.settlement && e.b !== phase.settlement) fail('Die Straße muss an deine neue Siedlung grenzen.');
     if (!edgeTouchesLand(s, edge)) fail('Straßen liegen an Land.');
-    s.roads[edge] = seat;
+    const owner = phase.owners?.[phase.index] ?? seat;
+    s.roads[edge] = owner;
     updateLongestRoad(s);
-    log(s, seat, `${name(s, seat)} baut eine Straße.`);
+    log(s, seat, owner === seat ? `${name(s, seat)} baut eine Straße.` : `${name(s, seat)} baut eine Straße für ${name(s, owner)}.`);
     revealFog(s, seat, edge);
     const index = phase.index + 1;
     if (index >= phase.order.length) {
@@ -290,6 +296,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     updateLongestRoad(s);
     log(s, seat, `${name(s, seat)} baut eine Straße.`);
     revealFog(s, seat, edge);
+    startNeutralStep(s, 'road');
   },
 
   buildSettlement(s, seat, { vertex }) {
@@ -307,6 +314,8 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
       s.islandBonus![seat] += bonus;
       if (bonus) log(s, seat, `${name(s, seat)} besiedelt eine neue Insel und bekommt ${bonus} Siegpunkte.`);
     }
+    if (s.tokens) gainTokens(s, seat, vertex);
+    startNeutralStep(s, 'settlement');
   },
 
   buildCity(s, seat, { vertex }) {
@@ -335,6 +344,10 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     const returnTo = playDevCard(s, seat, 'knight');
     const player = s.players[seat];
     player.knights++;
+    if (s.tokens) {
+      s.tokens[seat]++;
+      log(s, seat, `${name(s, seat)} bekommt für den Ritter eine Handelsmarke.`);
+    }
     const holder = s.largestArmy;
     if (player.knights >= 3 && holder !== seat && (holder === null || player.knights > s.players[holder].knights)) {
       s.largestArmy = seat;
@@ -573,6 +586,62 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     log(s, seat, `${name(s, seat)} gibt den Rostigen Anker an ${name(s, to)} weiter.`);
   },
 
+  placeNeutral(s, seat, { owner, vertex, edge }) {
+    const phase = s.phase;
+    if (phase.kind !== 'neutral') fail('Gerade wird kein neutrales Teil gesetzt.');
+    if (seat !== s.current) fail('Du bist nicht dran.');
+    if (!s.players[owner]?.neutral) fail('Wähle einen neutralen Mitspieler.');
+    if (phase.piece === 'road') {
+      if (edge === undefined || piecesLeft(s, owner, 'road') <= 0 || !canBuildRoad(s, owner, edge)) fail(`Hier kann ${name(s, owner)} keine Straße bauen.`);
+      s.roads[edge] = owner;
+    } else {
+      if (vertex === undefined || piecesLeft(s, owner, 'settlement') <= 0 || !canBuildSettlement(s, owner, vertex)) {
+        fail(`Hier kann ${name(s, owner)} keine Siedlung bauen.`);
+      }
+      s.buildings[vertex] = { owner, type: 'settlement' };
+    }
+    updateLongestRoad(s);
+    log(s, seat, `${name(s, seat)} setzt ${phase.piece === 'road' ? 'eine Straße' : 'eine Siedlung'} für ${name(s, owner)}.`);
+    s.phase = { kind: 'main' };
+  },
+
+  spendTokens(s, seat, { effect, give }) {
+    if (!s.tokens) fail('In diesem Spiel gibt es keine Handelsmarken.');
+    requireTurn(s, seat, 'main');
+    const cost = tokenCost(s, seat);
+    if (s.tokens[seat] < cost) fail(`Dafür brauchst du ${cost === 1 ? 'eine Handelsmarke' : `${cost} Handelsmarken`}.`);
+    const opponent = opponentOf(s, seat);
+    if (effect === 'robber') {
+      const desert = s.board.hexes.findIndex((h) => h.terrain === 'desert');
+      if (desert < 0) fail('Auf diesem Brett gibt es keine Wüste.');
+      if (s.robber === desert) fail('Der Räuber steht schon in der Wüste.');
+      s.robber = desert;
+      log(s, seat, `${name(s, seat)} schickt den Räuber mit ${cost === 1 ? 'einer Handelsmarke' : `${cost} Handelsmarken`} in die Wüste.`);
+    } else if (effect === 'trade') {
+      if (!give) fail('Wähle 2 Karten, die du abgibst.');
+      validateCounts(give);
+      const giving = pick(give);
+      if (totalResources(giving) !== 2) fail('Wähle 2 Karten, die du abgibst.');
+      if (!hasResources(s.players[seat].resources, giving)) fail('So viele Karten hast du nicht.');
+      if (totalResources(s.players[opponent].resources) < 2) fail(`${name(s, opponent)} hat keine 2 Karten.`);
+      // Erst zwei zufällige Karten nehmen, dann die gewählten abgeben.
+      for (let i = 0; i < 2; i++) {
+        const pool = RESOURCES.flatMap((r) => Array<Resource>(s.players[opponent].resources[r]).fill(r));
+        const taken = pool[randomInt(s, pool.length)];
+        s.players[opponent].resources[taken]--;
+        s.players[seat].resources[taken]++;
+        s.transfers.push({ from: seatPoint(opponent), to: seatPoint(seat), card: taken, count: 1, hidden: true });
+      }
+      takeFrom(s.players[seat].resources, giving);
+      addTo(s.players[opponent].resources, giving);
+      transferAll(s, seatPoint(seat), seatPoint(opponent), giving);
+      log(s, seat, `${name(s, seat)} erzwingt einen Tausch: 2 Karten von ${name(s, opponent)} gegen ${formatResources(giving)}.`);
+    } else {
+      fail('Unbekannte Handelsmarken-Aktion.');
+    }
+    s.tokens[seat] -= cost;
+  },
+
   endTurn(s, seat) {
     const phase = s.phase;
     if (phase.kind === 'specialBuild') {
@@ -582,8 +651,8 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     }
     requireTurn(s, seat, 'main');
     s.offers = [];
-    if (s.players.length > 4) {
-      const n = s.players.length;
+    if (humanCount(s) > 4) {
+      const n = humanCount(s);
       const queue = Array.from({ length: n - 1 }, (_, i) => (s.current + 1 + i) % n);
       continueSpecialBuild(s, queue);
     } else {
@@ -766,7 +835,7 @@ function landRobberHexes(s: GameState): number[] {
   const others = s.board.hexes.map((_, id) => id).filter((id) => id !== s.robber && isLand(s.board.hexes[id].terrain));
   if (!hasVariant(s, 'milderRaeuber')) return others;
   const topo = getTopology(s.board);
-  const protectedSeat = s.players.map((_, seat) => victoryPoints(s, seat, false) <= 2);
+  const protectedSeat = s.players.map((p, seat) => !p.neutral && victoryPoints(s, seat, false) <= 2);
   const allowed = others.filter((id) => topo.hexes[id].corners.every((v) => !s.buildings[v] || !protectedSeat[s.buildings[v]!.owner]));
   if (allowed.length) return allowed;
   const deserts = others.filter((id) => s.board.hexes[id].terrain === 'desert');
@@ -781,7 +850,7 @@ export function harborPoints(s: GameState, seat: number): number {
 
 function updateHarborMaster(s: GameState): void {
   if (!hasVariant(s, 'hafenvogt')) return;
-  const points = s.players.map((_, seat) => harborPoints(s, seat));
+  const points = s.players.map((p, seat) => (p.neutral ? 0 : harborPoints(s, seat)));
   const holder = s.harborMaster ?? null;
   const max = Math.max(...points);
   let next = holder;
@@ -909,6 +978,72 @@ function revealFog(s: GameState, seat: number, edge: number): void {
   s.board = { ...s.board, hexes };
 }
 
+/** Spieler ohne die neutralen Mitspieler des Duells; die Neutralen sitzen immer hinten. */
+export function humanCount(s: GameState): number {
+  return s.players.filter((p) => !p.neutral).length;
+}
+
+export function neutralSeats(s: GameState): number[] {
+  return s.players.flatMap((p, seat) => (p.neutral ? [seat] : []));
+}
+
+/** Duell: zwei neutrale Mitspieler hinten anfügen; in der Aufstellung setzt jeder Spieler einen davon. */
+function setUpDuel(s: GameState): void {
+  const [a, b] = NEUTRALS.map((n, i) => {
+    s.players.push({ ...n, resources: emptyResources(), devCards: [], newDevCards: [], knights: 0, neutral: true });
+    s.roadLengths.push(0);
+    return 2 + i;
+  });
+  s.phase = { kind: 'setup', order: [0, 1, 1, 0, 1, 0], owners: [0, 1, 1, 0, a, b], index: 0, step: 'settlement', settlement: null };
+  s.tokens = s.players.map(() => 0);
+}
+
+function opponentOf(s: GameState, seat: number): number {
+  return s.players.findIndex((p, i) => i !== seat && !p.neutral);
+}
+
+/** Duell: Wer vorn liegt, zahlt zwei Handelsmarken, sonst eine. */
+export function tokenCost(s: GameState, seat: number): number {
+  return victoryPoints(s, seat, false) > victoryPoints(s, opponentOf(s, seat), false) ? 2 : 1;
+}
+
+export function canSpendTokens(s: GameState, seat: number, effect: TokenEffect): boolean {
+  if (!s.tokens || s.current !== seat || s.phase.kind !== 'main' || s.tokens[seat] < tokenCost(s, seat)) return false;
+  if (effect === 'robber') {
+    const desert = s.board.hexes.findIndex((h) => h.terrain === 'desert');
+    return desert >= 0 && s.robber !== desert;
+  }
+  return totalResources(s.players[seat].resources) >= 2 && totalResources(s.players[opponentOf(s, seat)].resources) >= 2;
+}
+
+/** Duell: Handelsmarken für eine Siedlung an der Küste und an der Wüste. */
+function gainTokens(s: GameState, seat: number, vertex: number): void {
+  const v = getTopology(s.board).vertices[vertex];
+  let gain = 0;
+  if (v.hexes.length < 3 || v.hexes.some((h) => !isLand(s.board.hexes[h].terrain))) gain++;
+  if (v.hexes.some((h) => s.board.hexes[h].terrain === 'desert')) gain++;
+  if (!gain) return;
+  s.tokens![seat] += gain;
+  log(s, seat, `${name(s, seat)} bekommt ${gain === 1 ? 'eine Handelsmarke' : `${gain} Handelsmarken`}.`);
+}
+
+/** Duell: erlaubte Plätze je neutralem Mitspieler für Straße oder Siedlung, mit Blick auf seinen Vorrat. */
+export function neutralSpots(s: GameState, piece: 'road' | 'settlement'): { owner: number; spots: number[] }[] {
+  return neutralSeats(s).map((owner) => ({
+    owner,
+    spots:
+      piecesLeft(s, owner, piece) <= 0 ? [] : piece === 'road' ? legalRoadEdges(s, owner) : legalSettlementVertices(s, owner),
+  }));
+}
+
+/** Duell: nach einem Bau ein Teil für einen Neutralen; geht keine Siedlung, dann eine Straße. */
+function startNeutralStep(s: GameState, piece: 'road' | 'settlement'): void {
+  if (!s.tokens || s.phase.kind !== 'main') return;
+  const possible = (p: 'road' | 'settlement') => neutralSpots(s, p).some((n) => n.spots.length > 0);
+  const next = possible(piece) ? piece : piece === 'settlement' && possible('road') ? 'road' : null;
+  if (next) s.phase = { kind: 'neutral', piece: next };
+}
+
 /** Siegziel eines Spielers: Wer den Rostigen Anker hat, braucht einen Punkt mehr. */
 export function victoryTarget(s: GameState, seat: number): number {
   return s.settings.victoryPoints + (s.anchor === seat ? 1 : 0);
@@ -931,7 +1066,7 @@ function catchFish(s: GameState, sum: number): void {
   const catches = s.players.map(() => 0);
   const credit = (v: number) => {
     const b = s.buildings[v];
-    if (b) catches[b.owner] += b.type === 'city' ? 2 : 1;
+    if (b && !s.players[b.owner].neutral) catches[b.owner] += b.type === 'city' ? 2 : 1;
   };
   for (const f of s.board.fishing ?? []) {
     if (f.number !== sum) continue;
@@ -1136,7 +1271,8 @@ function produce(s: GameState, sum: number): number[] {
     if (hex.number !== sum || id === s.robber || (!isResource(terrain) && terrain !== 'gold')) return;
     for (const v of topo.hexes[id].corners) {
       const b = s.buildings[v];
-      if (!b) continue;
+      // Neutrale Mitspieler sammeln nichts.
+      if (!b || s.players[b.owner].neutral) continue;
       const n = b.type === 'city' ? 2 : 1;
       if (terrain === 'gold') {
         gold[b.owner] += n;
@@ -1199,7 +1335,8 @@ function nextTurn(s: GameState): void {
     p.devCards.push(...p.newDevCards);
     p.newDevCards = [];
   }
-  s.current = (s.current + 1) % s.players.length;
+  // Neutrale Mitspieler sitzen hinten und sind nie am Zug.
+  s.current = (s.current + 1) % humanCount(s);
   s.turn++;
   s.dice = null;
   s.devPlayed = false;
@@ -1223,7 +1360,8 @@ function checkWinner(s: GameState): void {
 }
 
 function updateLongestRoad(s: GameState): void {
-  s.roadLengths = s.players.map((_, seat) => longestRoad(s, seat));
+  // Neutrale Straßen blockieren, zählen aber nicht für die längste Handelsstraße.
+  s.roadLengths = s.players.map((p, seat) => (p.neutral ? 0 : longestRoad(s, seat)));
   const max = Math.max(...s.roadLengths);
   const holder = s.longestRoad;
   let next: number | null;

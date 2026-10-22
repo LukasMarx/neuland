@@ -56,6 +56,8 @@ export interface PlayerState {
   /** Diese Runde gekauft, erst ab dem nächsten Zug spielbar. */
   newDevCards: DevCard[];
   knights: number;
+  /** Duell: neutraler Mitspieler, der nie am Zug ist; seine Teile setzen die echten Spieler. */
+  neutral?: boolean;
 }
 
 export interface TradeOffer {
@@ -73,7 +75,8 @@ export interface TradeOffer {
 export type ReturnPhase = 'roll' | 'main';
 
 export type Phase =
-  | { kind: 'setup'; order: number[]; index: number; step: 'settlement' | 'road'; settlement: number | null }
+  /** `owners[index]`: für wen gesetzt wird, falls nicht für sich selbst (Duell: Teile der Neutralen). */
+  | { kind: 'setup'; order: number[]; index: number; step: 'settlement' | 'road'; settlement: number | null; owners?: number[] }
   | { kind: 'roll' }
   /** pending[seat] = Anzahl Karten, die dieser Spieler noch abwerfen muss. */
   | { kind: 'discard'; pending: number[] }
@@ -84,6 +87,8 @@ export type Phase =
   | { kind: 'specialBuild'; queue: number[] }
   /** Goldfeld hat geliefert (Seewege): pending[seat] = Rohstoffe, die dieser Spieler noch wählt. */
   | { kind: 'gold'; pending: number[] }
+  /** Duell: Nach einem Bau setzt der Spieler ein Teil für einen neutralen Mitspieler. */
+  | { kind: 'neutral'; piece: 'road' | 'settlement' }
   | { kind: 'ended' };
 
 /** Wo eine Karte herkommt oder hingeht, für die Flug-Animation. */
@@ -170,7 +175,12 @@ export interface GameState {
   fish?: number[][];
   fishPool?: Record<string, number>;
   anchor?: number | null;
+  /** Duell: Handelsmarken je Sitz. */
+  tokens?: number[];
 }
+
+/** Duell: wofür man Handelsmarken ausgibt. */
+export type TokenEffect = 'trade' | 'robber';
 
 /** Was das Ausgeben von Fischen bringt (Fischgründe). */
 export type FishEffect = 'robber' | 'steal' | 'bank' | 'road' | 'devCard';
@@ -212,7 +222,10 @@ export type Action =
   | { type: 'chooseGold'; resources: ResourceCounts }
   /** Fischgründe */
   | { type: 'spendFish'; effect: FishEffect; victim?: number | null; resource?: Resource | null }
-  | { type: 'passAnchor'; to: number };
+  | { type: 'passAnchor'; to: number }
+  /** Duell */
+  | { type: 'placeNeutral'; owner: number; vertex?: number; edge?: number }
+  | { type: 'spendTokens'; effect: TokenEffect; give?: ResourceCounts };
 
 export const RESOURCE_NAMES: Record<Resource, string> = {
   wood: 'Holz',

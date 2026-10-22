@@ -1,5 +1,5 @@
 /** Kleine Varianten, in der Lobby zuschaltbar (docs/ERWEITUNGEN.md, Abschnitt 2.1). */
-export type VariantId = 'milderRaeuber' | 'hafenvogt' | 'wuerfelstapel' | 'fischgruende';
+export type VariantId = 'milderRaeuber' | 'hafenvogt' | 'wuerfelstapel' | 'fischgruende' | 'duell';
 
 export interface VariantDef {
   id: VariantId;
@@ -7,6 +7,8 @@ export interface VariantDef {
   description: string;
   /** Um so viele Punkte steigt das Siegziel, wenn die Variante an ist. */
   victoryPoints?: number;
+  /** Nur mit genau so vielen Spielern. */
+  players?: number;
 }
 
 export const VARIANTS: VariantDef[] = [
@@ -33,6 +35,19 @@ export const VARIANTS: VariantDef[] = [
     description:
       'Ein See statt Wüste und Fischgründe an der Küste. Fische bringen Räuber weg (2), eine Karte vom Gegner (3), einen Rohstoff (4), eine Straße (5) oder eine Entwicklung (7). Wer den Rostigen Anker hat, braucht einen Punkt mehr.',
   },
+  {
+    id: 'duell',
+    name: 'Duell',
+    players: 2,
+    description:
+      'Für zwei: Zwei neutrale Mitspieler blockieren. Wer eine Straße oder Siedlung baut, setzt auch eine für einen Neutralen. Handelsmarken (Küste, Wüste, Ritter) erzwingen einen Tausch oder schicken den Räuber in die Wüste; der Führende zahlt doppelt.',
+  },
+];
+
+/** Duell: die beiden neutralen Mitspieler. */
+export const NEUTRALS = [
+  { id: 'neutral-1', name: 'Neutral 1', color: '#9aa1a8' },
+  { id: 'neutral-2', name: 'Neutral 2', color: '#5d646c' },
 ];
 
 /** Fischplättchen im Stapel: Werte 1 bis 3 und der Rostige Anker. */

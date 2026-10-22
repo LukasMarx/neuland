@@ -134,7 +134,7 @@ export class OfferPanel {
     const offer = this.offer();
     if (!offer) return [];
     return g.players.flatMap((p, seat) => {
-      if (seat === this.seat() || seat === g.current) return [];
+      if (seat === this.seat() || seat === g.current || p.neutral) return [];
       const state = g.offers.some((o) => o.counter && o.from === seat)
         ? 'counter'
         : offer.accepted.includes(seat)

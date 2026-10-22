@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, InjectionToken, isDevMode, signal } from '@angular/core';
 import * as engine from '../engine';
-import { Action, applyAction, autoAction, createGame, GameSettings, GameState, RuleError } from '../engine';
+import { Action, applyAction, autoAction, createGame, GameSettings, GameState, RuleError, VARIANTS } from '../engine';
 import { LocalTransport } from './local-transport';
 import {
   compareRank,
@@ -263,6 +263,11 @@ export class RoomService {
       this.showNotice('Es sind weniger als zwei Spieler verbunden.');
       return;
     }
+    const fixed = VARIANTS.find((v) => v.players && room.settings.variants?.includes(v.id) && v.players !== present.length);
+    if (fixed) {
+      this.showNotice(`${fixed.name} ist nur für ${fixed.players} Spieler.`);
+      return;
+    }
     const gone = room.players.filter((p) => !present.includes(p));
     if (gone.length) this.showNotice(`Ohne ${gone.map((p) => p.name).join(', ')} gestartet, nicht verbunden.`);
     const players = present.map(({ id, name, color }) => ({ id, name, color }));
@@ -478,7 +483,8 @@ export class RoomService {
   private hasQuorum(window = PRESENCE_MS): boolean {
     const game = this.game();
     if (!game) return true;
-    const ids = game.players.map((p) => p.id);
+    // Neutrale Mitspieler (Duell) zählen nicht mit, sie sind nie verbunden.
+    const ids = game.players.filter((p) => !p.neutral).map((p) => p.id);
     const reachable = (id: string) => id === this.clientId || this.isConnectedId(id, window);
     const n = ids.filter(reachable).length;
     return 2 * n > ids.length || (2 * n === ids.length && reachable(ids[0]));

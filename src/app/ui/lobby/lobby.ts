@@ -139,6 +139,8 @@ import { MapThumb } from './map-thumb';
                 <p class="muted small">Mindestens 2 Spieler nötig. Schick den Link herum!</p>
               } @else if (!fitsNow(map())) {
                 <p class="muted small">{{ map().name }} ist für {{ map().players[0] }}–{{ map().players[1] }} Spieler, gerade sind {{ present() }} da.</p>
+              } @else if (variantMismatch(); as v) {
+                <p class="muted small">{{ v.name }} ist nur für {{ v.players }} Spieler, gerade sind {{ present() }} da.</p>
               }
             } @else {
               <p class="muted">Warte darauf, dass der Gastgeber das Spiel startet …</p>
@@ -337,7 +339,13 @@ export class Lobby {
   /** Gestartet wird mit allen, die verbunden sind; wer die Lobby verlassen hat, bleibt draußen. */
   protected readonly canStart = computed(() => {
     const n = this.present();
-    return n >= 2 && n <= MAX_PLAYERS && this.fitsNow(this.map());
+    return n >= 2 && n <= MAX_PLAYERS && this.fitsNow(this.map()) && !this.variantMismatch();
+  });
+
+  /** Eine Variante, die eine feste Spielerzahl verlangt (Duell), passt gerade nicht. */
+  protected readonly variantMismatch = computed(() => {
+    const n = this.present();
+    return VARIANTS.find((v) => v.players && this.variantOn(v) && v.players !== n) ?? null;
   });
 
   protected fitsNow(map: MapDef): boolean {

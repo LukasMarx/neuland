@@ -227,7 +227,7 @@ export class TradeTable implements OnInit {
     const offer = this.myOffer();
     if (!this.mine()) return [];
     return g.players.flatMap((p, seat): Answer[] => {
-      if (seat === this.seat()) return [];
+      if (seat === this.seat() || p.neutral) return [];
       const counter = g.offers.find((o) => o.counter && o.from === seat);
       const base = { seat, name: p.name, color: p.color };
       if (counter) {

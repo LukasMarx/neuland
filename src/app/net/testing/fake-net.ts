@@ -305,6 +305,7 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
     }
     case 'roadBuilding':
     case 'gold':
+    case 'neutral':
       return { seat, action: autoAction(g, seat, random)! };
     case 'specialBuild':
       return { seat, action: { type: 'endTurn' } };
@@ -323,6 +324,18 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
               ({ type: 'spendFish', effect, victim: pick(g.players.map((_, i) => i).filter((i) => i !== seat)), resource: pick([...RESOURCES]) }) as Action)
           : []),
         ...(g.anchor === seat ? g.players.map((_, to) => () => ({ type: 'passAnchor', to }) as Action) : []),
+        // Duell: Handelsmarken für Räuber oder erzwungenen Tausch.
+        ...(g.tokens?.[seat]
+          ? [
+              () => ({ type: 'spendTokens', effect: 'robber' }) as Action,
+              () => {
+                const hand = RESOURCES.flatMap((r) => Array(g.players[seat].resources[r]).fill(r) as string[]);
+                const give = emptyResources();
+                for (const r of hand.slice(0, 2)) give[r as keyof typeof give]++;
+                return { type: 'spendTokens', effect: 'trade', give } as Action;
+              },
+            ]
+          : []),
         ...movableShips(g, seat).map((from) => () => {
           const to = legalShipEdges({ ...g, ships: g.ships!.map((o, e) => (e === from ? null : o)) }, seat).filter((e) => e !== from);
           return to.length ? ({ type: 'moveShip', from, to: pick(to) } as Action) : null;

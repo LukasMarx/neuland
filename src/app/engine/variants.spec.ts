@@ -1,8 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import { botStep, seeded } from '../net/testing/fake-net';
 import { getTopology, vertexHarbors } from './board';
-import { applyAction, canSpendFish, createGame, fishTotal, harborPoints, legalRobberHexes, victoryPoints, victoryTarget } from './rules';
-import { COSTS, emptyResources, GameState } from './types';
+import {
+  actingSeats,
+  applyAction,
+  canBuildSettlement,
+  canSpendFish,
+  createGame,
+  fishTotal,
+  harborPoints,
+  legalRoadEdges,
+  legalRobberHexes,
+  legalSettlementVertices,
+  legalSetupRoads,
+  legalSetupVertices,
+  tokenCost,
+  victoryPoints,
+  victoryTarget,
+} from './rules';
+import { COSTS, emptyResources, GameState, totalResources } from './types';
 import { DICE_DECK, VariantId } from './variants';
 
 function game(variants: VariantId[], n = 3, seed = 1): GameState {
@@ -288,4 +304,152 @@ describe('Fischgründe im Spiel', () => {
       expect(spent).toBeGreaterThan(0);
     });
   }
+});
+
+describe('Duell für zwei', () => {
+  const two = () => Array.from({ length: 2 }, (_, i) => ({ id: `p${i}`, name: `S${i}`, color: `c${i}` }));
+  /** Aufstellung mit den jeweils ersten erlaubten Plätzen durchspielen. */
+  function afterSetup(seed = 1): GameState {
+    let s = createGame(two(), { victoryPoints: 10, variants: ['duell'] }, seed);
+    while (s.phase.kind === 'setup') {
+      const seat = actingSeats(s)[0];
+      const phase = s.phase;
+      s =
+        phase.step === 'settlement'
+          ? applyAction(s, seat, { type: 'placeSettlement', vertex: legalSetupVertices(s)[(phase.index * 7) % legalSetupVertices(s).length] })
+          : applyAction(s, seat, { type: 'placeRoad', edge: legalSetupRoads(s)[0] });
+    }
+    return structuredClone(s);
+  }
+
+  it('nur zu zweit; zwei neutrale Mitspieler sitzen hinten und bekommen in der Aufstellung je eine Siedlung', () => {
+    const three = Array.from({ length: 3 }, (_, i) => ({ id: `p${i}`, name: `S${i}`, color: `c${i}` }));
+    expect(() => createGame(three, { victoryPoints: 10, variants: ['duell'] }, 1)).toThrow(/nur für zwei/);
+    const s = afterSetup();
+    expect(s.players.map((p) => !!p.neutral)).toEqual([false, false, true, true]);
+    expect(s.buildings.filter((b) => b?.owner === 2)).toHaveLength(1);
+    expect(s.buildings.filter((b) => b?.owner === 3)).toHaveLength(1);
+    expect(s.roads.filter((r) => r === 2)).toHaveLength(1);
+    expect(s.buildings.filter((b) => b?.owner === 0)).toHaveLength(2);
+    // Startrohstoffe nur für die zweite eigene Siedlung, die Neutralen bekommen nichts.
+    expect(totalResources(s.players[2].resources) + totalResources(s.players[3].resources)).toBe(0);
+    expect(totalResources(s.players[0].resources) + totalResources(s.players[1].resources)).toBeGreaterThan(0);
+    expect(s.phase.kind).toBe('roll');
+    expect(s.current).toBe(0);
+  });
+
+  it('die Neutralen sind nie am Zug', () => {
+    let s = afterSetup();
+    s.phase = { kind: 'main' };
+    s = applyAction(s, 0, { type: 'endTurn' });
+    expect(s.current).toBe(1);
+    s = structuredClone(s);
+    s.phase = { kind: 'main' };
+    s = applyAction(s, 1, { type: 'endTurn' });
+    expect(s.current).toBe(0);
+  });
+
+  it('nach Straße und Siedlung setzt der Spieler ein Teil für einen Neutralen', () => {
+    const s = afterSetup();
+    s.phase = { kind: 'main' };
+    const road = legalRoadEdges(s, 0)[0];
+    s.players[0].resources = { ...emptyResources(), wood: 5, brick: 5, sheep: 5, wheat: 5 };
+    let n = applyAction(s, 0, { type: 'buildRoad', edge: road });
+    expect(n.phase).toEqual({ kind: 'neutral', piece: 'road' });
+    expect(() => applyAction(n, 0, { type: 'endTurn' })).toThrow();
+    expect(() => applyAction(n, 0, { type: 'placeNeutral', owner: 1, edge: legalRoadEdges(n, 1)[0] })).toThrow(/neutralen/);
+    expect(() => applyAction(n, 1, { type: 'placeNeutral', owner: 2, edge: legalRoadEdges(n, 2)[0] })).toThrow(/nicht dran/);
+    const neutralRoad = legalRoadEdges(n, 2)[0];
+    n = applyAction(n, 0, { type: 'placeNeutral', owner: 2, edge: neutralRoad });
+    expect(n.roads[neutralRoad]).toBe(2);
+    expect(n.phase.kind).toBe('main');
+    // Keine Siedlung möglich für die Neutralen: dann eine Straße.
+    const t = getTopology(n.board);
+    const spot = t.vertices.find((v) => canBuildSettlement(n, 0, v.id));
+    if (spot) {
+      const m = applyAction(n, 0, { type: 'buildSettlement', vertex: spot.id });
+      const expected = legalSettlementVertices(m, 2).length + legalSettlementVertices(m, 3).length ? 'settlement' : 'road';
+      expect(m.phase).toEqual({ kind: 'neutral', piece: expected });
+    }
+  });
+
+  it('Neutrale ernten nichts und halten nie die längste Handelsstraße', () => {
+    const s = afterSetup();
+    const t = getTopology(s.board);
+    const hex = t.hexes.find((h) => s.board.hexes[h.id].number && h.id !== s.robber)!;
+    s.buildings = s.buildings.map(() => null);
+    s.buildings[hex.corners[0]] = { owner: 2, type: 'city' };
+    s.phase = { kind: 'roll' };
+    for (let seed = 1; ; seed++) {
+      const n = applyAction({ ...s, rng: seed }, 0, { type: 'roll' });
+      if (n.dice![0] + n.dice![1] !== s.board.hexes[hex.id].number) continue;
+      expect(n.players[2].resources).toEqual(emptyResources());
+      break;
+    }
+    // Eine lange neutrale Straße zählt nicht.
+    const m = structuredClone(s);
+    m.roads = m.roads.map(() => null);
+    m.buildings[hex.corners[0]] = null;
+    for (const e of t.hexes[0].edges) m.roads[e] = 3;
+    m.phase = { kind: 'neutral', piece: 'road' };
+    m.current = 0;
+    const n = applyAction(m, 0, { type: 'placeNeutral', owner: 3, edge: legalRoadEdges(m, 3)[0] });
+    expect(n.roadLengths[3]).toBe(0);
+    expect(n.longestRoad).toBeNull();
+  });
+
+  it('Handelsmarken für Küste, Wüste und Ritter; Räuber in die Wüste, der Führende zahlt doppelt', () => {
+    const s = afterSetup();
+    const t = getTopology(s.board);
+    const desert = s.board.hexes.findIndex((h) => h.terrain === 'desert');
+    s.buildings = s.buildings.map(() => null);
+    s.roads = s.roads.map(() => null);
+    const coastDesert = t.hexes[desert].corners.find((v) => t.vertices[v].hexes.length < 3);
+    const spot = coastDesert ?? t.hexes[desert].corners[0];
+    const e = t.vertices[spot].edges[0];
+    s.roads[e] = 0;
+    s.phase = { kind: 'main' };
+    s.players[0].resources = { ...emptyResources(), ...COSTS.settlement };
+    let n = applyAction(s, 0, { type: 'buildSettlement', vertex: spot });
+    expect(n.tokens![0]).toBe(coastDesert !== undefined ? 2 : 1);
+    n = structuredClone(n);
+    n.phase = { kind: 'main' };
+    n.robber = (desert + 1) % n.board.hexes.length;
+    n.tokens![0] = 2;
+    // Spieler 0 führt (1 Punkt gegen 0): kostet 2.
+    expect(tokenCost(n, 0)).toBe(2);
+    const moved = applyAction(n, 0, { type: 'spendTokens', effect: 'robber' });
+    expect(moved.robber).toBe(desert);
+    expect(moved.tokens![0]).toBe(0);
+    expect(() => applyAction(moved, 0, { type: 'spendTokens', effect: 'robber' })).toThrow(/Handelsmarke/);
+    const k = structuredClone(n);
+    k.players[0].devCards = ['knight'];
+    expect(applyAction(k, 0, { type: 'playKnight' }).tokens![0]).toBe(3);
+  });
+
+  it('erzwungener Tausch: zwei zufällige Karten gegen zwei gewählte', () => {
+    const s = afterSetup();
+    s.phase = { kind: 'main' };
+    s.tokens![0] = 1;
+    s.players[0].resources = { ...emptyResources(), ore: 2 };
+    s.players[1].resources = { ...emptyResources(), wood: 3 };
+    s.buildings = s.buildings.map(() => null);
+    const n = applyAction(s, 0, { type: 'spendTokens', effect: 'trade', give: { ...emptyResources(), ore: 2 } });
+    expect(n.players[0].resources).toEqual({ ...emptyResources(), wood: 2 });
+    expect(n.players[1].resources).toEqual({ ...emptyResources(), wood: 1, ore: 2 });
+    expect(n.tokens![0]).toBe(0);
+    expect(() => applyAction(s, 0, { type: 'spendTokens', effect: 'trade', give: { ...emptyResources(), ore: 1 } })).toThrow(/2 Karten/);
+  });
+
+  it('3000 Züge ohne Regelfehler, die Neutralen bauen mit', { timeout: 120000 }, () => {
+    const random = seeded(77);
+    let s = createGame(two(), { victoryPoints: 12, variants: ['duell'] }, 5);
+    for (let step = 0; step < 3000 && s.phase.kind !== 'ended'; step++) {
+      const next = botStep(s, random);
+      expect(next).not.toBeNull();
+      expect(s.players[next!.seat].neutral).toBeFalsy();
+      s = applyAction(s, next!.seat, next!.action);
+    }
+    expect(s.roads.filter((r) => r === 2 || r === 3).length).toBeGreaterThan(3);
+  });
 });

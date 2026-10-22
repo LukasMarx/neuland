@@ -22,7 +22,8 @@
           (keydown.enter)="toggleInfo(p.seat, $any($event))"
           [attr.data-seat]="p.seat"
           [class.active]="p.active"
-          [class.offline]="!p.online"
+          [class.neutral]="p.neutral"
+          [class.offline]="!p.online && !p.neutral"
           [style.--c]="p.color"
           [title]="p.dev + ' Entwicklungskarten · ' + p.knights + ' Ritter · längste Straße ' + p.road"
         >
@@ -34,7 +35,9 @@
           <span class="who">
             <b>{{ p.name }}@if (p.me) { <span class="me"> (du)</span>}</b>
             <small>
-              @if (!p.online) {
+              @if (p.neutral) {
+                neutral
+              } @else if (!p.online) {
                 getrennt
               } @else if (p.active) {
                 am Zug
@@ -122,12 +125,25 @@
       [hexTargets]="targets().hexes"
       [highlightNumber]="highlightNumber()"
       [ghost]="ghost()"
-      [ghostColor]="myColor()"
+      [ghostColor]="ghostTint()"
       [edgeGhost]="edgeGhost()"
       (vertexPick)="onVertex($event)"
       (edgePick)="onEdge($event)"
       (hexPick)="onHex($event)"
     />
+
+    @if (neutralChoice(); as nc) {
+      @if (nc.options.length > 1) {
+        <div class="board-hint">
+          Für:
+          @for (o of nc.options; track o.owner) {
+            <button class="small" [class.primary]="o.owner === nc.active.owner" (click)="neutralOwner.set(o.owner)">
+              <span class="color-dot" [style.background]="game.players[o.owner].color"></span> {{ game.players[o.owner].name }}
+            </button>
+          }
+        </div>
+      }
+    }
 
     @if (buildMode(); as mode) {
       <div class="board-hint">
@@ -214,6 +230,14 @@
               </app-card-face>
             </div>
           }
+        }
+        @if (myTokens() !== null) {
+          <span class="divider"></span>
+          <button class="fish-stack tokens" title="Handelsmarken: Tausch erzwingen oder Räuber in die Wüste" (click)="openTokens()">
+            <span class="token-icon" aria-hidden="true">◈</span>
+            <b>{{ myTokens() }}</b>
+            <small>Marken</small>
+          </button>
         }
         @if (fishing()) {
           <span class="divider"></span>
@@ -453,6 +477,34 @@
           <button (click)="dialog.set(null)">Abbrechen</button>
           <button class="primary" [disabled]="total(plentyPick()) !== 2" (click)="confirmPlenty()">Nehmen</button>
         </div>
+      </div>
+    </div>
+  }
+  @case ('tokens') {
+    <div class="modal-backdrop" (click)="dialog.set(null)">
+      <div class="modal" (click)="$event.stopPropagation()">
+        @if ($any(dialog()).step === 'trade') {
+          <h3>Tausch erzwingen: Welche 2 Karten gibst du ab?</h3>
+          <p class="muted">Du nimmst zuerst 2 zufällige Karten vom Gegner, dann gehen diese beiden an ihn.</p>
+          @if (me(); as self) {
+            <app-resource-picker [(value)]="tokenPick" [max]="self.resources" [total]="2" />
+          }
+          <div class="row end mt">
+            <button (click)="dialog.set(null)">Abbrechen</button>
+            <button class="primary" [disabled]="total(tokenPick()) !== 2" (click)="confirmTokenTrade()">Tauschen</button>
+          </div>
+        } @else {
+          <h3>Handelsmarken ausgeben</h3>
+          <p class="muted">Du hast {{ myTokens() }}. Wer mehr Punkte hat als der Gegner, zahlt 2 Marken, sonst 1. Marken gibt es für Siedlungen an Küste und Wüste und für jeden gespielten Ritter.</p>
+          <div class="choice-list">
+            @for (o of tokenOptions(); track o.effect) {
+              <button [disabled]="!o.enabled" (click)="spendTokens(o.effect)"><b class="fish-cost">{{ o.cost }}</b> {{ o.label }}</button>
+            }
+          </div>
+          <div class="row end mt">
+            <button (click)="dialog.set(null)">Schließen</button>
+          </div>
+        }
       </div>
     </div>
   }

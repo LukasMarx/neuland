@@ -19,6 +19,7 @@ import {
   legalRobberHexes,
   legalShipEdges,
   movableShips,
+  neutralSpots,
   legalSetupVertices,
   mapById,
   VARIANTS,
@@ -28,6 +29,9 @@ import {
   Resource,
   ResourceCounts,
   robberVictims,
+  canSpendTokens,
+  TokenEffect,
+  tokenCost,
   totalResources,
   victoryPoints,
   victoryTarget,
@@ -53,7 +57,8 @@ type Dialog =
   | { kind: 'yearOfPlenty' }
   | { kind: 'monopoly' }
   | { kind: 'victim'; hex: number; victims: number[] }
-  | { kind: 'fish'; step: 'menu' | 'steal' | 'bank' };
+  | { kind: 'fish'; step: 'menu' | 'steal' | 'bank' }
+  | { kind: 'tokens'; step: 'menu' | 'trade' };
 
 const FISH_EFFECTS: { effect: FishEffect; label: string }[] = [
   { effect: 'robber', label: 'Räuber vom Brett nehmen' },
@@ -167,6 +172,41 @@ export class GameView {
   );
   protected readonly discardPick = signal<ResourceCounts>(emptyResources());
   protected readonly plentyPick = signal<ResourceCounts>(emptyResources());
+  protected readonly tokenPick = signal<ResourceCounts>(emptyResources());
+
+  /** Duell: für welchen Neutralen gesetzt wird; ohne Wahl der erste mit freiem Platz. */
+  protected readonly neutralOwner = signal<number | null>(null);
+  protected readonly neutralChoice = computed(() => {
+    const g = this.g();
+    const phase = g.phase;
+    if (phase.kind !== 'neutral' || !this.isCurrent()) return null;
+    const options = neutralSpots(g, phase.piece).filter((n) => n.spots.length);
+    const active = options.find((n) => n.owner === this.neutralOwner()) ?? options[0];
+    return active ? { piece: phase.piece, options, active } : null;
+  });
+
+  /** Farbe der Bauvorschau: beim Setzen für einen Neutralen dessen Farbe. */
+  protected readonly ghostTint = computed(() => {
+    const g = this.g();
+    const phase = g.phase;
+    if (phase.kind === 'setup') return g.players[phase.owners?.[phase.index] ?? phase.order[phase.index]]?.color ?? this.myColor();
+    const nc = this.neutralChoice();
+    return nc ? g.players[nc.active.owner].color : this.myColor();
+  });
+
+  /** Duell: Handelsmarken und was sie gerade kosten. */
+  protected readonly myTokens = computed(() => this.g().tokens?.[this.seat()] ?? null);
+  protected readonly tokenOptions = computed(() => {
+    const g = this.g();
+    const seat = this.seat();
+    if (!g.tokens || seat < 0) return [];
+    const cost = tokenCost(g, seat);
+    const options: { effect: TokenEffect; label: string }[] = [
+      { effect: 'trade', label: 'Tausch erzwingen: 2 zufällige Karten vom Gegner gegen 2 deiner Wahl' },
+      { effect: 'robber', label: 'Räuber zurück in die Wüste' },
+    ];
+    return options.map((o) => ({ ...o, cost, enabled: canSpendTokens(g, seat, o.effect) }));
+  });
   protected readonly highlightNumber = signal<number | null>(null);
   /** Ereignis-Banner laufen nacheinander, das vorderste ist sichtbar. */
   private readonly bannerQueue = signal<BannerEvent[]>([]);
@@ -279,6 +319,11 @@ export class GameView {
       return { ...none, hexes: legalRobberHexes(g) };
     }
     if (phase.kind === 'roadBuilding') return { ...none, edges: [...legalRoadEdges(g, seat), ...legalShipEdges(g, seat)] };
+    if (phase.kind === 'neutral') {
+      const nc = this.neutralChoice();
+      if (!nc) return none;
+      return phase.piece === 'road' ? { ...none, edges: nc.active.spots } : { ...none, vertices: nc.active.spots };
+    }
     switch (this.buildMode()) {
       case 'road':
         return { ...none, edges: legalRoadEdges(g, seat) };
@@ -301,6 +346,7 @@ export class GameView {
   protected readonly ghost = computed(() => {
     const phase = this.g().phase;
     if (phase.kind === 'setup' && phase.step === 'settlement') return 'settlement';
+    if (phase.kind === 'neutral' && phase.piece === 'settlement') return 'settlement';
     const mode = this.buildMode();
     return mode === 'settlement' || mode === 'city' ? mode : null;
   });
@@ -313,9 +359,12 @@ export class GameView {
     switch (phase.kind) {
       case 'setup': {
         const who = phase.order[phase.index];
-        const round = phase.index < g.players.length ? 1 : 2;
-        const what = phase.step === 'settlement' ? 'eine Siedlung' : 'eine Straße';
-        return mine ? `Aufbau ${round}/2: Setze ${what}` : `Aufbau ${round}/2: ${name(who)} setzt ${what}`;
+        const humans = g.players.filter((p) => !p.neutral).length;
+        const rounds = phase.owners ? 3 : 2;
+        const round = phase.index < humans ? 1 : phase.index < 2 * humans ? 2 : 3;
+        const owner = phase.owners?.[phase.index] ?? who;
+        const what = (phase.step === 'settlement' ? 'eine Siedlung' : 'eine Straße') + (owner !== who ? ` für ${name(owner)}` : '');
+        return mine ? `Aufbau ${round}/${rounds}: Setze ${what}` : `Aufbau ${round}/${rounds}: ${name(who)} setzt ${what}`;
       }
       case 'roll':
         return mine ? 'Du bist dran: Würfeln!' : `${name(g.current)} würfelt …`;
@@ -343,6 +392,11 @@ export class GameView {
           : `${name(g.current)} baut kostenlose Straßen`;
       case 'specialBuild':
         return mine ? 'Sonderbauphase: Du darfst bauen' : `Sonderbauphase: ${name(phase.queue[0])} baut`;
+      case 'neutral': {
+        const what = phase.piece === 'road' ? 'eine Straße' : 'eine Siedlung';
+        const nc = this.neutralChoice();
+        return mine && nc ? `Setze ${what} für ${name(nc.active.owner)}` : `${name(g.current)} setzt ${what} für einen Neutralen`;
+      }
       case 'ended':
         return g.winner !== null ? `${name(g.winner)} hat gewonnen!` : 'Spiel beendet';
     }
@@ -369,6 +423,7 @@ export class GameView {
         setup: 'Auf dem Brett platzieren',
         robber: 'Feld für den Räuber wählen',
         roadBuilding: 'Straßen auf dem Brett wählen',
+        neutral: 'Neutrales Teil setzen',
         discard: 'Karten abwerfen',
       };
       return { label: hint[phase] ?? 'Du bist dran', run: null };
@@ -393,6 +448,8 @@ export class GameView {
       largestArmy: g.largestArmy === seat,
       harborMaster: g.harborMaster === seat,
       anchor: g.anchor === seat,
+      neutral: !!p.neutral,
+      tokens: g.tokens?.[seat] ?? null,
       active: actingSeats(g).includes(seat),
       online: !!members.find((m) => m.id === p.id)?.peerId,
       me: seat === this.seat(),
@@ -741,7 +798,9 @@ export class GameView {
 
   protected onVertex(vertex: number): void {
     const g = this.g();
-    if (g.phase.kind === 'setup') this.room.act({ type: 'placeSettlement', vertex });
+    const nc = this.neutralChoice();
+    if (nc) this.room.act({ type: 'placeNeutral', owner: nc.active.owner, vertex });
+    else if (g.phase.kind === 'setup') this.room.act({ type: 'placeSettlement', vertex });
     else if (this.buildMode() === 'settlement') this.room.act({ type: 'buildSettlement', vertex });
     else if (this.buildMode() === 'city') this.room.act({ type: 'buildCity', vertex });
     this.buildMode.set(null);
@@ -758,6 +817,8 @@ export class GameView {
         return;
       }
       this.room.act({ type: 'moveShip', from, to: edge });
+    } else if (this.neutralChoice()) {
+      this.room.act({ type: 'placeNeutral', owner: this.neutralChoice()!.active.owner, edge });
     } else if (g.phase.kind === 'setup') {
       this.room.act({ type: 'placeRoad', edge });
     } else if (mode === 'ship' || (g.phase.kind === 'roadBuilding' && !legalRoadEdges(g, this.seat()).includes(edge))) {
@@ -815,6 +876,25 @@ export class GameView {
         this.dialog.set({ kind: 'monopoly' });
         break;
     }
+  }
+
+  protected openTokens(): void {
+    this.dialog.set({ kind: 'tokens', step: 'menu' });
+  }
+
+  protected spendTokens(effect: TokenEffect): void {
+    if (effect === 'trade') {
+      this.tokenPick.set(emptyResources());
+      this.dialog.set({ kind: 'tokens', step: 'trade' });
+      return;
+    }
+    this.room.act({ type: 'spendTokens', effect });
+    this.dialog.set(null);
+  }
+
+  protected confirmTokenTrade(): void {
+    this.room.act({ type: 'spendTokens', effect: 'trade', give: this.tokenPick() });
+    this.dialog.set(null);
   }
 
   protected openFish(): void {

@@ -135,6 +135,12 @@ kbd {
     opacity: 0.5;
   }
 
+  // Duell: neutrale Mitspieler schmal und gedämpft, sie sind nie am Zug.
+  &.neutral {
+    opacity: 0.7;
+    filter: saturate(0.4);
+  }
+
   cursor: pointer;
 
   &:hover,
@@ -792,6 +798,17 @@ kbd {
     top: 3px;
     right: 5px;
     font-size: 0.9rem;
+  }
+}
+
+.fish-stack.tokens {
+  background: #3b3322;
+  border-color: #8a6f3a;
+
+  .token-icon {
+    font-size: 1.4rem;
+    line-height: 1;
+    color: #d4b06a;
   }
 }
 
