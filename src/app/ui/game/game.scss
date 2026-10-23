@@ -812,13 +812,13 @@ kbd {
 .go {
   position: relative;
   overflow: hidden;
-  min-width: 170px;
-  // Lange Hinweise brechen um, statt die Hand aus dem Bild zu schieben.
-  max-width: 260px;
+  // Feste Breite: Sonst ändert jeder neue Text („Würfeln · 3“, „Zug beenden“, „Warte auf …“) die Breite der
+  // Spalte, und die Würfel darüber springen zur Seite. Lange Hinweise brechen in eine zweite Zeile um.
+  width: 230px;
   white-space: normal;
   line-height: 1.15;
   height: 50px;
-  padding: 0 22px;
+  padding: 0 16px;
   border-radius: 10px;
   font-size: 1rem;
 
