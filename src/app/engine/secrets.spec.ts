@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { botStep, seeded } from '../net/testing/fake-net';
-import { applyAction, createGame, DEV_DECK } from './rules';
+import { applyAction, createGame, devDeckFor } from './rules';
 import { rebuild, Secret, secretOf, viewFor } from './secrets';
 import { deckSize, DevCard, devCount, GameState, handSize, RESOURCES, totalResources } from './types';
 import { FISH_POOL, VariantId } from './variants';
@@ -23,7 +23,7 @@ const sorted = <T>(xs: T[]) => [...xs].sort();
 function expectConserved(s: GameState): void {
   for (const r of RESOURCES) expect(s.bank[r] + s.players.reduce((n, p) => n + p.resources[r], 0)).toBe(s.supply);
   const dev = [...s.devDeck, ...(s.playedDev ?? []), ...s.players.flatMap((p) => [...p.devCards, ...p.newDevCards])];
-  const initial = DEV_DECK[s.players.length > 4 ? 'ext' : 'base'];
+  const initial = devDeckFor(s.players.length);
   for (const c of Object.keys(initial) as DevCard[]) expect(dev.filter((x) => x === c)).toHaveLength(initial[c]);
   if (s.fish) {
     const held = s.fish.flat();

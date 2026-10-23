@@ -150,7 +150,7 @@ describe('Brettgenerierung', () => {
   }
 
   for (const map of MAPS) {
-    it(`${map.name}: jedes Brett hält die Regeln ein, bei jeder Spielerzahl`, () => {
+    it(`${map.name}: jedes Brett hält die Regeln ein, bei jeder Spielerzahl`, { timeout: 60000 }, () => {
       const red = (n: number | null) => n === 6 || n === 8;
       for (let players = map.players[0]; players <= map.players[1]; players++) {
         for (let seed = 1; seed <= 12; seed++) {

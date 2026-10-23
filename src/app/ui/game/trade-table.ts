@@ -128,9 +128,9 @@ interface Answer {
         <div class="buttons">
           @if (mine()) {
             <button [class.primary]="bank().ok" [disabled]="!bank().ok" (click)="bankTrade()">Mit der Bank tauschen</button>
-            <button [class.primary]="!bank().ok" [disabled]="!offerable()" (click)="offer()">Allen anbieten</button>
+            <button [class.primary]="!bank().ok && offerable()" [disabled]="!offerable()" (click)="offer()">Allen anbieten</button>
           } @else {
-            <button class="primary" [disabled]="!offerable()" (click)="offer()">Angebot an {{ targetName() }}</button>
+            <button [class.primary]="offerable()" [disabled]="!offerable()" (click)="offer()">Angebot an {{ targetName() }}</button>
           }
           <button [disabled]="!total(give()) && !total(want())" (click)="clear()">Leeren</button>
         </div>

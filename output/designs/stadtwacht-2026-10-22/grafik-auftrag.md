@@ -2,24 +2,31 @@
 
 ## Stand (22.10.2026)
 
-**Nachtrag 23.10.2026:** Alle Motive dieses Auftrags sind geliefert, einschließlich Stadtwacht III, Händler in zehn Spielerfarben und der vier optionalen Wächter-Aktionssymbole. [Neue Lieferung und Vorschau](../stadtwacht-2026-10-23/LIEFERUNG.md). Stadtwacht I/II und „Ausbau“ siehe [vorherige Lieferung](LIEFERUNG.md). Die Einbindung durch den Code-Agenten bleibt offen. Der folgende Absatz beschreibt den historischen Stand vor den Lieferungen.
+**Geliefert und eingebunden (22.10.2026):** Stadtwacht I und II und das Symbol „Ausbau“: Güterkarten und -symbole, Richtungssymbole (Ausbau-Tafel und Abzeichen der Prachtstadt), Prachtstadt, Palisade, Wächter in drei Stufen, Flotte, Ereigniswürfel, Ehrenschild, Banner „Angriff“. Übersicht und Dateizuordnung: [LIEFERUNG.md](LIEFERUNG.md).
 
-**Alles offen.** Dieser Auftrag ist neuer als die letzte Lieferung. Zuletzt dazugekommen: Symbol für den Knopf „Ausbau“ und (optional) Symbole für die Wächter-Aktionen. Im Spiel stehen Platzhalter: Güterkarten und -symbole als schlichte SVGs, Prachtstadt als Abzeichen, Palisade als Ring, Wächter als runde Marken, Flotte und Ereigniswürfel als einfache Formen. Neu dazu: Abschnitt Stadtwacht III (Einflusskarten). Im Spiel stehen dafür schlichte farbige Karten mit Namen.
+**Nachtrag 23.10.2026:** Auch Stadtwacht III, der Händler in zehn Spielerfarben und alle vier optionalen Wächter-Aktionssymbole sind als Originale und Web-Fassungen fertig. [Neue Lieferung und Vorschau](../stadtwacht-2026-10-23/LIEFERUNG.md).
+
+**Einbindung noch offen:** Stadtwacht III und die Wächter-Aktionssymbole sind geliefert; im Spiel stehen dafür weiterhin Platzhalter: Einflusskarten als farbige Karten mit Namen ohne Motiv, der Händler als Marke mit „H“.
 
 ## Worum es geht
 
-Neuland bekommt die Erweiterung **Stadtwacht** in drei Schritten. Der erste Schritt ist spielbar (in der Lobby „Stadtwacht (in Arbeit)“):
+Neuland hat die Erweiterung **Stadtwacht** (in der Lobby „Stadtwacht“). Sie besteht aus drei Teilen. Erstens:
 
 - **Güter:** Städte auf Wald, Weide und Gebirge liefern neben dem Rohstoff ein Gut: **Schriften** (Wald), **Stoff** (Weide) und **Silber** (Gebirge). Güter liegen auf der Hand wie Rohstoffe.
 - **Stadtausbau:** drei Richtungen mit je fünf Stufen: **Markt** (zahlt mit Stoff), **Rat** (Silber), **Gelehrte** (Schriften). Wer zuerst Stufe 4 erreicht, macht eine Stadt zur **Prachtstadt**.
 - **Palisade:** ein Ring unter einer Stadt, erhöht das Handkartenlimit.
 
-Der zweite Schritt ist ebenfalls spielbar:
+Zweitens:
 
 - **Ereigniswürfel:** ein dritter Würfel mit drei Schiffsseiten und drei Toren (gelb, blau, grün).
 - **Plündererflotte:** rückt bei jedem Schiff auf einer Leiste mit 7 Feldern vor und greift dann an.
 - **Wächter:** Figuren auf Ecken in drei Stufen (einfach, erfahren, mächtig), einsatzbereit oder ruhend.
 - **Ehrenschild:** 1 Siegpunkt für den stärksten Verteidiger.
+
+Drittens:
+
+- **Einflusskarten:** drei Stapel in den Farben der Ausbaurichtungen (gelb, blau, grün) mit je 18 Karten, 25 verschiedene Karten. Gezogen wird, wenn der Ereigniswürfel ein Tor zeigt.
+- **Händler:** eine Figur, die über eine Einflusskarte auf ein Feld kommt und ihrem Besitzer einen besseren Tausch bringt.
 
 Im Spiel stehen dafür Platzhalter: Güterkarten und -symbole als schlichte SVGs (`src/app/ui/shared/goods-art.ts`), die Prachtstadt als farbiges Abzeichen mit Anfangsbuchstaben, die Palisade als gestrichelter Ring. Gebraucht werden Grafiken im bestehenden **Papiercollage-Stil**. Regeln: `docs/ERWEITUNGEN.md`, Abschnitt 2.3.
 

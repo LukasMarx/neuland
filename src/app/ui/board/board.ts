@@ -9,8 +9,12 @@ import { pieceImage } from '../shared/piece-art';
 const S = 60;
 /** Größe der Gebäudegrafiken in Brett-Einheiten, gilt auch für die Bauvorschau. */
 const BUILDING_SIZE = { settlement: 40, city: 58 } as const;
+/** Stadtwacht: Prachtstadt etwas größer als die Stadt, Palisade als Ring darunter, Wächter kleiner als eine Siedlung. */
+const METROPOLIS_SIZE = 68;
+const WALL_SIZE = 84;
+const GUARD_SIZE = 36;
 /** Auf großen Brettern sind die Felder kleiner, Figuren und Marken werden dort größer gezeichnet. */
-const PIECE_SCALE = { base: 1, ext: 1.2 } as const;
+const PIECE_SCALE = { base: 1, ext: 1.2, big: 1.3 } as const;
 const MAX_PIECE_SCALE = 1.4;
 /** Wie weit Wasser und Häfen über die Küste hinausragen, in Feldradien. */
 const OCEAN_GROW = 0.8;
@@ -307,7 +311,7 @@ export class Board {
       const bridge = riverEdges.has(id);
       return [{
         id, ...this.edgeLine(id, 0.08), color: player.color, bridge,
-        image: pieceImage('road', player.color), title: `${player.name}: ${bridge ? 'Brücke' : 'Straße'}`,
+        image: pieceImage(bridge ? 'bridge' : 'road', player.color), title: `${player.name}: ${bridge ? 'Brücke' : 'Straße'}`,
       }];
     });
   });
@@ -403,7 +407,7 @@ export class Board {
     return { transform: `translate(${h.x * S},${h.y * S}) scale(${1.25 * this.k()})`, x: h.x * S, y: h.y * S, size: 54 * this.k() };
   });
 
-  /** Stadtwacht: Wächter auf Ecken, Stufe als Ringe, ruhende Wächter gedämpft. */
+  /** Stadtwacht: Wächter auf Ecken, eine Figur je Stufe; ruhende Wächter gedämpft. Ohne Bild Ringe als Ersatz. */
   protected readonly guards = computed(() => {
     const g = this.game();
     return (g.guards ?? []).flatMap((guard, id) => {
@@ -414,6 +418,7 @@ export class Board {
       return [{
         id, x: v.x * S, y: v.y * S, color: player.color, level: guard.level, active: guard.active,
         r: 11 * this.k(), rings: Array.from({ length: guard.level }, (_, i) => i),
+        image: pieceImage(`guard${guard.level}`, player.color), size: GUARD_SIZE * this.k(),
         title: `${player.name}: ${level} Wächter, ${guard.active ? 'einsatzbereit' : 'ruht'}`,
       }];
     });
@@ -425,15 +430,16 @@ export class Board {
       if (!b) return [];
       const v = this.topo().vertices[id];
       const player = g.players[b.owner];
-      // Stadtwacht: Palisade unter der Stadt, Prachtstadt mit einem Abzeichen in der Farbe der Richtung.
+      // Stadtwacht: Palisade unter der Stadt, Prachtstadt als eigene Figur mit dem Symbol der Richtung.
       const metro = TRACKS.find((t) => g.metropolis?.[t] === id) ?? null;
       const wall = g.walls?.includes(id) ?? false;
       const what = metro ? `Prachtstadt ${TRACK_NAMES[metro]}` : b.type === 'city' ? 'Stadt' : 'Siedlung';
       return [{
         id, x: v.x * S, y: v.y * S, city: b.type === 'city', color: player.color,
-        size: BUILDING_SIZE[b.type] * this.k(), image: pieceImage(b.type, player.color),
+        size: (metro ? METROPOLIS_SIZE : BUILDING_SIZE[b.type]) * this.k(),
+        image: pieceImage(metro ? 'metropolis' : b.type, player.color),
         title: `${player.name}: ${what}${wall ? ' mit Palisade' : ''}`,
-        wall, metro, metroLabel: metro ? TRACK_NAMES[metro][0] : '',
+        wall, wallSize: WALL_SIZE * this.k(), metro, metroLabel: metro ? TRACK_NAMES[metro][0] : '',
       }];
     });
   });

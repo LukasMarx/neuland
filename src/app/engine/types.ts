@@ -24,7 +24,7 @@ export type DevCard = 'knight' | 'roadBuilding' | 'yearOfPlenty' | 'monopoly' | 
 export type HarborType = Resource | 'any';
 
 /** Klassisches Brett: base = bis 4 Spieler (19 Felder), ext = 5–6 Spieler (30 Felder). */
-export type Layout = 'base' | 'ext';
+export type Layout = 'base' | 'ext' | 'big';
 
 export interface HexState {
   terrain: Terrain;

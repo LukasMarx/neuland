@@ -1,5 +1,4 @@
 import { Card, DevCard } from '../../engine';
-import { GOODS_CARD } from './goods-art';
 
 export type CardKind = Card | DevCard | 'back';
 
@@ -16,7 +15,10 @@ export const CARD_ART: Record<CardKind, string> = {
   monopoly: 'web/cards/symbolstark/monopoly.jpg',
   victoryPoint: 'web/cards/symbolstark/victoryPoint.jpg',
   back: 'web/cards/symbolstark/back.jpg',
-  ...GOODS_CARD,
+  // Stadtwacht: Güter. Silber heißt im Code `coin`, die Karte `silver`.
+  paper: 'web/cards/symbolstark/paper.jpg',
+  cloth: 'web/cards/symbolstark/cloth.jpg',
+  coin: 'web/cards/symbolstark/silver.jpg',
 };
 
 /** Große Fassungen (900 px) für die vergrößerte Kartenansicht, werden erst bei Bedarf geladen. */

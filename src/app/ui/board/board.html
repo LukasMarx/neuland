@@ -1,5 +1,10 @@
 <svg [attr.viewBox]="viewBox()" role="img" aria-label="Spielbrett">
-  <defs><g appTerrainDefs></g></defs>
+  <defs>
+    <g appTerrainDefs></g>
+    <!-- Palisade: hintere Hälfte des Rings hinter der Stadt, vordere davor. -->
+    <clipPath id="wall-back" clipPathUnits="objectBoundingBox"><rect width="1" height="0.5" /></clipPath>
+    <clipPath id="wall-front" clipPathUnits="objectBoundingBox"><rect y="0.5" width="1" height="0.5" /></clipPath>
+  </defs>
   <path class="ocean" [attr.d]="oceanPath()" fill="url(#g-ocean)" />
   <path class="ocean-texture" [attr.d]="oceanPath()" fill="url(#p-ocean-paper)" />
   <!-- Bewegtes Wasser: eine zweite, leicht durchsichtige Lage treibt langsam, an der Küste schäumt Brandung. -->
@@ -160,7 +165,7 @@
   @for (r of roads(); track r.id) {
     <g class="road" [class.bridge]="r.bridge" [attr.data-edge]="r.id">
       <title>{{ r.title }}</title>
-      @if (r.bridge) {
+      @if (r.bridge && !r.image) {
         <rect class="bridge-deck" [attr.transform]="r.transform" [attr.x]="-r.length / 2 - 3" [attr.y]="-r.height / 2 - 4" [attr.width]="r.length + 6" [attr.height]="r.height + 8" rx="3" />
       }
       @if (r.image) {
@@ -195,11 +200,15 @@
   @for (w of guards(); track w.id) {
     <g class="guard" [class.resting]="!w.active" [attr.data-vertex]="w.id" [attr.transform]="'translate(' + w.x + ',' + w.y + ')'">
       <title>{{ w.title }}</title>
-      <circle class="guard-base" [attr.r]="w.r" [attr.fill]="w.color" />
-      @for (i of w.rings; track i) {
-        <circle class="guard-ring" [attr.r]="w.r * (0.35 + 0.22 * i)" />
+      @if (w.image) {
+        <image class="piece-art" [attr.href]="w.image" [attr.x]="-w.size / 2" [attr.y]="-w.size * 0.62" [attr.width]="w.size" [attr.height]="w.size" />
+      } @else {
+        <circle class="guard-base" [attr.r]="w.r" [attr.fill]="w.color" />
+        @for (i of w.rings; track i) {
+          <circle class="guard-ring" [attr.r]="w.r * (0.35 + 0.22 * i)" />
+        }
+        <path class="guard-helm" [attr.d]="'M' + -w.r * 0.45 + ',' + -w.r * 0.15 + ' L0,' + -w.r * 0.75 + ' L' + w.r * 0.45 + ',' + -w.r * 0.15 + ' Z'" />
       }
-      <path class="guard-helm" [attr.d]="'M' + -w.r * 0.45 + ',' + -w.r * 0.15 + ' L0,' + -w.r * 0.75 + ' L' + w.r * 0.45 + ',' + -w.r * 0.15 + ' Z'" />
     </g>
   }
 
@@ -207,7 +216,8 @@
     <g class="building" [attr.data-vertex]="b.id" [attr.transform]="'translate(' + b.x + ',' + b.y + ')'">
       <title>{{ b.title }}</title>
       @if (b.wall) {
-        <circle class="wall" [attr.r]="b.size * 0.48" />
+        <image class="wall-art" href="web/pieces/papiercollage/wall.png" clip-path="url(#wall-back)"
+          [attr.x]="-b.wallSize / 2" [attr.y]="-b.wallSize / 2" [attr.width]="b.wallSize" [attr.height]="b.wallSize" />
       }
       @if (b.image) {
         <image class="piece-art" [attr.href]="b.image" [attr.x]="-b.size / 2" [attr.y]="-b.size / 2"
@@ -217,10 +227,14 @@
       } @else {
         <path [attr.fill]="b.color" d="M-10,9 L10,9 L10,-3 L0,-12 L-10,-3 Z" />
       }
+      @if (b.wall) {
+        <image class="wall-art" href="web/pieces/papiercollage/wall.png" clip-path="url(#wall-front)"
+          [attr.x]="-b.wallSize / 2" [attr.y]="-b.wallSize / 2" [attr.width]="b.wallSize" [attr.height]="b.wallSize" />
+      }
       @if (b.metro) {
-        <g class="metro" [attr.data-track]="b.metro" [attr.transform]="'translate(' + b.size * 0.32 + ',' + -b.size * 0.42 + ')'">
-          <circle r="8.5" />
-          <text>{{ b.metroLabel }}</text>
+        <g class="metro" [attr.data-track]="b.metro" [attr.transform]="'translate(' + b.size * 0.34 + ',' + -b.size * 0.36 + ')'">
+          <circle r="9.5" />
+          <image [attr.href]="'web/icons/city/' + b.metro + '.png'" x="-8" y="-8" width="16" height="16" />
         </g>
       }
     </g>

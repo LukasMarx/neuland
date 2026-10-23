@@ -1,6 +1,6 @@
 import { bankSize, getTopology } from './board';
 import { shuffle, RngState } from './rng';
-import { DEV_DECK, humanCount } from './rules';
+import { devDeckFor, humanCount } from './rules';
 import { FISH_POOL, GOODS_SUPPLY } from './variants';
 import {
   Card,
@@ -187,7 +187,7 @@ function remaining(s: GameState): {
   const resources = Object.fromEntries(
     CARDS.map((r) => [r, supplyOf(s, r) - count(s.bank, r) - known.reduce((n, p) => n + count(p.resources, r), 0)]),
   ) as Record<Card, number>;
-  const dev: Record<DevCard, number> = { ...DEV_DECK[humanCount(s) > 4 ? 'ext' : 'base'] };
+  const dev: Record<DevCard, number> = { ...devDeckFor(humanCount(s)) };
   for (const c of [...(s.playedDev ?? []), ...known.flatMap((p) => [...p.devCards, ...p.newDevCards])]) dev[c]--;
   // Ohne Liste der ausgespielten Karten (alte Spielstände) zählen wenigstens die Ritter.
   if (!s.playedDev) for (const p of s.players) dev.knight -= p.knights;
@@ -246,3 +246,35 @@ function pick(r: ResourceCounts): ResourceCounts {
   for (const k of CARDS) setCount(out, k, count(r, k));
   return out;
 }
+
+/**
+ * Ein Spieler kommt zurück, nachdem ein neuer Host seine Karten nicht kannte und neu ausgeteilt hat (etwa
+ * weil er selbst der alte Host war und die Seite neu geladen hat). Seine Entwicklungskarten lassen sich
+ * zurückholen, wenn die Anzahl stimmt und die gemeldeten Karten noch im Stapel oder in seiner jetzigen Hand
+ * liegen. Liefert den neuen Stand oder null, wenn nichts zu tun ist oder es nicht passt.
+ */
+export function restoreDevCards(s: GameState, seat: number, secret: Secret): GameState | null {
+  const p = s.players[seat];
+  if (!p || p.hidden || !Array.isArray(secret?.devCards) || !Array.isArray(secret?.newDevCards)) return null;
+  const mine = [...secret.devCards, ...secret.newDevCards];
+  const current = [...p.devCards, ...p.newDevCards];
+  if (mine.length !== current.length || !mine.length) return null;
+  // Was gerade „neu“ ist, bleibt es: Ist inzwischen ein Zug vergangen, gilt alles als spielbar.
+  const fresh = secret.newDevCards.length === p.newDevCards.length ? secret.newDevCards : p.newDevCards.length === 0 ? [] : null;
+  if (!fresh) return null;
+  const ready = fresh === secret.newDevCards ? secret.devCards : mine;
+  const same = (a: DevCard[], b: DevCard[]) => [...a].sort().join() === [...b].sort().join();
+  if (same(ready, p.devCards) && same(fresh, p.newDevCards)) return null;
+  const pool = [...s.devDeck, ...current];
+  for (const c of mine) {
+    const i = pool.indexOf(c);
+    if (i < 0) return null;
+    pool.splice(i, 1);
+  }
+  const next = structuredClone(s);
+  next.players[seat].devCards = [...ready];
+  next.players[seat].newDevCards = [...fresh];
+  next.devDeck = pool;
+  return next;
+}
+

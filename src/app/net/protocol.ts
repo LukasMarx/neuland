@@ -14,7 +14,7 @@ export interface LobbyPlayer {
  * Version des Protokolls. Peers mit anderer Version spielen nicht zusammen, weil sich
  * Spielstand oder Nachrichten unterscheiden können; sie bekommen einen Hinweis zum Neuladen.
  */
-export const PROTOCOL_VERSION = 15;
+export const PROTOCOL_VERSION = 16;
 
 export interface RoomInfo {
   code: string;
@@ -61,9 +61,12 @@ export const PLAYER_COLORS = [
   { hex: '#ee8a1c', name: 'Orange' },
   { hex: '#2f9a48', name: 'Grün' },
   { hex: '#7b4a2a', name: 'Braun' },
+  // Für 7–8 Spieler.
+  { hex: '#d5a824', name: 'Gold' },
+  { hex: '#8152b3', name: 'Violett' },
 ];
 
-export const MAX_PLAYERS = 6;
+export const MAX_PLAYERS = 8;
 
 /**
  * Rang eines Raumzustands: Runde (eine neuere Runde schlägt jeden Stand einer älteren),

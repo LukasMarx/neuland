@@ -1,9 +1,9 @@
 @let game = g();
 <div class="layout">
   <header class="topbar">
-    <div class="brand">
+    <div class="brand" [title]="'Raum ' + room.code() + ' · ' + mapName() + ' · bis ' + game.settings.victoryPoints + (variantNames().length ? ' · ' + variantNames().join(', ') : '')">
       <b>Neuland</b>
-      <span class="room" [title]="variantNames().join(', ')">
+      <span class="room">
         Raum {{ room.code() }} · {{ mapName() }} · bis {{ game.settings.victoryPoints }}
         @if (variantNames().length) {
           · {{ variantNames().length === 1 ? variantNames()[0] : variantNames().length + ' Varianten' }}
@@ -11,7 +11,7 @@
       </span>
     </div>
 
-    <div class="players">
+    <div class="players" [class.many]="playerRows().length > 6">
       @for (p of playerRows(); track p.seat) {
         <div
           class="player"
@@ -39,6 +39,8 @@
                 neutral
               } @else if (!p.online) {
                 getrennt
+              } @else if (p.discarding) {
+                wirft ab · {{ p.cards }} Karten
               } @else if (p.active) {
                 am Zug
               } @else {
@@ -62,10 +64,13 @@
               @if (p.trader) {
                 · Händler
               }
+              @if (p.honors) {
+                · <img class="tag-icon" src="web/icons/city/honor.png" alt="" />{{ p.honors }}
+              }
               @if (p.coinRank > 0) {
-                · Reichster
+                · <img class="tag-icon" src="web/icons/rivers/rich.png" alt="" />Reichster
               } @else if (p.coinRank < 0) {
-                · Bettler
+                · <img class="tag-icon" src="web/icons/rivers/poor.png" alt="" />Bettler
               }
             </small>
           </span>
@@ -127,6 +132,7 @@
       @if (raiders(); as r) {
         <span class="raiders" [title]="'Plündererflotte: ' + r.position + ' von ' + r.steps.length + '. Bei einem Angriff Stärke ' + r.strength + ' (alle Städte) gegen Verteidigung ' + r.defense + ' (bereite Wächter).'">
           <small>Flotte</small>
+          <img class="raiders-ship" src="web/pieces/papiercollage/raiders.png" alt="" />
           <span class="track">
             @for (on of r.steps; track $index) {
               <i [class.on]="on"></i>
@@ -218,8 +224,8 @@
       <button role="tab" [class.on]="sideTab() === 'log'" [attr.aria-selected]="sideTab() === 'log'" (click)="sideTab.set('log')">Verlauf</button>
       <button role="tab" [class.on]="sideTab() === 'chat'" [attr.aria-selected]="sideTab() === 'chat'" (click)="sideTab.set('chat')">
         Chat
-        @if (room.chat().length) {
-          <span class="count">{{ room.chat().length }}</span>
+        @if (unreadChat()) {
+          <span class="count">{{ unreadChat() }}</span>
         }
       </button>
     </div>
@@ -235,7 +241,7 @@
     }
   </aside>
 
-  <section class="dock" [class.trading]="showTable() || offerView()" [class.wide]="cityWatch()">
+  <section class="dock" [class.trading]="showTable() || offerView()" [class.wide]="wideHand()">
     @if (showTable()) {
       <app-trade-table [game]="game" [seat]="seat()" [prefill]="tradePrefill()" (close)="closeTrade()" />
     } @else if (offerView()) {
@@ -291,7 +297,7 @@
         @if (myCoins() !== null) {
           <span class="divider"></span>
           <button class="fish-stack coins" title="Münzen: 2 Münzen sind ein Rohstoff aus der Bank" (click)="dialog.set({ kind: 'coins' })">
-            <span class="coin-icon" aria-hidden="true">●</span>
+            <img class="stack-icon" src="web/icons/rivers/coin.png" alt="" />
             <b>{{ myCoins() }}</b>
             <small>Münzen</small>
           </button>
@@ -354,17 +360,23 @@
         </button>
         @if (cityWatch()) {
           <button [disabled]="!opts.wall.enabled" [class.selected]="buildMode() === 'wall'" [title]="opts.wall.reason ?? 'Palisade unter eine Stadt: Handkartenlimit +2'" (click)="toggleBuild('wall')">
-            <span class="figure"><svg viewBox="-14 -14 28 28" aria-hidden="true"><circle r="11" fill="none" stroke="#8a5a2b" stroke-width="5" stroke-dasharray="3 1.5" /></svg></span>
+            <span class="figure"><img src="web/pieces/papiercollage/wall.png" alt="" /></span>
             <span class="label">Palisade</span>
             <span class="cost">@for (c of costArt(costs.wall); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
           </button>
           <button [disabled]="!opts.guards.enabled" [class.selected]="buildMode() === 'guards' || buildMode() === 'guardMove'" [title]="opts.guards.reason ?? 'Wächter aufstellen (1 Wolle, 1 Erz) oder einen eigenen Wächter anklicken'" (click)="toggleBuild('guards')">
-            <span class="figure"><svg viewBox="-12 -12 24 24" aria-hidden="true"><circle r="9" [attr.fill]="myColor()" stroke="#1b2832" stroke-width="2" /><path d="M-4,-1 L0,-7 L4,-1 Z" fill="#fff" /></svg></span>
+            <span class="figure">
+              @if (pieceImage('guard1', myColor()); as image) {
+                <img [src]="image" alt="" />
+              } @else {
+                <svg viewBox="-12 -12 24 24" aria-hidden="true"><circle r="9" [attr.fill]="myColor()" stroke="#1b2832" stroke-width="2" /><path d="M-4,-1 L0,-7 L4,-1 Z" fill="#fff" /></svg>
+              }
+            </span>
             <span class="label">Wächter</span>
             <span class="cost">@for (c of costArt(costs.guard); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
           </button>
           <button [class.selected]="cityOpen()" title="Stadtausbau: Markt, Rat und Gelehrte" (click)="cityOpen.set(!cityOpen())">
-            <span class="figure trade">▲</span>
+            <span class="figure"><img src="web/icons/city/improve.png" alt="" /></span>
             <span class="label">Ausbau</span>
             <span class="cost text">mit Gütern</span>
           </button>
@@ -388,20 +400,26 @@
             <span class="cost">@for (c of costArt(costs.ship); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
           </button>
           <button [disabled]="!opts.moveShip.enabled" [class.selected]="buildMode() === 'moveShip'" [title]="opts.moveShip.reason ?? 'Ein Schiff am Ende einer Linie versetzen'" (click)="toggleBuild('moveShip')">
-            <span class="figure trade">⤳</span>
+            <span class="figure"><img src="web/icons/ui/move-ship.png" alt="" /></span>
             <span class="label">Versetzen</span>
             <span class="cost text">{{ buildMode() === 'moveShip' ? (moveFrom() === null ? 'Schiff wählen' : 'Ziel wählen') : '1× pro Zug' }}</span>
           </button>
         }
         @if (myCoins() !== null) {
           <button [disabled]="!opts.bridge.enabled" [class.selected]="buildMode() === 'bridge'" [title]="opts.bridge.reason ?? 'Brücke über den Fluss bauen, bringt 3 Münzen'" (click)="toggleBuild('bridge')">
-            <span class="figure"><svg viewBox="-14 -9 28 18" aria-hidden="true"><rect x="-13" y="-6" width="26" height="12" rx="2" fill="#b98a55" stroke="#5b3d1f" /><line x1="-10" y1="0" x2="10" y2="0" [attr.stroke]="myColor()" stroke-width="4" stroke-linecap="round" /></svg></span>
+            <span class="figure">
+              @if (pieceImage('bridge', myColor()); as image) {
+                <img class="road" [src]="image" alt="" />
+              } @else {
+                <svg viewBox="-14 -9 28 18" aria-hidden="true"><rect x="-13" y="-6" width="26" height="12" rx="2" fill="#b98a55" stroke="#5b3d1f" /><line x1="-10" y1="0" x2="10" y2="0" [attr.stroke]="myColor()" stroke-width="4" stroke-linecap="round" /></svg>
+              }
+            </span>
             <span class="label">Brücke</span>
             <span class="cost">@for (c of costArt(costs.bridge); track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
           </button>
         }
         <button [disabled]="!canTrade()" [title]="canTrade() ? 'Handeln (H)' : 'Gehandelt wird nach dem Würfeln'" (click)="openTrade()">
-          <span class="figure trade">⇄</span>
+          <span class="figure"><img src="web/icons/ui/trade.png" alt="" /></span>
           <span class="label">Handeln <kbd>H</kbd></span>
           <span class="cost text">{{ isCurrent() ? 'Bank oder Spieler' : 'an ' + game.players[game.current].name }}</span>
         </button>
@@ -423,13 +441,19 @@
         (landed)="onLanded($event)"
       />
       @if (eventFace(); as e) {
-        <span class="event-die" [class]="'event-die ' + e.cls" [title]="e.title">{{ e.label }}</span>
+        <span class="event-die" [class]="'event-die ' + e.cls" [title]="e.title"><img [src]="e.image" [alt]="e.title" /></span>
       }
       @if (diceDeckLeft() !== null) {
         <span class="dice-deck" title="Würfelstapel: so viele Karten noch, ab 5 wird neu gemischt">{{ diceDeckLeft() }} Karten</span>
       }
       <button class="primary go" [disabled]="!primary().run" (click)="primary().run?.()">
         {{ primary().label }}
+        @if (rollDeadline(); as deadline) {
+          <!-- Uhr bis zum automatischen Wurf: ein Balken, der abläuft. -->
+          @for (d of [deadline]; track d) {
+            <span class="roll-clock" [style.animation-duration.ms]="autoRollMs" aria-hidden="true"></span>
+          }
+        }
         @if (primary().run) {
           <kbd>Leertaste</kbd>
         }
@@ -498,7 +522,7 @@
         </dd>
       }
       @if (d.defense !== null) {
-        <dt>Ehrenschilde</dt>
+        <dt><img class="tag-icon" src="web/icons/city/honor.png" alt="" />Ehrenschilde</dt>
         <dd><span class="muted">Verteidigung {{ d.defense }}</span><b [class.none]="!d.honors">{{ d.honors || '–' }}</b></dd>
       }
       @if (d.improvements; as imp) {
@@ -848,7 +872,7 @@
   }
 }
 
-@if (game.phase.kind === 'ended' && winnerReady()) {
+@if (game.phase.kind === 'ended' && winnerReady() && !winnerHidden()) {
   <div class="modal-backdrop">
     <div class="confetti" aria-hidden="true">
       @for (c of confetti; track $index) {
@@ -873,10 +897,13 @@
         }
       </ol>
       <div class="row end">
+        @if (!room.isHost()) {
+          <span class="muted">Der Gastgeber kann eine neue Runde starten.</span>
+        }
+        <button (click)="winnerHidden.set(true)">Brett ansehen</button>
+        <button (click)="leave.emit()">Verlassen</button>
         @if (room.isHost()) {
           <button class="primary" (click)="room.backToLobby()">Neue Runde</button>
-        } @else {
-          <span class="muted">Der Gastgeber kann eine neue Runde starten.</span>
         }
       </div>
     </div>

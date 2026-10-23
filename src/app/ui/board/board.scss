@@ -414,27 +414,20 @@ text {
   stroke-width: 1.4;
 }
 
-// Stadtwacht: Palisade als Pfahlring unter der Stadt, Prachtstadt mit Abzeichen der Richtung.
-.building .wall {
-  fill: rgb(70 45 20 / 0.35);
-  stroke: #8a5a2b;
-  stroke-width: 4;
-  stroke-dasharray: 3 1.6;
+// Stadtwacht: Palisade als Pfahlring unter der Stadt, Prachtstadt mit dem Symbol der Richtung.
+.building .wall-art {
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.45));
 }
 
 .building .metro {
-  circle {
-    fill: var(--mc);
-    stroke: #1b2832;
-    stroke-width: 1.6;
-  }
+  pointer-events: none;
 
-  text {
-    font-size: 10px;
-    font-weight: 900;
-    fill: #1b2832;
-    text-anchor: middle;
-    dominant-baseline: central;
+  circle {
+    fill: #f4ecd8;
+    stroke: var(--mc);
+    stroke-width: 2.4;
+    filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.45));
   }
 
   &[data-track='market'] {
@@ -450,7 +443,7 @@ text {
   }
 }
 
-// Stadtwacht: Wächter als runde Marke in Spielerfarbe, Stufe als Ringe; ruhende Wächter gedämpft.
+// Stadtwacht: Wächter als Figur je Stufe (Ersatz ohne Bild: runde Marke mit Ringen); ruhende Wächter gedämpft.
 .guard {
   filter: drop-shadow(0 1.5px 1.5px rgb(0 0 0 / 0.5));
 

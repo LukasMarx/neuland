@@ -1,6 +1,6 @@
 # Neuland
 
-Ein Brettspiel um Rohstoffe, Handel und Siedlungen auf einer Insel aus Sechseckfeldern, im Browser für 2–6 Spieler. Kein Login, kein eigener Server: Ein Spieler eröffnet einen Raum und schickt den Link herum, die Browser verbinden sich direkt per WebRTC.
+Ein Brettspiel um Rohstoffe, Handel und Siedlungen auf einer Insel aus Sechseckfeldern, im Browser für 2–8 Spieler. Kein Login, kein eigener Server: Ein Spieler eröffnet einen Raum und schickt den Link herum, die Browser verbinden sich direkt per WebRTC.
 
 Wie das Ganze aufgebaut ist und warum, steht in [docs/KONZEPT.md](docs/KONZEPT.md).
 

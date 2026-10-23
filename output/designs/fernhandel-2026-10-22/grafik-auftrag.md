@@ -4,7 +4,7 @@
 
 **Geliefert und eingebunden:** See, Fischgrund, Fischplättchen 1–3, Rostiger Anker (Symbol und Banner), Handelsmarke, graue Figuren der Neutralen, Hafenvogt-Abzeichen, Banner-Motiv Leuchtturm. Lieferung siehe `README.md` in diesem Ordner.
 
-**Grafiken geliefert am 22.10.2026 (Flussläufe):** Brücke in Spielerfarben, Münze, Abzeichen „meiste“ und „wenigste Münzen“. [Lieferübersicht](../stadtwacht-2026-10-22/LIEFERUNG.md); Einbindung separat.
+**Nachgeliefert und eingebunden (Flussläufe):** Brücke in allen Spielerfarben (Brett und Bauknopf), Münze (Hand und Lobby), Abzeichen „meiste“ und „wenigste Münzen“ (Spielerleiste).
 
 **Optionale Motive geliefert am 23.10.2026:** Banner-Motiv Fisch sowie Würfelstapel Vorder- und Rückseite, jeweils mit Web-Fassungen. [Lieferung und Vorschau](../stadtwacht-2026-10-23/LIEFERUNG.md); Einbindung separat.
 
@@ -34,7 +34,7 @@ In Prompts nur die Neuland-Begriffe verwenden (See, Fischgrund, Rostiger Anker, 
 
 ## Benötigte Dateien
 
-**Liefernachtrag 22.10.2026:** Auch Brücke (acht Farben und zwei Grautöne), Münze und Geldbeutel liegen jetzt inklusive Web-Fassungen vor. [Vorschau](nachtrag-vorschau.html), [Lieferdetails](../stadtwacht-2026-10-22/LIEFERUNG.md). Die Einbindung der neuen Motive folgt separat.
+**Liefernachtrag 22.10.2026:** Auch Brücke (acht Farben und zwei Grautöne), Münze und Geldbeutel liegen jetzt inklusive Web-Fassungen vor und sind eingebunden. [Vorschau](nachtrag-vorschau.html), [Lieferdetails](../stadtwacht-2026-10-22/LIEFERUNG.md).
 
 ### Fischgründe
 

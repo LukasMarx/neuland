@@ -118,11 +118,11 @@ function sharedVertex(s: GameState, e1: number, e2: number): number {
 // ---------------------------------------------------------------------------
 
 describe('createGame', () => {
-  it('verlangt 2 bis 6 Spieler', () => {
+  it('verlangt 2 bis 8 Spieler', () => {
     expect(() => game(1)).toThrow(RuleError);
-    expect(() => game(7)).toThrow(RuleError);
+    expect(() => game(9)).toThrow(RuleError);
     expect(() => game(2)).not.toThrow();
-    expect(() => game(6)).not.toThrow();
+    expect(() => game(8)).not.toThrow();
   });
 
   it('Basis für 2–4, Erweiterung für 5–6 Spieler', () => {
