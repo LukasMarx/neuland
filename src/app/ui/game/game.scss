@@ -82,8 +82,8 @@ kbd {
   justify-content: safe center;
   gap: 4px;
   min-width: 0;
-  // Landet eine Karte bei einem Spieler, wächst sein Eintrag kurz (fly-layer.ts). Etwas Rand drumherum und
-  // nie senkrecht scrollen, sonst blitzt dabei eine Scrollleiste auf.
+  // Landet eine Karte bei einem Spieler, wachsen die Teile seines Eintrags kurz (fly-layer.ts). Etwas Rand
+  // drumherum und nie senkrecht scrollen, sonst blitzt dabei eine Scrollleiste auf.
   padding: 4px 6px;
   overflow-x: auto;
   overflow-y: hidden;

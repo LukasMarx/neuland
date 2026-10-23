@@ -88,7 +88,13 @@ export class FlyLayer {
     animation.onfinish = () => {
       card.remove();
       if (to instanceof HTMLElement) {
-        to.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: 220 });
+        // Ein Spielereintrag steht in der waagerecht scrollenden Kopfzeile. Wüchse er als Ganzes, ragte er am Rand
+        // über die Reihe hinaus, kurz erschiene eine Scrollleiste und alles darunter spränge. Darum wachsen nur
+        // seine Teile, innerhalb des Eintrags.
+        const bumped = to.hasAttribute('data-seat') ? [...to.children] : [to];
+        for (const el of bumped) {
+          el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: 220 });
+        }
       }
     };
   }
