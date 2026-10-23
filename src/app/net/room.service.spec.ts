@@ -574,7 +574,7 @@ describe('Mehrspieler: 7–8 Spieler', () => {
     H.svc.startGame();
     clock.advance(500);
     expect(H.game.players).toHaveLength(8);
-    expect(H.game.board.hexes).toHaveLength(37);
+    expect(H.game.board.hexes).toHaveLength(44);
     expect(X.seat).toBe(-1);
   });
 
