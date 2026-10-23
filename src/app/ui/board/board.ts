@@ -16,6 +16,12 @@ const GUARD_SIZE = 36;
 /** Auf großen Brettern sind die Felder kleiner, Figuren und Marken werden dort größer gezeichnet. */
 const PIECE_SCALE = { base: 1, ext: 1.2, big: 1.4 } as const;
 const MAX_PIECE_SCALE = 1.4;
+/**
+ * Rand um jede Spielerfigur, in Brett-Einheiten (mal Figurenmaßstab): innen in der Spielerfarbe, außen dunkel.
+ * Die Gebäudegrafiken tragen die Farbe sonst nur auf den Dächern, bei fünf und mehr Spielern sind sie so kaum zu unterscheiden.
+ */
+const HALO = 3;
+const HALO_RIM = 1;
 /** Wie weit Wasser und Häfen über die Küste hinausragen, in Feldradien. */
 const OCEAN_GROW = 0.8;
 const HARBOR_OFFSET = 0.62;
@@ -111,6 +117,13 @@ export class Board {
   protected readonly ghostRoadImage = computed(() => pieceImage('road', this.ghostColor()));
   protected readonly ghostTraderImage = computed(() => pieceImage('trader', this.ghostColor()));
   protected readonly ghostShipImage = computed(() => pieceImage('ship', this.ghostColor()));
+  protected readonly ghostHalo = computed(() => halo(this.ghostColor()));
+  /** Ein Randfilter je Spielerfarbe, auch für die der Bauvorschau (siehe `HALO`). */
+  protected readonly halos = computed(() => {
+    const k = this.k();
+    const colors = new Set([...this.game().players.map((p) => p.color), this.ghostColor()]);
+    return [...colors].map((color) => ({ id: haloId(color), color, ring: HALO * k, rim: (HALO + HALO_RIM) * k }));
+  });
   /** Was im Baumodus an Kanten als Vorschau erscheint: Straße oder Schiff. */
   readonly edgeGhost = input<'road' | 'ship' | 'none'>('road');
 
@@ -230,6 +243,7 @@ export class Board {
         // Stadtwacht III: Händlerfigur in der Farbe ihres Besitzers.
         trader: g.trader?.hex === h.id ? g.players[g.trader.owner]?.color ?? null : null,
         traderImage: g.trader?.hex === h.id ? pieceImage('trader', g.players[g.trader.owner]?.color ?? '') : null,
+        traderHalo: g.trader?.hex === h.id ? halo(g.players[g.trader.owner]?.color ?? '') : null,
         traderTransform: `translate(${h.x * S - S * 0.42 * this.k()},${h.y * S + S * 0.1}) scale(${this.k()})`,
         hit:
           (number !== null && number === this.highlightNumber()) ||
@@ -313,7 +327,7 @@ export class Board {
       const player = g.players[owner];
       const bridge = riverEdges.has(id);
       return [{
-        id, ...this.edgeLine(id, 0.08), color: player.color, bridge,
+        id, ...this.edgeLine(id, 0.08), color: player.color, halo: halo(player.color), bridge,
         image: pieceImage(bridge ? 'bridge' : 'road', player.color), title: `${player.name}: ${bridge ? 'Brücke' : 'Straße'}`,
       }];
     });
@@ -396,7 +410,7 @@ export class Board {
       // die Kante, damit zwischen zwei Schiffen an einer Ecke Wasser bleibt.
       const width = line.length * SHIP_LENGTH * this.k();
       return [{
-        id, transform: `${line.transform} scale(${this.k()})`, color: player.color, title: `${player.name}: Schiff`,
+        id, transform: `${line.transform} scale(${this.k()})`, color: player.color, halo: halo(player.color), title: `${player.name}: Schiff`,
         phase: `${-((id * 5) % 11) * 0.37}s`,
         image: pieceImage('ship', player.color), imageTransform: line.transform, width, height: width / 2,
       }];
@@ -419,7 +433,7 @@ export class Board {
       const player = g.players[guard.owner];
       const level = ['einfacher', 'erfahrener', 'mächtiger'][guard.level - 1];
       return [{
-        id, x: v.x * S, y: v.y * S, color: player.color, level: guard.level, active: guard.active,
+        id, x: v.x * S, y: v.y * S, color: player.color, halo: halo(player.color), level: guard.level, active: guard.active,
         r: 11 * this.k(), rings: Array.from({ length: guard.level }, (_, i) => i),
         image: pieceImage(`guard${guard.level}`, player.color), size: GUARD_SIZE * this.k(),
         title: `${player.name}: ${level} Wächter, ${guard.active ? 'einsatzbereit' : 'ruht'}`,
@@ -438,7 +452,7 @@ export class Board {
       const wall = g.walls?.includes(id) ?? false;
       const what = metro ? `Prachtstadt ${TRACK_NAMES[metro]}` : b.type === 'city' ? 'Stadt' : 'Siedlung';
       return [{
-        id, x: v.x * S, y: v.y * S, city: b.type === 'city', color: player.color,
+        id, x: v.x * S, y: v.y * S, city: b.type === 'city', color: player.color, halo: halo(player.color),
         size: (metro ? METROPOLIS_SIZE : BUILDING_SIZE[b.type]) * this.k(),
         image: pieceImage(metro ? 'metropolis' : b.type, player.color),
         title: `${player.name}: ${what}${wall ? ' mit Palisade' : ''}`,
@@ -616,6 +630,15 @@ export class Board {
 function tileImage(terrain: Terrain, hexId: number): string | null {
   const variants = TILE_IMAGES[terrain];
   return variants?.length ? variants[hexId % variants.length] : null;
+}
+
+function haloId(color: string): string {
+  return `halo-${color.replace(/[^0-9a-z]/gi, '')}`;
+}
+
+/** Filter für den Rand einer Figur in dieser Spielerfarbe, als Inline-Stil (schlägt den dunklen Rand von `.piece-art`). */
+function halo(color: string): string {
+  return `url(#${haloId(color)})`;
 }
 
 function scaleAround(x: number, y: number, k: number): string {

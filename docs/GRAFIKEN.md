@@ -130,6 +130,10 @@ Straßen werden um den Kantenmittelpunkt gedreht und vor den Gebäuden gezeichne
 Über den Feldern liegt keine Aufhellung. Damit die Figuren auf jedem Gelände
 lesbar bleiben, bekommen sie einen dünnen, leicht transparenten dunklen Rand
 (Variante E1, Vergleich in `output/designs/board-kontrast-2026-10-21/`).
+Figuren von Spielern tragen zusätzlich einen Rand in der Spielerfarbe mit dunkler
+Außenkante (SVG-Filter je Farbe, `HALO` in `board.ts`): Die Gebäude zeigen die
+Farbe sonst nur auf den Dächern, und ab fünf Spielern wären Braun, Weiß, Gold und
+Orange auf dem kleineren Brett kaum zu unterscheiden.
 Bauvorschau und Bauknöpfe verwenden dieselben PNGs. Die Rittergrafik erscheint
 in der Spielerübersicht bei der Anzahl gespielter Ritter. Die Ritterkarte und
 die Spielregeln ändern sich dadurch nicht. Für unbekannte Farben alter

@@ -1,4 +1,7 @@
 :host {
+  // Gelände und Meer leicht entsättigt, damit die Spielerfarben der Figuren davor hervortreten.
+  --map-saturation: 0.8;
+
   position: relative;
   display: block;
   width: 100%;
@@ -50,10 +53,12 @@ text {
   stroke: #28627f;
   stroke-width: 6;
   stroke-linejoin: round;
+  filter: saturate(var(--map-saturation));
 }
 
 .ocean-texture {
   pointer-events: none;
+  filter: saturate(var(--map-saturation));
 }
 
 // ---------------------------------------------------------------------------
@@ -220,6 +225,10 @@ text {
 }
 
 .hex {
+  .art {
+    filter: saturate(var(--map-saturation));
+  }
+
   .shine {
     pointer-events: none;
   }
@@ -583,7 +592,7 @@ text {
 @keyframes hit-bright {
   0%,
   70% {
-    filter: brightness(1.2) saturate(1.15);
+    filter: brightness(1.2) saturate(calc(1.15 * var(--map-saturation)));
   }
 }
 
