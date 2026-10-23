@@ -35,7 +35,7 @@ Ausgangspunkt ist ein Screenshot aus einer echten Partie (2 Spieler, Lukas am Zu
 - **Würfel:** zwei große 3D-Würfel mit echten Augen, unten rechts am Brett neben dem Hauptknopf. Wer dran ist, sieht sie leicht wackeln; Klick auf die Würfel oder Leertaste würfelt.
 - **Ablauf für alle gleichzeitig:** Die Würfel taumeln etwa eine Sekunde und landen auf dem Ergebnis. Danach erscheint die Summe als Plakette, und die Felder mit dieser Zahl leuchten zwei Sekunden lang auf. So sieht jeder auf einen Blick, wo es Erträge gab.
 - **7:** Die Summe wird rot. Das Räuber-Feld blinkt, und der aktive Spieler bekommt die möglichen Ziel-Felder markiert.
-- **Ton:** kurzes Würfelklappern, erzeugt per Web Audio ohne Sounddatei. Er folgt dem Glocken-Schalter (beim Entwickeln standardmäßig aus).
+- **Ton:** Würfelklappern als Aufnahme, über den Kanal „Effekte“ in den Einstellungen (siehe [AUDIO.md](AUDIO.md)).
 - Das Ergebnis steht danach weiter sichtbar neben dem Hauptknopf, bis zum nächsten Wurf.
 
 ## Layout
@@ -44,7 +44,7 @@ Umgesetzt nach Entwurf **02b · Nachtbühne, ruhig** (`output/designs/ui-2026-10
 
 ```
 ┌─────────────────────────────────────────────────────────────┬──────────────┐
-│ Neuland  Raum KX7Q2M   [Mira 4] [Lukas (du) 5] [Paul 5]  …   │ Ton  Verlass. │
+│ Neuland  Raum KX7Q2M   [Mira 4] [Lukas (du) 5] [Paul 5]  …   │ Regeln Einst. │
 ├─────────────────────────────────────────────────────────────┼──────────────┤
 │        ( Du bist dran · Handeln und bauen )                  │ Verlauf│Chat │
 │ ┌────┐                                                       │ • …          │
@@ -58,7 +58,8 @@ Umgesetzt nach Entwurf **02b · Nachtbühne, ruhig** (`output/designs/ui-2026-10
 
 - **Kopfleiste:** Spieler nebeneinander mit Ritter-Avatar in Spielerfarbe, Name, Kartenzahl bzw. „am Zug“ und Siegpunkten. Der aktive Spieler hat eine Fläche und eine goldene Linie.
 - **Brett:** Status oben, Bank links mit den Rohstoff-Icons.
-- **Seitenleiste:** Verlauf und Chat als Tabs, offene Handelsangebote darunter.
+- **Seitenleiste:** Verlauf und Chat als Tabs, offene Handelsangebote darunter. Mit » oder der Taste V lässt sie sich zu einer schmalen Leiste einklappen, dann bekommt das Brett die Breite; neue Chatnachrichten zählt die Leiste mit. Der Zustand wird gemerkt.
+- **Einstellungen:** Knopf in der Kopfzeile (auf dem Handy nur ⚙), auch in Lobby und auf der Startseite. Reiter „Audio“ mit Musik, Effekten und Sprechern, je An/Aus und Lautstärke.
 - **Dock:** Karten, Bauraster mit Figur und Kosten, die 3D-Würfel und der Hauptknopf.
 - Unter 1280 px rückt das Bauraster unter die Hand. Auf dem Handy stapeln sich Kopf, Brett, Dock und Seitenleiste.
 
@@ -105,13 +106,13 @@ Prototyp: `output/designs/handel-2026-10-21/index.html`. Gehandelt wird im Dock,
   - „Mira gibt dir“ und „Mira will von dir“, darunter „du hast 2“ bzw. rot „dir fehlt 1“.
   - Annehmen, Gegenangebot, Ablehnen. Das Gegenangebot öffnet den Tauschtisch gespiegelt vorbefüllt.
   - Eine Zeile zeigt, was die übrigen Mitspieler antworten.
-  - Ein neues Angebot meldet sich mit Ton und im Tab-Titel („● Tauschangebot von Mira“).
+  - Ein neues Angebot meldet sich im Tab-Titel („● Tauschangebot von Mira“), und der Berater sagt es an.
 - Wer nicht am Zug ist, kann über „Handeln“ auch von sich aus ein Angebot an den aktiven Spieler schicken.
 
 ## Rückmeldung
 
 - **Ereignis-Banner:** Ein breites, halbtransparentes Band läuft über das Brett, links und rechts treten freigestellte Spielteile auf.
-  - Anlässe: „Du bist dran“ (plus optional ein Ton), längste Handelsstraße, größte Rittermacht, Monopol, Erfindung und Sieg.
+  - Anlässe: „Du bist dran“, längste Handelsstraße, größte Rittermacht, Monopol, Erfindung und Sieg.
   - Mehrere Banner laufen nacheinander. Der Siegerdialog erscheint erst, wenn das Sieg-Banner durch ist.
   - Erkannt wird alles aus dem Unterschied zweier Spielstände (`GameView.detectEvents`), die Engine bleibt unverändert.
   - Motive (Papiercollage, `public/banner/papiercollage/`, Web-Fassung 280 px): Sieg mit Lorbeerkranz und Sternen, Handelsstraße mit Straßen und Wegweiser, Rittermacht mit Schild und gekreuzten Schwertern (ein Schwert, gespiegelt), Monopol mit Truhe und Münzen, Erfindung mit Erntekorb, „Du bist dran“ mit Signalhorn und eigener Figur.
@@ -123,4 +124,10 @@ Prototyp: `output/designs/handel-2026-10-21/index.html`. Gehandelt wird im Dock,
   - Handel, Monopol und Räuber fliegen von Spieler zu Spieler.
   - Beim Räuber sehen nur die beiden Beteiligten, welche Karte es war. Alle anderen sehen eine verdeckte Karte.
   - Die Engine protokolliert dafür pro Aktion die Bewegungen (`GameState.transfers`).
-- **Siegerbildschirm** mit Konfetti.
+- **Geräusche und Sprecher:** Bauen, Handel, Karten, Räuber und Sieg haben eigene Geräusche. Ein Berater kommentiert, was mir gelingt, ein Erzfeind, was die Gegner tun, ein Herold ruft aus, was alle angeht. Alles in [AUDIO.md](AUDIO.md).
+- **Siegerbildschirm** mit Konfetti und Statistik (`end-stats.ts`, Daten aus `engine/stats.ts`):
+  - Auszeichnungen für den klaren Ersten: Ernteglück, Pechvogel (vom Räuber blockiert), Langfinger, Händlerseele, Bücherwurm.
+  - Siegpunkte je Zug als Stufenlinien in Spielerfarbe, beim Darüberfahren der Stand aller nach diesem Zug.
+  - Würfelverteilung 2–12 gegen den Erwartungswert.
+  - Tabelle je Spieler: Erträge, blockiert, geraubt/verloren, abgeworfen, getauscht, an die Bank, Entwicklung, Ritter, Straße.
+  - Gezählt wird nur Öffentliches, die Statistik verrät also keine verdeckten Karten. Lange Spiele werden in der Punktekurve auf höchstens 200 Stände ausgedünnt.

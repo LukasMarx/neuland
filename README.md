@@ -32,7 +32,7 @@ Danach läuft die App unter http://localhost:4200.
 - **Mehrere Spieler im selben Browser:** Normalerweise ist ein Browser ein Spieler, auch über mehrere Tabs. Mit `?tab` in der URL (z. B. `http://localhost:4200/?tab#/KX7Q2M`) bekommt jeder Tab eine eigene Identität, so lassen sich mehrere Spieler in einem Browser testen.
 - **Ohne Internet testen:** `http://localhost:4200/?local` verbindet die Tabs über `BroadcastChannel` statt über P2P (jeder Tab ist dabei ein eigener Spieler).
 - **Konsole:** Im Entwicklungsmodus liegen Raum-Service und Engine unter `window.neuland` (z. B. `neuland.room.game()`).
-- **Ton** ist im Entwicklungsmodus standardmäßig aus und lässt sich über die Glocke einschalten.
+- **Audio:** Musik, Effekte und Sprecher sind standardmäßig an und lassen sich unter „Einstellungen“ einstellen. Alle Töne einzeln unter `#/klaenge`. Wie neue Sätze entstehen, steht in [docs/AUDIO.md](docs/AUDIO.md).
 
 ## Tests
 

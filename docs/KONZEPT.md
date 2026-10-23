@@ -179,12 +179,16 @@ src/app/
     board.ts       Brettgenerierung und Topologie (Felder, Ecken, Kanten)
     rules.ts       applyAction(state, playerId, action) → neuer Stand oder Fehler
     rng.ts         Zufallsgenerator mit Seed, Zustand liegt im Spielstand
+    stats.ts       Statistik für den Endstand, aus den Kartenbewegungen jeder Aktion
   net/
     transport.ts   Schnittstelle für die Verbindung
     trystero-transport.ts   Echte P2P-Verbindung
     local-transport.ts      BroadcastChannel für Tests mit mehreren Tabs ohne Internet (`?local`)
     room.service.ts         Lobby, Host/Client-Logik, Host-Wechsel, Speichern
   ui/            Angular-Komponenten: Startseite, Lobby, Spielbrett, Hand, Handel, Dialoge
+    game/effects.ts, game/announcer.ts   Welche Geräusche und Ansagen ein neuer Spielstand auslöst
+    shared/        Audio (Musik, Geräusche, Sprecher, Einstellungen), siehe docs/AUDIO.md
+    sounds/        Klangprobe unter #/klaenge
 ```
 
 Die Spiel-Engine ist eine reine Funktion: Stand plus Aktion ergibt einen neuen Stand oder einen Fehler. Das macht sie gut testbar, und Host und Client nutzen denselben Code. Clients prüfen damit vorab, welche Buttons und Bauplätze gerade erlaubt sind.
@@ -197,12 +201,12 @@ Die Spiel-Engine ist eine reine Funktion: Stand plus Aktion ergibt einen neuen S
 | Netzwerk: Lobby, P2P, Wiedereinstieg, Host-Wechsel, Speichern | fertig, mit mehreren Tabs getestet (lokal und über echtes P2P) |
 | Oberfläche: Startseite, Lobby, Brett, Hand, Handel, Dialoge, Verlauf, Chat | fertig |
 | Komplette Spiele 3 und 6 Spieler (Bots über das Netzwerk) | durchgespielt |
+| Statistik am Spielende: Auszeichnungen, Siegpunkte im Verlauf, Würfelverteilung, Tabelle je Spieler | fertig |
+| Audio: Musik, Geräusche, drei Sprecher, Einstellungen mit Lautstärken, Klangprobe ([AUDIO.md](AUDIO.md)) | fertig, auf iOS wirken die Lautstärken noch nicht |
 | Test über verschiedene echte Netze / Firmen-VPN | offen |
 | Deployment | offen, Hosting noch nicht gewählt |
 
 ## Später denkbar
 
 - Seefahrer oder Städte & Ritter
-- Würfelstatistik und Spielende-Auswertung
-- Sounds und Benachrichtigung „Du bist dran“
 - Eigener WebSocket-Relay als Rückfall, falls öffentliche Relays zicken
