@@ -1026,6 +1026,16 @@ export class GameView {
       untracked(() => this.goldPick.set(emptyResources()));
     });
 
+    // Spielbeginn: einmal, wenn eine frische Partie geladen wird (noch nichts gebaut). Vor dem Zug-Satz,
+    // deshalb vor dem Effekt für den Zugbeginn angelegt.
+    let started = false;
+    effect(() => {
+      const g = this.g();
+      if (started) return;
+      started = true;
+      if (g.phase.kind === 'setup' && g.buildings.every((b) => !b)) untracked(() => this.announcer.say('gameStart'));
+    });
+
     let wasMyTurn = false;
     effect(() => {
       const mine = this.myTurn() && this.g().phase.kind !== 'ended';

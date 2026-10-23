@@ -90,6 +90,82 @@ describe('Sprecher: Ereignisse aus meiner Sicht', () => {
     expect(voiceEvents(setup, step(setup, (s) => (s.buildings[v.id] = { owner: 1, type: 'settlement' })), 0)).toEqual([]);
   });
 
+  it('Sieg übertönt alles: Berater für mich, Erzfeind für einen Gegner', () => {
+    const prev = game();
+    const won = step(prev, (s) => {
+      s.phase = { kind: 'ended' };
+      s.winner = 1;
+      s.longestRoad = 1;
+    });
+    expect(voiceEvents(prev, won, 1)).toEqual(['myWin']);
+    expect(voiceEvents(prev, won, 0)).toEqual(['enemyWin']);
+  });
+
+  it('Handelsstraße verloren: erst der Berater, dann spottet der Erzfeind', () => {
+    const prev = { ...game(), longestRoad: 0 };
+    expect(voiceEvents(prev, step(prev, (s) => (s.longestRoad = 1)), 0)).toEqual(['lostLongestRoad', 'enemyLongestRoad']);
+    expect(voiceEvents(prev, step(prev, (s) => (s.longestRoad = null)), 0)).toEqual(['lostLongestRoad']);
+  });
+
+  it('eigene und fremde Städte, reiche Ernte', () => {
+    const prev = game();
+    const v = prev.buildings.length - 1;
+    prev.buildings[v] = { owner: 0, type: 'settlement' };
+    const city = step(prev, (s) => (s.buildings[v] = { owner: 0, type: 'city' }));
+    expect(voiceEvents(prev, city, 0)).toEqual(['myCity']);
+    expect(voiceEvents(prev, city, 1)).toEqual(['enemyCity']);
+
+    const rolling = { ...game(), phase: { kind: 'roll' as const } };
+    const harvest = step(rolling, (s) => {
+      s.phase = { kind: 'main' };
+      s.transfers = [3, 2].map((count) => ({ from: { kind: 'hex' as const, id: 0 }, to: { kind: 'player' as const, seat: 2 }, card: 'ore' as const, count }));
+    });
+    expect(voiceEvents(rolling, harvest, 2)).toEqual(['bigHarvest']);
+  });
+
+  it('ich raube, ein Tausch kommt zustande, ein Gegner lehnt mein Angebot ab', () => {
+    const prev = game();
+    const robbed = step(prev, (s) => s.transfers.push({ from: { kind: 'player', seat: 2 }, to: { kind: 'player', seat: 0 }, card: 'wood', count: 1, hidden: true }));
+    expect(voiceEvents(prev, robbed, 0)).toEqual(['iRobbed']);
+
+    const traded = step(prev, (s) =>
+      s.transfers.push(
+        { from: { kind: 'player', seat: 0 }, to: { kind: 'player', seat: 1 }, card: 'wood', count: 1 },
+        { from: { kind: 'player', seat: 1 }, to: { kind: 'player', seat: 0 }, card: 'ore', count: 1 },
+      ),
+    );
+    expect(voiceEvents(prev, traded, 0)).toEqual(['tradeDone']);
+
+    const none = { wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 };
+    const offered = { ...prev, offers: [{ id: 7, from: 0, give: none, want: none, counter: false, accepted: [], declined: [] }] };
+    const declined = step(offered, (s) => s.offers[0].declined.push(1));
+    expect(voiceEvents(offered, declined, 0)).toEqual(['tradeRejected']);
+    // Der zweite, der ablehnt, löst nichts mehr aus.
+    expect(voiceEvents(declined, step(declined, (s) => s.offers[0].declined.push(2)), 0)).toEqual([]);
+  });
+
+  it('Räuber an meinem Feld ohne Raub; mit Raub nur der Raub-Satz', () => {
+    const prev = game();
+    const topo = getTopology(prev.board);
+    const hex = topo.hexes.find((h) => h.id !== prev.robber && !h.sea)!;
+    prev.buildings[hex.corners[0]] = { owner: 0, type: 'settlement' };
+    const moved = step(prev, (s) => (s.robber = hex.id));
+    expect(voiceEvents(prev, moved, 0)).toEqual(['robberOnMyHex']);
+    const movedAndRobbed = step(prev, (s) => {
+      s.robber = hex.id;
+      s.transfers.push({ from: { kind: 'player', seat: 0 }, to: { kind: 'player', seat: 1 }, card: 'wood', count: 1, hidden: true });
+    });
+    expect(voiceEvents(prev, movedAndRobbed, 0)).toEqual(['robbedMe']);
+  });
+
+  it('noch ein Punkt bis zum Sieg', () => {
+    const prev = game();
+    const close = step(prev, (s) => s.players[0].devCards.push(...Array(9).fill('victoryPoint')));
+    expect(voiceEvents(prev, close, 0)).toEqual(['myMatchPoint']);
+    // Verdeckte Siegpunktkarten eines Gegners sieht niemand.
+    expect(voiceEvents(prev, close, 1)).toEqual([]);
+  });
+
   it('nichts bei altem Stand oder als Zuschauer', () => {
     const prev = game();
     const next = step(prev, (s) => (s.longestRoad = 1));
