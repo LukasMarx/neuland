@@ -1,4 +1,4 @@
-import { isDevMode, signal } from '@angular/core';
+import { signal } from '@angular/core';
 
 /** Die drei Klangkanäle: Hintergrundmusik, Effekte (Würfel, Hinweiston) und die Sprecher. */
 export type AudioChannel = 'music' | 'effects' | 'voice';
@@ -13,10 +13,9 @@ export type AudioSettings = Record<AudioChannel, ChannelSettings>;
 
 const KEY = 'neuland:audio';
 
-/** Beim Entwickeln sind Effekte und Sprecher standardmäßig stumm, Musik ist es immer. */
+/** Alles an; die Musik setzt mit dem ersten Klick ein, vorher lässt der Browser keinen Ton zu. */
 function defaults(): AudioSettings {
-  const on = !isDevMode();
-  return { music: { on: false, volume: 0.6 }, effects: { on, volume: 0.8 }, voice: { on, volume: 1 } };
+  return { music: { on: true, volume: 0.6 }, effects: { on: true, volume: 0.8 }, voice: { on: true, volume: 1 } };
 }
 
 function load(): AudioSettings {
