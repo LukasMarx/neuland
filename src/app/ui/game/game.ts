@@ -1,4 +1,4 @@
-import { afterRenderEffect, Component, computed, DestroyRef, effect, ElementRef, inject, isDevMode, output, signal, untracked, viewChild } from '@angular/core';
+import { afterRenderEffect, Component, computed, DestroyRef, effect, ElementRef, inject, output, signal, untracked, viewChild } from '@angular/core';
 import {
   actingSeats,
   canSpendFish,
@@ -85,7 +85,9 @@ import { DEV_CARD_HELP } from '../shared/labels';
 import { ResourcePicker } from '../shared/resource-picker';
 import { CardInspector } from './card-inspector';
 import { EndStats } from './end-stats';
+import { audioSettings, channelVolume } from '../shared/audio-settings';
 import { BackgroundMusic } from '../shared/music';
+import { SettingsDialog } from '../shared/settings-dialog';
 import { fanfare, FANFARE_SECONDS } from '../shared/sounds';
 import { Announcer } from '../shared/voice';
 import { voiceEvents } from './announcer';
@@ -160,7 +162,7 @@ const AUTO_ROLL_MS = 5000;
 
 @Component({
   selector: 'app-game',
-  imports: [Board, CardFace, CardInspector, ChatBox, CityPanel, DiceTray, EndStats, EventBanner, FlyLayer, OfferPanel, ResourcePicker, Rulebook, TradeTable],
+  imports: [Board, CardFace, CardInspector, ChatBox, CityPanel, DiceTray, EndStats, EventBanner, FlyLayer, OfferPanel, ResourcePicker, Rulebook, SettingsDialog, TradeTable],
   templateUrl: './game.html',
   styleUrl: './game.scss',
   host: { '(document:keydown)': 'onKey($event)' },
@@ -387,12 +389,8 @@ export class GameView {
   /** Chatnachrichten, die ich schon gesehen habe (Chat-Reiter offen); der Zähler zeigt nur neue. */
   private readonly chatSeen = signal(0);
   protected readonly unreadChat = computed(() => Math.max(0, this.room.chat().length - this.chatSeen()));
-  // Beim Entwickeln standardmäßig stumm, sonst an, solange man ihn nicht ausschaltet.
-  protected readonly sound = signal(
-    isDevMode() ? localStorage.getItem('neuland:sound') === 'on' : localStorage.getItem('neuland:sound') !== 'off',
-  );
-  /** Hintergrundmusik, standardmäßig aus. */
-  protected readonly music = signal(localStorage.getItem('neuland:music') === 'on');
+  protected readonly settingsOpen = signal(false);
+  protected readonly effectsOn = computed(() => audioSettings().effects.on);
   private readonly player = new BackgroundMusic();
   /** Berater und Erzfeind; die Musik wird leiser, solange einer spricht. */
   private readonly announcer = new Announcer((seconds) => this.player.duck(seconds));
@@ -954,7 +952,12 @@ export class GameView {
       this.announcer.stop();
     });
 
-    effect(() => (this.music() ? this.player.start() : this.player.stop()));
+    effect(() => {
+      const music = audioSettings().music;
+      this.player.setLevel(music.volume);
+      if (music.on) this.player.start();
+      else this.player.stop();
+    });
 
     effect(() => {
       const count = this.room.chat().length;
@@ -1028,12 +1031,11 @@ export class GameView {
       const mine = this.myTurn() && this.g().phase.kind !== 'ended';
       if (mine && !wasMyTurn) {
         untracked(() => {
-          if (this.sound()) {
-            fanfare('kurz');
-            this.player.duck(FANFARE_SECONDS.kurz);
-            // In der Aufbauphase wird nicht gewürfelt, da passt keiner der Sätze.
-            if (this.g().turn > 0) this.announcer.say('myTurn', (FANFARE_SECONDS.kurz - 1) * 1000);
-          }
+          const fanfareOn = channelVolume('effects') > 0;
+          fanfare('kurz');
+          if (fanfareOn) this.player.duck(FANFARE_SECONDS.kurz);
+          // In der Aufbauphase wird nicht gewürfelt, da passt keiner der Sätze. Ohne Fanfare spricht er sofort.
+          if (this.g().turn > 0) this.announcer.say('myTurn', fanfareOn ? (FANFARE_SECONDS.kurz - 1) * 1000 : 0);
           const me = this.me();
           if (me) this.pushBanner({ kind: 'turn', title: this.bannerText(), name: me.name, color: me.color, tag: this.g().turn ? `Zug ${this.g().turn}` : 'Aufbauphase' });
         });
@@ -1051,7 +1053,7 @@ export class GameView {
       if (!waiting) return;
       idleTimer = setTimeout(() => {
         idleTurn = g.turn;
-        if (this.sound()) this.announcer.say('idle');
+        this.announcer.say('idle');
       }, IDLE_TAUNT_MS);
     });
     inject(DestroyRef).onDestroy(() => clearTimeout(idleTimer));
@@ -1065,7 +1067,7 @@ export class GameView {
           .map((p) => [p.seat, p.online] as const),
       );
       untracked(() => {
-        if (wasOnline && this.sound() && this.g().phase.kind !== 'ended') {
+        if (wasOnline && this.g().phase.kind !== 'ended') {
           for (const [seat, on] of online) {
             const before = wasOnline.get(seat);
             if (before === true && !on) this.announcer.say('playerLeft');
@@ -1089,7 +1091,7 @@ export class GameView {
         : pending
           ? `● Tauschangebot von ${g.players[g.current].name} – Neuland`
           : 'Neuland';
-      if (pending && pending.id !== lastOfferId && this.sound()) untracked(() => this.announcer.say('tradeOffer'));
+      if (pending && pending.id !== lastOfferId) untracked(() => this.announcer.say('tradeOffer'));
       lastOfferId = pending?.id ?? lastOfferId;
     });
 
@@ -1116,7 +1118,7 @@ export class GameView {
         lastRollKey = rollKey;
         if (isNew) this.fly()?.play(g.transfers ?? [], this.seat(), delay);
         if (isNew && lastGame) this.detectEvents(lastGame, g, delay);
-        if (isNew && lastGame && this.sound()) this.announce(lastGame, g, rolled, delay);
+        if (isNew && lastGame) this.announce(lastGame, g, rolled, delay);
         if (g.phase.kind !== 'ended') {
           this.winnerReady.set(false);
           this.winnerHidden.set(false);
@@ -1290,16 +1292,6 @@ export class GameView {
   protected toggleSide(): void {
     this.sideOpen.update((o) => !o);
     localStorage.setItem('neuland:side', this.sideOpen() ? 'open' : 'closed');
-  }
-
-  protected toggleMusic(): void {
-    this.music.update((m) => !m);
-    localStorage.setItem('neuland:music', this.music() ? 'on' : 'off');
-  }
-
-  protected toggleSound(): void {
-    this.sound.update((s) => !s);
-    localStorage.setItem('neuland:sound', this.sound() ? 'on' : 'off');
   }
 
   protected onVertex(vertex: number): void {
@@ -1641,7 +1633,7 @@ export class GameView {
     const target = event.target as HTMLElement | null;
     if (target?.closest('input, textarea, select') || event.metaKey || event.ctrlKey || event.altKey) return;
     // Kartenansicht und Regelbuch schließen sich selbst mit Esc; dahinter soll nichts ausgelöst werden.
-    if (this.inspect() || this.rulesOpen()) return;
+    if (this.inspect() || this.rulesOpen() || this.settingsOpen()) return;
     if (event.key === 'Escape' && this.info()) {
       this.info.set(null);
       return;

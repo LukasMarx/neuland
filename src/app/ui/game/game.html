@@ -85,8 +85,7 @@
 
     <div class="tools">
       <button class="tool" (click)="rulesOpen.set(true)" title="Regelbuch öffnen">Regeln</button>
-      <button class="tool" (click)="toggleSound()" [title]="sound() ? 'Ton ausschalten' : 'Ton einschalten'">{{ sound() ? 'Ton an' : 'Ton aus' }}</button>
-      <button class="tool" (click)="toggleMusic()" [title]="music() ? 'Musik ausschalten' : 'Musik einschalten'">{{ music() ? 'Musik an' : 'Musik aus' }}</button>
+      <button class="tool" (click)="settingsOpen.set(true)" title="Musik, Effekte und Sprecher einstellen">Einstellungen</button>
       <button class="tool" (click)="leave.emit()">Verlassen</button>
     </div>
   </header>
@@ -455,7 +454,7 @@
         [dice]="game.dice"
         [rollKey]="rollKey()"
         [canRoll]="isCurrent() && game.phase.kind === 'roll'"
-        [sound]="sound()"
+        [sound]="effectsOn()"
         [redSecond]="cityWatch()"
         (roll)="roll()"
         (landed)="onLanded($event)"
@@ -485,6 +484,10 @@
 </div>
 
 <app-fly-layer />
+
+@if (settingsOpen()) {
+  <app-settings-dialog (close)="settingsOpen.set(false)" />
+}
 
 @if (rulesOpen()) {
   <app-rulebook [chapters]="ruleChapters()" (close)="rulesOpen.set(false)" />

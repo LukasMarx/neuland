@@ -1,21 +1,35 @@
 /** Mittelalterliches Stück (Kiravale, „Medieval Music“), in Schleife. */
 const SRC = 'web/music/mittelalter.m4a';
-const VOLUME = 0.35;
+/** Lautstärke bei voll aufgedrehtem Regler; die Musik soll unter Stimmen und Effekten bleiben. */
+const MAX_VOLUME = 0.6;
 const FADE_IN_MS = 2500;
 const FADE_OUT_MS = 1200;
+const DUCKED = 0.25;
 
-/** Hintergrundmusik: sanft ein- und ausgeblendet; ohne Klick oder Taste beginnt sie beim ersten. */
+/**
+ * Hintergrundmusik: sanft ein- und ausgeblendet; ohne Klick oder Taste beginnt sie beim ersten.
+ * Die Lautstärke ist Blende (0 bis 1, beim Ducken weniger) mal Regler (`setLevel`).
+ */
 export class BackgroundMusic {
   private audio: HTMLAudioElement | null = null;
+  private blend = 0;
+  private level = 1;
   private fade: ReturnType<typeof setInterval> | undefined;
   private unduck: ReturnType<typeof setTimeout> | undefined;
   private readonly onGesture = () => this.play();
+
+  /** Reglerstellung 0 bis 1; wirkt sofort, auch mitten in einer Blende. */
+  setLevel(level: number): void {
+    this.level = level;
+    this.apply();
+  }
 
   start(): void {
     if (this.audio) return;
     this.audio = new Audio(SRC);
     this.audio.loop = true;
-    this.audio.volume = 0;
+    this.blend = 0;
+    this.apply();
     this.play();
   }
 
@@ -26,8 +40,9 @@ export class BackgroundMusic {
     this.removeGestureListeners();
     clearInterval(this.fade);
     clearTimeout(this.unduck);
-    // Eigener Timer: Ein gleich danach gestartetes neues Stück darf das Ausblenden nicht abbrechen.
-    fade(audio, 0, FADE_OUT_MS, () => {
+    // Eigene Blende: Ein gleich danach gestartetes neues Stück darf das Ausblenden nicht abbrechen.
+    const from = audio.volume;
+    animate(1, 0, FADE_OUT_MS, (t) => (audio.volume = from * t), () => {
       audio.pause();
       audio.removeAttribute('src');
       audio.load();
@@ -38,13 +53,10 @@ export class BackgroundMusic {
   duck(seconds: number): void {
     const audio = this.audio;
     if (!audio || audio.paused) return;
-    clearInterval(this.fade);
     clearTimeout(this.unduck);
-    this.fade = fade(audio, VOLUME * 0.25, 300);
+    this.blendTo(DUCKED, 300);
     this.unduck = setTimeout(() => {
-      if (this.audio !== audio) return;
-      clearInterval(this.fade);
-      this.fade = fade(audio, VOLUME, 1500);
+      if (this.audio === audio) this.blendTo(1, 1500);
     }, seconds * 1000);
   }
 
@@ -56,8 +68,7 @@ export class BackgroundMusic {
         // Inzwischen ausgeschaltet: Das Ausblenden kümmert sich um dieses Stück.
         if (this.audio !== audio) return;
         this.removeGestureListeners();
-        clearInterval(this.fade);
-        this.fade = fade(audio, VOLUME, FADE_IN_MS);
+        this.blendTo(1, FADE_IN_MS);
       },
       () => {
         // Der Browser lässt noch keinen Ton zu.
@@ -68,18 +79,30 @@ export class BackgroundMusic {
     );
   }
 
+  private blendTo(target: number, ms: number): void {
+    clearInterval(this.fade);
+    this.fade = animate(this.blend, target, ms, (v) => {
+      this.blend = v;
+      this.apply();
+    });
+  }
+
+  private apply(): void {
+    if (this.audio) this.audio.volume = Math.min(1, this.blend * this.level * MAX_VOLUME);
+  }
+
   private removeGestureListeners(): void {
     document.removeEventListener('pointerdown', this.onGesture);
     document.removeEventListener('keydown', this.onGesture);
   }
 }
 
-function fade(audio: HTMLAudioElement, target: number, ms: number, done?: () => void): ReturnType<typeof setInterval> {
-  const from = audio.volume;
+/** Läuft in Schritten von `from` nach `to` und meldet jeden Zwischenwert. */
+function animate(from: number, to: number, ms: number, step: (value: number) => void, done?: () => void): ReturnType<typeof setInterval> {
   const started = performance.now();
   const timer = setInterval(() => {
     const t = Math.min(1, (performance.now() - started) / ms);
-    audio.volume = from + (target - from) * t;
+    step(from + (to - from) * t);
     if (t < 1) return;
     clearInterval(timer);
     done?.();

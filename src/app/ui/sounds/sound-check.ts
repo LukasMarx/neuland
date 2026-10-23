@@ -1,4 +1,5 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { audioSettings } from '../shared/audio-settings';
 import { BackgroundMusic } from '../shared/music';
 import { fanfare, FANFARE_SECONDS, SOUNDS } from '../shared/sounds';
 import { Announcer, Speaker, VOICE, VoiceClip } from '../shared/voice';
@@ -28,14 +29,14 @@ function voiceLines(speaker: Speaker): { clip: VoiceClip; when: string }[] {
     <main>
       <header>
         <h1>Klangprobe</h1>
-        <p class="muted">Alle Töne des Spiels zum Anhören. Ohne Anlass ist ein Ton noch nicht im Spiel.</p>
+        <p class="muted">Alle Töne des Spiels zum Anhören, mit den Lautstärken aus den Einstellungen. Ohne Anlass ist ein Ton noch nicht im Spiel.</p>
       </header>
 
       <section class="panel">
         <ul>
           @for (s of sounds; track s.id) {
             <li>
-              <button (click)="s.play()" [attr.aria-label]="s.name + ' abspielen'">▶</button>
+              <button (click)="s.play(effectsVolume())" [attr.aria-label]="s.name + ' abspielen'">▶</button>
               <span>
                 <b>{{ s.name }}</b>
                 <span class="muted">{{ s.when || 'noch nicht im Spiel' }}</span>
@@ -133,6 +134,7 @@ export class SoundCheck {
   protected readonly sounds = SOUNDS;
   protected readonly speakers = SPEAKERS.map((s) => ({ ...s, lines: voiceLines(s.id) }));
   protected readonly music = signal(false);
+  protected readonly effectsVolume = () => audioSettings().effects.volume;
   private readonly player = new BackgroundMusic();
   protected readonly voice = new Announcer((seconds) => this.player.duck(seconds));
 
@@ -145,12 +147,13 @@ export class SoundCheck {
 
   protected toggleMusic(): void {
     this.music.update((m) => !m);
+    this.player.setLevel(audioSettings().music.volume);
     if (this.music()) this.player.start();
     else this.player.stop();
   }
 
   protected fanfareOverMusic(): void {
-    fanfare('kurz');
+    fanfare('kurz', this.effectsVolume());
     this.player.duck(FANFARE_SECONDS.kurz);
   }
 }

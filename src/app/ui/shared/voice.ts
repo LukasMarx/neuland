@@ -1,3 +1,5 @@
+import { audioSettings, channelVolume } from './audio-settings';
+
 /**
  * Sprecher: Der Berater (Ritter) kommentiert, was mir gelingt, der Erzfeind, was die Gegner tun.
  * Jeder hört die Ansagen auf seinem Gerät aus seiner Sicht. Aufnahmen: ElevenLabs, public/audio/.
@@ -83,7 +85,8 @@ export const VOICE: Record<VoiceEvent, { when: string; clips: VoiceClip[] }> = {
 
 export const clipUrl = (c: VoiceClip) => `audio/${c.speaker}/${c.id}.mp3`;
 
-const VOLUME = 0.95;
+/** Bei voll aufgedrehtem Regler; mal der Lautstärke des Kanals „Sprecher“. */
+const MAX_VOLUME = 0.95;
 /** Ansagen, die so lange warten mussten, kommen nicht mehr: Der Moment ist vorbei. */
 const STALE_MS = 4000;
 /** Grobe Länge, bis die Datei ihre echte Dauer kennt. */
@@ -92,22 +95,27 @@ const GUESS_SECONDS = 3;
 /** Spielt Ansagen nacheinander, nie zwei Stimmen gleichzeitig; `onSpeak` bekommt die Dauer (Musik leiser). */
 export class Announcer {
   private current: HTMLAudioElement | null = null;
-  private queue: { clip: VoiceClip; at: number }[] = [];
+  private queue: { clip: VoiceClip; at: number; volume: number }[] = [];
   private readonly last = new Map<VoiceEvent, string>();
 
   constructor(private readonly onSpeak: (seconds: number) => void = () => undefined) {}
 
-  /** Eine Ansage zu einem Ereignis, nach `delayMs`. Bei mehreren Fassungen nie zweimal dieselbe hintereinander. */
+  /**
+   * Eine Ansage zu einem Ereignis, nach `delayMs`, mit der Lautstärke des Kanals „Sprecher“ (aus: still).
+   * Bei mehreren Fassungen nie zweimal dieselbe hintereinander.
+   */
   say(event: VoiceEvent, delayMs = 0): void {
+    if (channelVolume('voice') <= 0) return;
     const clips = VOICE[event].clips;
     const options = clips.length > 1 ? clips.filter((c) => c.id !== this.last.get(event)) : clips;
     const chosen = options[Math.floor(Math.random() * options.length)];
     this.last.set(event, chosen.id);
-    setTimeout(() => this.enqueue(chosen), delayMs);
+    setTimeout(() => this.enqueue(chosen, channelVolume('voice')), delayMs);
   }
 
+  /** Probehören: mit der eingestellten Lautstärke, auch wenn der Kanal aus ist. */
   play(clip: VoiceClip): void {
-    this.enqueue(clip);
+    this.enqueue(clip, audioSettings().voice.volume);
   }
 
   stop(): void {
@@ -116,10 +124,10 @@ export class Announcer {
     this.current = null;
   }
 
-  private enqueue(clip: VoiceClip): void {
+  private enqueue(clip: VoiceClip, volume: number): void {
     // Mehr als zwei Ansagen auf Vorrat wären nur noch Geschnatter.
-    if (this.queue.length >= 2) return;
-    this.queue.push({ clip, at: Date.now() });
+    if (this.queue.length >= 2 || volume <= 0) return;
+    this.queue.push({ clip, at: Date.now(), volume });
     if (!this.current) this.next();
   }
 
@@ -131,7 +139,7 @@ export class Announcer {
       return;
     }
     const audio = new Audio(clipUrl(item.clip));
-    audio.volume = VOLUME;
+    audio.volume = MAX_VOLUME * item.volume;
     this.current = audio;
     const done = () => {
       if (this.current === audio) this.next();
