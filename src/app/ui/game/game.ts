@@ -85,6 +85,7 @@ import { DEV_CARD_HELP } from '../shared/labels';
 import { ResourcePicker } from '../shared/resource-picker';
 import { CardInspector } from './card-inspector';
 import { EndStats } from './end-stats';
+import { BackgroundMusic } from '../shared/music';
 import { DiceTray, ROLL_DURATION_MS } from './dice-tray';
 import { BannerEvent, EventBanner } from './event-banner';
 import { FlyLayer } from './fly-layer';
@@ -384,6 +385,9 @@ export class GameView {
   protected readonly sound = signal(
     isDevMode() ? localStorage.getItem('neuland:sound') === 'on' : localStorage.getItem('neuland:sound') !== 'off',
   );
+  /** Hintergrundmusik, standardmäßig aus. */
+  protected readonly music = signal(localStorage.getItem('neuland:music') === 'on');
+  private readonly player = new BackgroundMusic();
   protected readonly discardPick = signal<ResourceCounts>(emptyResources());
   protected readonly plentyPick = signal<ResourceCounts>(emptyResources());
   protected readonly tokenPick = signal<ResourceCounts>(emptyResources());
@@ -934,7 +938,12 @@ export class GameView {
 
   constructor() {
     const clock = setInterval(() => this.now.set(Date.now()), 1000);
-    inject(DestroyRef).onDestroy(() => clearInterval(clock));
+    inject(DestroyRef).onDestroy(() => {
+      clearInterval(clock);
+      this.player.stop();
+    });
+
+    effect(() => (this.music() ? this.player.start() : this.player.stop()));
 
     effect(() => {
       const count = this.room.chat().length;
@@ -1213,6 +1222,11 @@ export class GameView {
   protected toggleSide(): void {
     this.sideOpen.update((o) => !o);
     localStorage.setItem('neuland:side', this.sideOpen() ? 'open' : 'closed');
+  }
+
+  protected toggleMusic(): void {
+    this.music.update((m) => !m);
+    localStorage.setItem('neuland:music', this.music() ? 'on' : 'off');
   }
 
   protected toggleSound(): void {

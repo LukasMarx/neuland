@@ -86,6 +86,7 @@
     <div class="tools">
       <button class="tool" (click)="rulesOpen.set(true)" title="Regelbuch öffnen">Regeln</button>
       <button class="tool" (click)="toggleSound()" [title]="sound() ? 'Ton ausschalten' : 'Ton einschalten'">{{ sound() ? 'Ton an' : 'Ton aus' }}</button>
+      <button class="tool" (click)="toggleMusic()" [title]="music() ? 'Musik ausschalten' : 'Musik einschalten'">{{ music() ? 'Musik an' : 'Musik aus' }}</button>
       <button class="tool" (click)="leave.emit()">Verlassen</button>
     </div>
   </header>
