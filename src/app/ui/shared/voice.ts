@@ -46,7 +46,39 @@ export type VoiceEvent =
   | 'tradeRejected'
   | 'enemyMatchPoint'
   | 'enemyWin'
-  | 'idle';
+  | 'idle'
+  // Erweiterungen und Hausregeln
+  | 'islandAny'
+  | 'myIsland'
+  | 'enemyIsland'
+  | 'fogLifted'
+  | 'pirateMoved'
+  | 'enemyPirateNearMe'
+  | 'myShip'
+  | 'enemyShip'
+  | 'myGold'
+  | 'enemyGold'
+  | 'raidersNear'
+  | 'raidersAttack'
+  | 'raidersRepelled'
+  | 'myGuardsHeld'
+  | 'myCityRaided'
+  | 'raidGloat'
+  | 'myImprovement'
+  | 'metropolisAny'
+  | 'myMetropolis'
+  | 'enemyMetropolis'
+  | 'bridgeBuilt'
+  | 'myCoinLead'
+  | 'myFish'
+  | 'myAnchor'
+  | 'anchorFromEnemy'
+  | 'myHarborMaster'
+  | 'enemyHarborMaster'
+  | 'myRoadBuilding'
+  | 'myInvention'
+  | 'tradeAccepted'
+  | 'neutralBlocks';
 
 export interface VoiceClip {
   id: string;
@@ -78,7 +110,7 @@ export const VOICE: Record<VoiceEvent, { when: string; clips: VoiceClip[] }> = {
   gameStart: { when: 'Das Spiel beginnt', clips: [clip('herald', 'spiel-beginnt', 'Hört, hört! Das Land ist verteilt. Das Spiel beginnt!')] },
   setupDone: { when: 'Die Aufbauphase ist vorbei', clips: [clip('herald', 'wuerfel-sprechen', 'Die Siedlungen stehen. Nun sprechen die Würfel!')] },
   specialBuildStart: { when: 'Eine Sonderbaurunde beginnt', clips: [clip('herald', 'sonderbaurunde', 'Die Sonderbaurunde ist eröffnet!')] },
-  bankEmpty: { when: 'Ein Rohstoff ist in der Bank ausgegangen', clips: [clip('herald', 'bank-leer', 'Die Speicher der Bank sind leer!')] },
+  bankEmpty: { when: 'Ein Rohstoff ist in der Bank ausgegangen (höchstens alle 10 Züge)', clips: [clip('herald', 'bank-leer', 'Die Speicher der Bank sind leer!')] },
   diceReshuffle: { when: 'Würfelstapel: Die Karten werden neu gemischt', clips: [clip('herald', 'neu-gemischt', 'Die Karten werden neu gemischt!')] },
   anyWin: { when: 'Jemand gewinnt (vor Berater oder Erzfeind)', clips: [clip('herald', 'neuer-herrscher', 'Hört, hört! Das Land hat einen neuen Herrscher!')] },
   myTurn: {
@@ -134,7 +166,7 @@ export const VOICE: Record<VoiceEvent, { when: string; clips: VoiceClip[] }> = {
   lostLargestArmy: { when: 'Du verlierst die größte Rittermacht', clips: [clip('friend', 'ritter-schwaecher', 'Unsere Ritter sind nicht mehr die stärksten.')] },
   myMonopoly: { when: 'Du spielst ein Monopol', clips: [first('friend', 'monopol', 'Ein Monopol füllt die Schatzkammer.')] },
   myMatchPoint: {
-    when: 'Dir fehlt nur noch ein Siegpunkt',
+    when: 'Dir fehlt nur noch ein Siegpunkt (höchstens alle 6 Züge)',
     clips: [clip('friend', 'thron-nah', 'Der Thron ist zum Greifen nah, Mylord.'), clip('friend', 'schritt-krone', 'Nur noch ein Schritt bis zur Krone.')],
   },
   myWin: {
@@ -152,7 +184,10 @@ export const VOICE: Record<VoiceEvent, { when: string; clips: VoiceClip[] }> = {
     ],
   },
   robberOnMyHex: { when: 'Ein Gegner setzt den Räuber an dein Feld, ohne dich auszurauben', clips: [clip('enemy', 'felder-brach', 'Eure Felder liegen nun brach.')] },
-  enemyMonopoly: { when: 'Ein Gegner spielt ein Monopol gegen dich', clips: [first('enemy', 'alles-meins', 'Mit Euren Vorräten? Alles meins!')] },
+  enemyMonopoly: {
+    when: 'Ein Gegner spielt ein Monopol gegen dich',
+    clips: [first('enemy', 'alles-meins', 'Mit Euren Vorräten? Alles meins!'), clip('enemy', 'alles-ihr-habt', 'Alles, was Ihr habt, gehört nun mir.')],
+  },
   enemyLongestRoad: {
     when: 'Ein Gegner bekommt die längste Handelsstraße',
     clips: [first('enemy', 'strassen-reichen-weit', 'Meine Straßen reichen weit. Euer Einfluss endet hier.')],
@@ -180,7 +215,7 @@ export const VOICE: Record<VoiceEvent, { when: string; clips: VoiceClip[] }> = {
   },
   tradeRejected: { when: 'Ein Gegner lehnt dein Tauschangebot ab (nur der erste je Angebot)', clips: [clip('enemy', 'handle-nicht', 'Mit Euch handle ich nicht.')] },
   enemyMatchPoint: {
-    when: 'Einem Gegner fehlt nur noch ein Siegpunkt',
+    when: 'Einem Gegner fehlt nur noch ein Siegpunkt (höchstens alle 6 Züge)',
     clips: [clip('enemy', 'nur-ein-schritt', 'Nur noch ein Schritt, und alles ist mein.'), clip('enemy', 'ende-nah', 'Spürt Ihr es? Das Ende ist nah.')],
   },
   enemyWin: {
@@ -190,6 +225,54 @@ export const VOICE: Record<VoiceEvent, { when: string; clips: VoiceClip[] }> = {
   idle: {
     when: 'Du hast nach deinem Wurf 60 Sekunden lang nichts getan',
     clips: [clip('enemy', 'na-los', 'Na los, Eure Straßen bauen sich nicht von allein.'), clip('enemy', 'zoegert-nur', 'Zögert nur. Ich habe Zeit.')],
+  },
+
+  // Entwicklungskarten und Handel
+  myRoadBuilding: { when: 'Du spielst Straßenbau', clips: [clip('friend', 'strassenbauer', 'Die Straßenbauer stehen bereit.')] },
+  myInvention: { when: 'Du spielst Erfindung', clips: [clip('friend', 'erfindung', 'Eine kluge Erfindung, Mylord.')] },
+  tradeAccepted: { when: 'Ein Gegner nimmt dein Tauschangebot an (nur der erste je Angebot)', clips: [clip('enemy', 'nehme-angebot', 'Gut. Ich nehme, was Ihr bietet.')] },
+
+  // Seewege
+  islandAny: { when: 'Seewege: Jemand siedelt auf einer neuen Insel', clips: [clip('herald', 'neues-land', 'Neues Land in Sicht!')] },
+  myIsland: { when: 'Seewege: deine erste Siedlung auf einer neuen Insel (nach dem Herold)', clips: [clip('friend', 'neues-land-reich', 'Neues Land für Euer Reich!')] },
+  enemyIsland: { when: 'Seewege: Ein Gegner besiedelt eine neue Insel (nach dem Herold)', clips: [clip('enemy', 'insel-mir', 'Diese Insel gehört mir.')] },
+  myShip: { when: 'Seewege: Du baust ein Schiff (höchstens einmal je Zug)', clips: [clip('friend', 'schiff-stapel', 'Ein Schiff läuft vom Stapel.')] },
+  enemyShip: { when: 'Seewege: Ein Gegner baut ein Schiff (höchstens einmal je Zug)', clips: [clip('enemy', 'schiffe-meer', 'Meine Schiffe beherrschen das Meer.')] },
+  myGold: { when: 'Seewege: Gold für dich', clips: [clip('friend', 'gold-waehlt', 'Gold, Mylord! Wählt weise.')] },
+  enemyGold: { when: 'Seewege: Gold für einen Gegner', clips: [clip('enemy', 'gold-mich', 'Gold! Und alles für mich.')] },
+  pirateMoved: { when: 'Seewege: Das Kaperschiff wird versetzt', clips: [clip('herald', 'kaperschiff', 'Das Kaperschiff kreuzt vor der Küste!')] },
+  enemyPirateNearMe: {
+    when: 'Seewege: Ein Gegner setzt das Kaperschiff an deine Küste (statt des Herolds)',
+    clips: [clip('enemy', 'kaperschiff-ladung', 'Mein Kaperschiff wartet auf Eure Ladung.')],
+  },
+  fogLifted: { when: 'Im Dunst: Der Nebel wird aufgedeckt', clips: [clip('herald', 'nebel', 'Der Nebel lichtet sich!')] },
+
+  // Stadtwacht
+  raidersNear: { when: 'Stadtwacht: Die Flotte steht ein Feld vor dem Angriff', clips: [clip('herald', 'pluenderer-naeher', 'Die Plünderer segeln näher!')] },
+  raidersAttack: { when: 'Stadtwacht: Die Flotte greift an', clips: [clip('herald', 'pluenderer-landen', 'Die Plünderer landen! Zu den Waffen!')] },
+  raidersRepelled: { when: 'Stadtwacht: Angriff abgewehrt', clips: [clip('herald', 'pluenderer-zurueck', 'Die Plünderer sind zurückgeschlagen!')] },
+  myGuardsHeld: { when: 'Stadtwacht: Du verteidigst am meisten (Ehrenschild)', clips: [clip('friend', 'waechter-gehalten', 'Unsere Wächter haben die Stadt gehalten!')] },
+  myCityRaided: { when: 'Stadtwacht: Du verlierst beim Angriff eine Stadt', clips: [clip('friend', 'stadt-verwuestet', 'Die Plünderer haben unsere Stadt verwüstet!')] },
+  raidGloat: { when: 'Stadtwacht: nach dem Berater, wenn du eine Stadt verlierst', clips: [clip('enemy', 'mauern-schwach', 'Eure Mauern waren zu schwach.')] },
+  myImprovement: { when: 'Stadtwacht: Du baust deine Stadt aus', clips: [clip('friend', 'stadt-gedeiht', 'Eure Stadt gedeiht.')] },
+  metropolisAny: { when: 'Stadtwacht: Eine Prachtstadt entsteht', clips: [clip('herald', 'prachtstadt', 'Eine Prachtstadt erhebt sich über das Land!')] },
+  myMetropolis: {
+    when: 'Stadtwacht: deine Prachtstadt (nach dem Herold)',
+    clips: [clip('friend', 'prachtstadt-euer', 'Eine Prachtstadt, Mylord! Das ganze Land blickt auf Euch.')],
+  },
+  enemyMetropolis: { when: 'Stadtwacht: Prachtstadt eines Gegners (nach dem Herold)', clips: [clip('enemy', 'prachtstadt-zittert', 'Seht meine Prachtstadt und zittert!')] },
+
+  // Fischgründe, Flussläufe, Hafenvogt, Duell
+  myFish: { when: 'Fischgründe: Du fängst Fisch', clips: [clip('friend', 'fang-ufer', 'Ein guter Fang am Ufer.')] },
+  myAnchor: { when: 'Fischgründe: Du ziehst den Rostigen Anker', clips: [clip('friend', 'anker-euch', 'Der Rostige Anker hängt nun an Euch, Mylord.')] },
+  anchorFromEnemy: { when: 'Fischgründe: Ein Gegner gibt dir den Rostigen Anker', clips: [clip('enemy', 'anker-wuerde', 'Tragt den Anker mit Würde.')] },
+  bridgeBuilt: { when: 'Flussläufe: Jemand baut eine Brücke', clips: [clip('herald', 'bruecke', 'Eine Brücke spannt sich über den Fluss.')] },
+  myCoinLead: { when: 'Flussläufe: Du hast allein die meisten Münzen', clips: [clip('friend', 'reichster-fluss', 'Ihr seid der reichste Herr am Fluss.')] },
+  myHarborMaster: { when: 'Hafenvogt: Du bekommst die Sonderkarte', clips: [clip('friend', 'herr-haefen', 'Ihr seid nun Herr der Häfen.')] },
+  enemyHarborMaster: { when: 'Hafenvogt: Ein Gegner bekommt die Sonderkarte', clips: [clip('enemy', 'haefen-mir', 'Die Häfen gehören jetzt mir.')] },
+  neutralBlocks: {
+    when: 'Duell: Ein Gegner setzt eine neutrale Figur an deine Straßen',
+    clips: [clip('enemy', 'hindernis', 'Ein Hindernis auf Eurem Weg? Wie bedauerlich.')],
   },
 };
 

@@ -88,7 +88,7 @@ import { EndStats } from './end-stats';
 import { audioSettings, channelVolume } from '../shared/audio-settings';
 import { BackgroundMusic } from '../shared/music';
 import { SettingsDialog } from '../shared/settings-dialog';
-import { Announcer } from '../shared/voice';
+import { Announcer, VoiceEvent } from '../shared/voice';
 import { effect as playEffect, EFFECTS } from '../shared/sounds';
 import { voiceEvents } from './announcer';
 import { effectEvents } from './effects';
@@ -111,6 +111,12 @@ type Dialog =
   | { kind: 'coins' }
   | { kind: 'guard'; vertex: number }
   | { kind: 'progress'; card: ProgressCard };
+
+/**
+ * Ansagen, die sonst ständig kämen: so viele Züge Abstand mindestens. Straßen und Schiffe einmal je Zug;
+ * die leere Bank und „noch ein Punkt“ wiederholen sich bei der Stadtwacht sonst laufend.
+ */
+const MIN_TURN_GAP: Partial<Record<VoiceEvent, number>> = { enemyRoad: 1, enemyShip: 1, myShip: 1, bankEmpty: 10, myMatchPoint: 6, enemyMatchPoint: 6 };
 
 /** So lange darf man nach dem eigenen Wurf nichts tun, bevor der Erzfeind stichelt. */
 const IDLE_TAUNT_MS = 60_000;
@@ -395,9 +401,9 @@ export class GameView {
   private readonly player = new BackgroundMusic();
   /** Berater und Erzfeind; die Musik wird leiser, solange einer spricht. */
   private readonly announcer = new Announcer((seconds) => this.player.duck(seconds));
-  /** Zug, in dem der Berater zuletzt ans Bauen erinnert hat, und in dem der Erzfeind zuletzt eine Straße kommentiert hat. */
+  /** Zug, in dem der Berater zuletzt ans Bauen erinnert hat, und in dem jede Ansage aus MIN_TURN_GAP zuletzt kam. */
   private buildHintTurn = -Infinity;
-  private roadTauntTurn = -1;
+  private readonly spokenTurn = new Map<VoiceEvent, number>();
   protected readonly discardPick = signal<ResourceCounts>(emptyResources());
   protected readonly plentyPick = signal<ResourceCounts>(emptyResources());
   protected readonly tokenPick = signal<ResourceCounts>(emptyResources());
@@ -1191,10 +1197,11 @@ export class GameView {
     if (effects.includes('sieg')) this.player.duck(EFFECTS.sieg.seconds + 0.5);
     const voiceDelay = delay + (effects.includes('sieg') ? EFFECTS.sieg.seconds * 1000 : effects.includes('horn') ? 1000 : 0);
     for (const event of voiceEvents(prev, g, this.seat())) {
-      // Straßen der Gegner kommentiert der Erzfeind höchstens einmal je Zug.
-      if (event === 'enemyRoad') {
-        if (this.roadTauntTurn === g.turn) continue;
-        this.roadTauntTurn = g.turn;
+      const gap = MIN_TURN_GAP[event];
+      if (gap) {
+        const last = this.spokenTurn.get(event);
+        if (last !== undefined && g.turn - last < gap) continue;
+        this.spokenTurn.set(event, g.turn);
       }
       this.announcer.say(event, voiceDelay);
     }
