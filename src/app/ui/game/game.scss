@@ -567,6 +567,8 @@ kbd {
   border: 1px solid var(--line);
   box-shadow: 0 -10px 34px rgb(0 0 0 / 0.5);
   animation: dock-panel-in 0.16s ease-out;
+  // Tauschtisch und Angebote richten ihre Anordnung nach dieser Breite, nicht nach dem Fenster.
+  container: dock / inline-size;
 }
 
 @keyframes dock-panel-in {

@@ -8,7 +8,8 @@
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(300px, 520px);
-  justify-content: center;
+  // safe: Ist der Inhalt doch breiter, beginnt er links statt dort abgeschnitten zu werden.
+  justify-content: safe center;
   align-items: center;
   gap: 48px;
   padding: 14px 64px 10px 0;
@@ -349,10 +350,11 @@
   }
 }
 
-@media (max-width: 1100px) {
+// Nebeneinander brauchen Karten und Aktionen bis zu 1180 px; das Dock-Panel ist meist schmaler.
+@container dock (max-width: 1180px) {
   :host {
     --ch: clamp(90px, 14vh, 130px);
-    --cw: min(calc(var(--ch) * 2 / 3), calc((100vw - 200px) / 5 - 10px));
+    --cw: min(calc(var(--ch) * 2 / 3), calc((100cqw - 170px) / 5));
     grid-template-columns: minmax(0, 1fr);
     justify-items: center;
     gap: 16px;
