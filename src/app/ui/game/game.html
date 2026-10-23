@@ -1,5 +1,5 @@
 @let game = g();
-<div class="layout">
+<div class="layout" [class.side-closed]="!sideOpen()">
   <header class="topbar">
     <div class="brand" [title]="'Raum ' + room.code() + ' · ' + mapName() + ' · bis ' + game.settings.victoryPoints + (variantNames().length ? ' · ' + variantNames().join(', ') : '')">
       <b>Neuland</b>
@@ -209,40 +209,50 @@
   </section>
 
   <aside class="side">
-    @if (seat() < 0) {
-      <section class="spectator">
-        <strong>Du schaust zu.</strong>
-        @if (claimable().length) {
-          <p class="muted">Bist du einer dieser Spieler, z. B. von einem anderen Gerät? Dann übernimm den Platz:</p>
-          <div class="row">
-            @for (p of claimable(); track p.id) {
-              <button class="primary" (click)="room.claimSeat(p.id)">Als {{ p.name }} weiterspielen</button>
-            }
-          </div>
-        } @else {
-          <p class="muted">Alle Plätze sind besetzt. Wird ein Spieler getrennt, kannst du seinen Platz übernehmen.</p>
-        }
-      </section>
-    }
-
-    <div class="tabs" role="tablist">
-      <button role="tab" [class.on]="sideTab() === 'log'" [attr.aria-selected]="sideTab() === 'log'" (click)="sideTab.set('log')">Verlauf</button>
-      <button role="tab" [class.on]="sideTab() === 'chat'" [attr.aria-selected]="sideTab() === 'chat'" (click)="sideTab.set('chat')">
-        Chat
+    @if (!sideOpen()) {
+      <button class="side-open" (click)="toggleSide()" title="Verlauf und Chat aufklappen (V)">
+        <span class="label">Verlauf</span>
         @if (unreadChat()) {
-          <span class="count">{{ unreadChat() }}</span>
+          <span class="count" [title]="unreadChat() + ' neue Chatnachrichten'">{{ unreadChat() }}</span>
         }
       </button>
-    </div>
-
-    @if (sideTab() === 'log') {
-      <ol class="log" #logList>
-        @for (e of logEntries(); track $index) {
-          <li [style.--c]="e.color">{{ e.text }}</li>
-        }
-      </ol>
     } @else {
-      <app-chat-box class="chat" />
+      @if (seat() < 0) {
+        <section class="spectator">
+          <strong>Du schaust zu.</strong>
+          @if (claimable().length) {
+            <p class="muted">Bist du einer dieser Spieler, z. B. von einem anderen Gerät? Dann übernimm den Platz:</p>
+            <div class="row">
+              @for (p of claimable(); track p.id) {
+                <button class="primary" (click)="room.claimSeat(p.id)">Als {{ p.name }} weiterspielen</button>
+              }
+            </div>
+          } @else {
+            <p class="muted">Alle Plätze sind besetzt. Wird ein Spieler getrennt, kannst du seinen Platz übernehmen.</p>
+          }
+        </section>
+      }
+
+      <div class="tabs" role="tablist">
+        <button role="tab" [class.on]="sideTab() === 'log'" [attr.aria-selected]="sideTab() === 'log'" (click)="sideTab.set('log')">Verlauf</button>
+        <button role="tab" [class.on]="sideTab() === 'chat'" [attr.aria-selected]="sideTab() === 'chat'" (click)="sideTab.set('chat')">
+          Chat
+          @if (unreadChat()) {
+            <span class="count">{{ unreadChat() }}</span>
+          }
+        </button>
+        <button class="side-close" (click)="toggleSide()" title="Verlauf und Chat einklappen (V)" aria-label="Verlauf und Chat einklappen">»</button>
+      </div>
+
+      @if (sideTab() === 'log') {
+        <ol class="log" #logList>
+          @for (e of logEntries(); track $index) {
+            <li [style.--c]="e.color">{{ e.text }}</li>
+          }
+        </ol>
+      } @else {
+        <app-chat-box class="chat" />
+      }
     }
   </aside>
 

@@ -374,6 +374,8 @@ export class GameView {
   /** Geöffnete Punkte-Übersicht eines Spielers, verankert unter seinem Eintrag. */
   protected readonly info = signal<{ seat: number; left: number; top: number } | null>(null);
   protected readonly sideTab = signal<'log' | 'chat'>('log');
+  /** Verlauf und Chat aufgeklappt; zugeklappt bekommt das Brett die Breite. */
+  protected readonly sideOpen = signal(localStorage.getItem('neuland:side') !== 'closed');
   /** Chatnachrichten, die ich schon gesehen habe (Chat-Reiter offen); der Zähler zeigt nur neue. */
   private readonly chatSeen = signal(0);
   protected readonly unreadChat = computed(() => Math.max(0, this.room.chat().length - this.chatSeen()));
@@ -935,7 +937,7 @@ export class GameView {
 
     effect(() => {
       const count = this.room.chat().length;
-      if (this.sideTab() === 'chat') untracked(() => this.chatSeen.set(count));
+      if (this.sideOpen() && this.sideTab() === 'chat') untracked(() => this.chatSeen.set(count));
     });
 
     // Automatisch würfeln: Steht der Wurf an, läuft eine Uhr (bei allen sichtbar). Ein offener Dialog hält sie
@@ -1078,6 +1080,7 @@ export class GameView {
     afterRenderEffect(() => {
       this.logEntries();
       this.sideTab();
+      this.sideOpen();
       const el = this.logList()?.nativeElement;
       if (el) el.scrollTop = el.scrollHeight;
     });
@@ -1204,6 +1207,11 @@ export class GameView {
   protected toggleBuild(mode: BuildMode): void {
     this.moveFrom.set(null);
     this.buildMode.update((m) => (m === mode ? null : mode));
+  }
+
+  protected toggleSide(): void {
+    this.sideOpen.update((o) => !o);
+    localStorage.setItem('neuland:side', this.sideOpen() ? 'open' : 'closed');
   }
 
   protected toggleSound(): void {
@@ -1545,7 +1553,7 @@ export class GameView {
     return n === undefined ? '' : n > 0 ? `+${n}` : `−${-n}`;
   }
 
-  /** Tastenkürzel: Leertaste = Hauptaktion, S/R/C = bauen, E = Entwicklung, H = Handel, Esc = abbrechen. */
+  /** Tastenkürzel: Leertaste = Hauptaktion, S/R/C = bauen, E = Entwicklung, H = Handel, V = Verlauf, Esc = abbrechen. */
   protected onKey(event: KeyboardEvent): void {
     const target = event.target as HTMLElement | null;
     if (target?.closest('input, textarea, select') || event.metaKey || event.ctrlKey || event.altKey) return;
@@ -1587,6 +1595,9 @@ export class GameView {
       case 'h':
         if (this.showTable()) this.closeTrade();
         else if (this.canTrade()) this.openTrade();
+        break;
+      case 'v':
+        this.toggleSide();
         break;
     }
   }
