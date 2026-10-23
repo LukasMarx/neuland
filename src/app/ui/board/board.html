@@ -124,8 +124,12 @@
         @if (h.trader) {
           <g class="trader" [attr.transform]="h.traderTransform" [style.--c]="h.trader">
             <title>Händler: Rohstoff dieses Feldes 2:1, 1 Siegpunkt</title>
-            <circle r="11" />
-            <text>H</text>
+            @if (h.traderImage) {
+              <image class="piece-art" [attr.href]="h.traderImage" x="-17" y="-24" width="34" height="34" />
+            } @else {
+              <circle r="11" />
+              <text>H</text>
+            }
           </g>
         }
         @if (h.robber) {
@@ -250,8 +254,12 @@
         </g>
       } @else if (hexGhost() === 'trader') {
         <g class="ghost-robber trader" [attr.transform]="h.traderTransform" [style.--c]="ghostColor()">
-          <circle r="11" />
-          <text>H</text>
+          @if (ghostTraderImage(); as image) {
+            <image class="piece-art" [attr.href]="image" x="-17" y="-24" width="34" height="34" />
+          } @else {
+            <circle r="11" />
+            <text>H</text>
+          }
         </g>
       }
     </g>

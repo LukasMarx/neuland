@@ -6,7 +6,7 @@
 
 **Nachtrag 23.10.2026:** Auch Stadtwacht III, der Händler in zehn Spielerfarben und alle vier optionalen Wächter-Aktionssymbole sind als Originale und Web-Fassungen fertig. [Neue Lieferung und Vorschau](../stadtwacht-2026-10-23/LIEFERUNG.md).
 
-**Einbindung noch offen:** Stadtwacht III und die Wächter-Aktionssymbole sind geliefert; im Spiel stehen dafür weiterhin Platzhalter: Einflusskarten als farbige Karten mit Namen ohne Motiv, der Händler als Marke mit „H“.
+**Eingebunden am 23.10.2026:** Einflusskarten mit Motiv in der Hand und groß im Kartendialog, Rückseiten an den Stapeln neben der Bank, bei der Farbwahl und als Bild beim Kundschafter, der Händler als Figur auf dem Brett (auch als Vorschau bei der Feldwahl), die vier Symbole im Wächter-Dialog. Damit ist dieser Auftrag vollständig.
 
 ## Worum es geht
 

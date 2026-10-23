@@ -147,7 +147,7 @@
       @if (progressStacks(); as stacks) {
         @for (st of stacks; track st.track) {
           <span class="pstack" [attr.data-track]="st.track" [title]="'Einflusskarten ' + st.name + ': ' + st.size + ' im Stapel'">
-            <i aria-hidden="true"></i><b>{{ st.size }}</b>
+            <img [src]="'web/cards/progress/back-' + st.track + '.jpg'" alt="" /><b>{{ st.size }}</b>
           </span>
         }
       }
@@ -270,6 +270,7 @@
           <span class="divider" title="Einflusskarten"></span>
           @for (c of myProgress(); track $index) {
             <button class="pcard" [attr.data-track]="c.track" [class.ready]="canPlayProgress()" [title]="c.text" (click)="openProgress(c.card)">
+              <img class="motif" [src]="'web/cards/progress/' + c.card + '.jpg'" alt="" />
               <small>{{ trackNames[c.track] }}</small>
               <b>{{ c.short }}</b>
             </button>
@@ -444,7 +445,9 @@
         <span class="event-die" [class]="'event-die ' + e.cls" [title]="e.title"><img [src]="e.image" [alt]="e.title" /></span>
       }
       @if (diceDeckLeft() !== null) {
-        <span class="dice-deck" title="Würfelstapel: so viele Karten noch, ab 5 wird neu gemischt">{{ diceDeckLeft() }} Karten</span>
+        <span class="dice-deck" [title]="'Würfelstapel: noch ' + diceDeckLeft() + ' Karten, ab 5 wird neu gemischt'">
+          <img src="web/cards/dice-deck-back.jpg" alt="" /><b>{{ diceDeckLeft() }}</b>
+        </span>
       }
       <button class="primary go" [disabled]="!primary().run" (click)="primary().run?.()">
         {{ primary().label }}
@@ -619,7 +622,7 @@
       <div class="choice-list">
         @for (st of stacks; track st.track) {
           <button class="ptrack" [attr.data-track]="st.track" [disabled]="!st.size" (click)="pickProgress(st.track)">
-            <i aria-hidden="true"></i> {{ st.name }} <span class="muted">({{ st.size }} Karten)</span>
+            <img class="back" [src]="'web/cards/progress/back-' + st.track + '.jpg'" alt="" /> {{ st.name }} <span class="muted">({{ st.size }} Karten)</span>
           </button>
         }
       </div>
@@ -644,7 +647,7 @@
         <div class="choice-list">
           @for (c of pk.cards; track $index) {
             <button class="ptrack" [attr.data-track]="c.track" (click)="takePeekProgress(c.card)">
-              <i aria-hidden="true"></i> <b>{{ c.name }}</b> <span class="muted">{{ c.text }}</span>
+              <img class="thumb" [src]="'web/cards/progress/' + c.card + '.jpg'" alt="" /> <b>{{ c.name }}</b> <span class="muted">{{ c.text }}</span>
             </button>
           }
         </div>
@@ -658,6 +661,7 @@
     <div class="modal-backdrop" (click)="dialog.set(null)">
       @if (progressDialog(); as pd) {
         <div class="modal pmodal" [attr.data-track]="pd.track" (click)="$event.stopPropagation()">
+          <img class="pmotif" [src]="'web/cards-large/progress/' + pd.card + '.jpg'" alt="" />
           <small class="ptag">Einflusskarte · {{ trackNames[pd.track] }}</small>
           <h3>{{ pd.name }}</h3>
           <p>{{ pd.text }}</p>
@@ -738,10 +742,10 @@
         @if (guardOptions(); as o) {
           <h3>Wächter, Stufe {{ o.level }} · {{ o.active ? 'einsatzbereit' : 'ruht' }}</h3>
           <div class="choice-list">
-            <button [disabled]="!o.activate" (click)="guardAct('activate')">Bereit machen <span class="muted">1 Getreide</span></button>
-            <button [disabled]="!o.upgrade" [title]="o.upgradeHint ?? ''" (click)="guardAct('upgrade')">Aufwerten <span class="muted">1 Wolle, 1 Erz{{ o.upgradeHint ? ' · ' + o.upgradeHint : '' }}</span></button>
-            <button [disabled]="!o.move" (click)="guardAct('move')">Ziehen oder verdrängen <span class="muted">einsatzbereit, danach ruht er</span></button>
-            <button [disabled]="!o.chase" (click)="guardAct('chase')">Räuber vertreiben <span class="muted">am Feld des Räubers</span></button>
+            <button [disabled]="!o.activate" (click)="guardAct('activate')"><img class="choice-icon" src="web/icons/city/guard-activate.png" alt="" /> Bereit machen <span class="muted">1 Getreide</span></button>
+            <button [disabled]="!o.upgrade" [title]="o.upgradeHint ?? ''" (click)="guardAct('upgrade')"><img class="choice-icon" src="web/icons/city/guard-upgrade.png" alt="" /> Aufwerten <span class="muted">1 Wolle, 1 Erz{{ o.upgradeHint ? ' · ' + o.upgradeHint : '' }}</span></button>
+            <button [disabled]="!o.move" (click)="guardAct('move')"><img class="choice-icon" src="web/icons/city/guard-move.png" alt="" /> Ziehen oder verdrängen <span class="muted">einsatzbereit, danach ruht er</span></button>
+            <button [disabled]="!o.chase" (click)="guardAct('chase')"><img class="choice-icon" src="web/icons/city/guard-chase.png" alt="" /> Räuber vertreiben <span class="muted">am Feld des Räubers</span></button>
           </div>
           <p class="muted">Ein gerade bereit gemachter Wächter zieht oder vertreibt erst im nächsten Zug.</p>
         }

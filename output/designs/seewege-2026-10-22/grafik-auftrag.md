@@ -6,7 +6,7 @@
 
 **Nachgeliefert und eingebunden:** Symbole für die Knöpfe „Versetzen“ und „Handeln“ im Bauraster.
 
-**Optionales Motiv geliefert am 23.10.2026:** Kaperschiff-Banner inklusive Web-Fassung. [Lieferung und Vorschau](../stadtwacht-2026-10-23/LIEFERUNG.md); für ein künftiges Banner „Kaperschiff versetzt“ bereit.
+**Optionales Motiv geliefert am 23.10.2026:** Kaperschiff-Banner inklusive Web-Fassung. [Lieferung und Vorschau](../stadtwacht-2026-10-23/LIEFERUNG.md); liegt bereit, bis es ein Banner „Kaperschiff versetzt“ gibt (noch nicht eingebunden).
 
 ## Worum es geht
 

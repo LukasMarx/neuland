@@ -1,4 +1,4 @@
-export type PieceKind = 'knight' | 'city' | 'road' | 'settlement' | 'ship' | 'bridge' | 'metropolis' | 'guard1' | 'guard2' | 'guard3';
+export type PieceKind = 'knight' | 'city' | 'road' | 'settlement' | 'ship' | 'bridge' | 'metropolis' | 'guard1' | 'guard2' | 'guard3' | 'trader';
 
 /** Palette of the exported PNGs; unknown saved colors retain the SVG fallback. */
 const PIECE_COLORS: Readonly<Record<string, string>> = {

@@ -6,7 +6,7 @@
 
 **Nachgeliefert und eingebunden (Flussläufe):** Brücke in allen Spielerfarben (Brett und Bauknopf), Münze (Hand und Lobby), Abzeichen „meiste“ und „wenigste Münzen“ (Spielerleiste).
 
-**Optionale Motive geliefert am 23.10.2026:** Banner-Motiv Fisch sowie Würfelstapel Vorder- und Rückseite, jeweils mit Web-Fassungen. [Lieferung und Vorschau](../stadtwacht-2026-10-23/LIEFERUNG.md); Einbindung separat.
+**Optionale Motive geliefert am 23.10.2026:** Banner-Motiv Fisch sowie Würfelstapel Vorder- und Rückseite, jeweils mit Web-Fassungen. [Lieferung und Vorschau](../stadtwacht-2026-10-23/LIEFERUNG.md). Eingebunden ist die Rückseite des Würfelstapels (neben den Würfeln, mit der Zahl der übrigen Karten). Fisch-Banner und Vorderseite liegen bereit, bis es ein Banner für einen großen Fang bzw. eine Kartenanzeige statt der Würfel gibt.
 
 ## Worum es geht
 

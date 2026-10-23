@@ -108,6 +108,7 @@ export class Board {
   });
   protected readonly ghostSize = computed(() => BUILDING_SIZE[this.ghost() ?? 'settlement'] * this.k());
   protected readonly ghostRoadImage = computed(() => pieceImage('road', this.ghostColor()));
+  protected readonly ghostTraderImage = computed(() => pieceImage('trader', this.ghostColor()));
   protected readonly ghostShipImage = computed(() => pieceImage('ship', this.ghostColor()));
   /** Was im Baumodus an Kanten als Vorschau erscheint: Straße oder Schiff. */
   readonly edgeGhost = input<'road' | 'ship' | 'none'>('road');
@@ -227,6 +228,7 @@ export class Board {
         robber: g.robber === h.id,
         // Stadtwacht III: Händlerfigur in der Farbe ihres Besitzers.
         trader: g.trader?.hex === h.id ? g.players[g.trader.owner]?.color ?? null : null,
+        traderImage: g.trader?.hex === h.id ? pieceImage('trader', g.players[g.trader.owner]?.color ?? '') : null,
         traderTransform: `translate(${h.x * S - S * 0.42 * this.k()},${h.y * S + S * 0.1}) scale(${this.k()})`,
         hit:
           (number !== null && number === this.highlightNumber()) ||

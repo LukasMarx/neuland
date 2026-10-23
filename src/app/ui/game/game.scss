@@ -647,10 +647,6 @@ kbd {
       height: 28px;
     }
 
-    &.trade {
-      color: var(--muted);
-      font-size: 18px;
-    }
   }
 
   .label {
@@ -758,10 +754,35 @@ kbd {
 }
 
 .dice-deck {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
+
+  // Würfelstapel: Rückseite der Karten, die Zahl der übrigen Karten als Marke darauf.
+  img {
+    width: 30px;
+    height: 45px;
+    border-radius: 4px;
+    object-fit: cover;
+    box-shadow: 1px 1px 0 rgb(0 0 0 / 0.35), 2px 2px 0 rgb(0 0 0 / 0.2), 0 3px 6px rgb(0 0 0 / 0.35);
+  }
+
+  b {
+    position: absolute;
+    right: -8px;
+    bottom: -6px;
+    min-width: 20px;
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--line);
+    text-align: center;
+  }
 }
 
 .go {
@@ -1231,15 +1252,30 @@ kbd {
   flex: none;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 6px;
+  justify-content: flex-start;
+  gap: 3px;
+  overflow: hidden;
   // Einflusskarten tragen nur Text: etwas schmaler, gleich hoch wie die Bildkarten.
   width: calc(var(--card-w) - 8px);
   min-height: calc(var(--card-w) * 1.5);
-  padding: 8px 6px 7px;
+  padding: 0 0 7px;
   border-radius: 8px;
   border: 0;
-  border-top: 7px solid var(--tc, var(--line));
+  border-top: 5px solid var(--tc, var(--line));
+
+  // Motiv oben über die volle Breite, Farbe und Name darunter.
+  .motif {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  small,
+  b {
+    padding: 0 6px;
+  }
   background: #f1e6cf;
   color: #2b2620;
   text-align: left;
@@ -1285,26 +1321,46 @@ kbd {
   gap: 5px;
   font-variant-numeric: tabular-nums;
 
-  i {
-    width: 14px;
-    height: 20px;
-    border-radius: 3px;
-    background: var(--tc);
+  img {
+    width: 16px;
+    height: 24px;
+    border-radius: 2px;
+    object-fit: cover;
     box-shadow: 1px 1px 0 rgb(0 0 0 / 0.35), 2px 2px 0 rgb(0 0 0 / 0.2);
   }
 }
 
-.ptrack i {
-  display: inline-block;
-  width: 12px;
-  height: 16px;
-  border-radius: 2px;
-  background: var(--tc);
-  vertical-align: -3px;
+// Farbwahl und Kundschafter: Rückseite bzw. Motiv als kleines Bild in der Auswahl.
+.ptrack {
+  .back {
+    width: 18px;
+    height: 27px;
+    border-radius: 2px;
+    object-fit: cover;
+    vertical-align: middle;
+  }
+
+  .thumb {
+    width: 48px;
+    height: 36px;
+    border-radius: 4px;
+    object-fit: cover;
+    vertical-align: middle;
+  }
 }
 
 .pmodal {
   border-top: 8px solid var(--tc);
+
+  .pmotif {
+    display: block;
+    width: 100%;
+    max-width: 380px;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    margin: 0 auto 10px;
+    border-radius: 8px;
+  }
 
   .ptag {
     font-size: 11px;
