@@ -41,6 +41,34 @@ export function rattle(volume = channelVolume('effects')): void {
   }
 }
 
+/** Geräusche aus Aufnahmen (Pixabay), zugeschnitten und angeglichen; Dateien in public/web/sounds. */
+export type Effect = 'strasse' | 'siedlung' | 'stadt' | 'karten' | 'muenzen' | 'muenze' | 'pergament' | 'schwert' | 'raeuber' | 'horn' | 'sieg';
+
+export const EFFECTS: Record<Effect, { name: string; when: string; seconds: number }> = {
+  strasse: { name: 'Hammerschlag', when: 'Jemand baut eine Straße oder ein Schiff', seconds: 0.45 },
+  siedlung: { name: 'Hämmern', when: 'Jemand baut eine Siedlung', seconds: 1.15 },
+  stadt: { name: 'Schweres Hämmern', when: 'Jemand baut eine Stadt', seconds: 1.4 },
+  karten: { name: 'Kartenrascheln', when: 'Du bekommst Rohstoffe aus Feldern', seconds: 0.43 },
+  muenzen: { name: 'Münzen', when: 'Zwei Spieler tauschen', seconds: 1.2 },
+  muenze: { name: 'Eine Münze', when: 'Jemand handelt mit Bank oder Hafen', seconds: 0.95 },
+  pergament: { name: 'Pergament', when: 'Jemand kauft eine Entwicklungskarte', seconds: 1.3 },
+  schwert: { name: 'Schwert', when: 'Jemand spielt einen Ritter', seconds: 0.85 },
+  raeuber: { name: 'Holzfigur', when: 'Der Räuber wird versetzt', seconds: 0.7 },
+  horn: { name: 'Horn', when: 'Längste Handelsstraße oder größte Rittermacht wechselt', seconds: 2.55 },
+  sieg: { name: 'Siegesfanfare', when: 'Jemand gewinnt', seconds: 3.4 },
+};
+
+export function effect(id: Effect, volume = channelVolume('effects')): void {
+  if (volume <= 0) return;
+  try {
+    const audio = new Audio(`web/sounds/${id}.m4a`);
+    audio.volume = Math.min(1, volume);
+    void audio.play().catch(() => undefined);
+  } catch {
+    // Ohne Audio geht es auch.
+  }
+}
+
 export interface SoundInfo {
   id: string;
   name: string;
@@ -52,4 +80,5 @@ export interface SoundInfo {
 export const SOUNDS: SoundInfo[] = [
   { id: 'chime', name: 'Hinweiston', when: '', play: chime },
   { id: 'rattle', name: 'Würfelklappern', when: 'Jemand würfelt', play: rattle },
+  ...(Object.entries(EFFECTS) as [Effect, (typeof EFFECTS)[Effect]][]).map(([id, e]) => ({ id, name: e.name, when: e.when, play: (v: number) => effect(id, v) })),
 ];

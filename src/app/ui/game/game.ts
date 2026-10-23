@@ -85,11 +85,13 @@ import { DEV_CARD_HELP } from '../shared/labels';
 import { ResourcePicker } from '../shared/resource-picker';
 import { CardInspector } from './card-inspector';
 import { EndStats } from './end-stats';
-import { audioSettings } from '../shared/audio-settings';
+import { audioSettings, channelVolume } from '../shared/audio-settings';
 import { BackgroundMusic } from '../shared/music';
 import { SettingsDialog } from '../shared/settings-dialog';
 import { Announcer } from '../shared/voice';
+import { effect as playEffect, EFFECTS } from '../shared/sounds';
 import { voiceEvents } from './announcer';
+import { effectEvents } from './effects';
 import { DiceTray, ROLL_DURATION_MS } from './dice-tray';
 import { BannerEvent, EventBanner } from './event-banner';
 import { FlyLayer } from './fly-layer';
@@ -1178,15 +1180,23 @@ export class GameView {
   }
 
   /** Erkennt Ereignisse aus dem Unterschied zwischen zwei Spielständen und stellt Banner dafür an. */
-  /** Berater und Erzfeind kommentieren den neuen Spielstand; nach einem Wurf erst, wenn die Würfel liegen. */
+  /**
+   * Geräusche, Berater und Erzfeind zum neuen Spielstand; nach einem Wurf erst, wenn die Würfel liegen.
+   * Die Stimme wartet, bis Horn oder Siegesfanfare angeklungen sind.
+   */
   private announce(prev: GameState, g: GameState, rolled: boolean, delay: number): void {
+    const effects = channelVolume('effects') > 0 ? effectEvents(prev, g, this.seat()) : [];
+    // Rohstoffe erklingen, wenn die Karten in der Hand ankommen (fly-layer: rund 650 ms Flug).
+    for (const e of effects) setTimeout(() => playEffect(e), e === 'karten' ? delay + 650 : delay);
+    if (effects.includes('sieg')) this.player.duck(EFFECTS.sieg.seconds + 0.5);
+    const voiceDelay = delay + (effects.includes('sieg') ? EFFECTS.sieg.seconds * 1000 : effects.includes('horn') ? 1000 : 0);
     for (const event of voiceEvents(prev, g, this.seat())) {
       // Straßen der Gegner kommentiert der Erzfeind höchstens einmal je Zug.
       if (event === 'enemyRoad') {
         if (this.roadTauntTurn === g.turn) continue;
         this.roadTauntTurn = g.turn;
       }
-      this.announcer.say(event, delay);
+      this.announcer.say(event, voiceDelay);
     }
     // Nach dem eigenen Wurf: Ist eine Siedlung oder Stadt drin, mahnt der Berater, aber nicht jeden Zug.
     const seat = this.seat();
