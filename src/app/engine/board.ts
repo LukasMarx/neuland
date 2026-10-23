@@ -10,7 +10,7 @@ export function bankSize(tiles: number): number {
 }
 
 /** Für alte Spielstände und Tests: Bankvorrat der klassischen Bretter. */
-export const BANK_SIZE: Record<Layout, number> = { base: bankSize(19), ext: bankSize(30), big: bankSize(37) };
+export const BANK_SIZE: Record<Layout, number> = { base: bankSize(19), ext: bankSize(30), big: bankSize(44) };
 
 export interface TopoHex {
   id: number;

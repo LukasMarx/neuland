@@ -5,7 +5,7 @@ import { applyAction, createGame, devDeckFor, victoryPoints } from './rules';
 import { isConsistent, rebuild, Secret, secretOf, viewFor } from './secrets';
 import { DevCard, GameState, RESOURCES } from './types';
 
-/** Eigene Erweiterung für 7–8 Spieler auf der klassischen Karte (37 Felder). */
+/** Eigene Erweiterung für 7–8 Spieler auf der klassischen Karte (44 Felder). */
 function players(n: number) {
   return Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: `S${i}`, color: `c${i}` }));
 }
@@ -16,25 +16,25 @@ function devTotal(s: GameState): number {
 
 describe('7–8 Spieler: Aufbau', () => {
   for (const n of [7, 8]) {
-    it(`${n} Spieler: großes Brett mit 37 Feldern, Bank 27, 44 Entwicklungskarten`, () => {
+    it(`${n} Spieler: breites Brett mit 44 Feldern, Bank 30, 44 Entwicklungskarten`, () => {
       for (const seed of [1, 2, 3, 4, 5]) {
         const s = createGame(players(n), { victoryPoints: 10 }, seed);
         const hexes = s.board.hexes;
         expect(s.board.layout).toBe('big');
-        expect(hexes).toHaveLength(37);
-        expect(hexes.filter((h) => h.terrain === 'desert')).toHaveLength(2);
-        expect(hexes.filter((h) => h.number !== null)).toHaveLength(35);
+        expect(hexes).toHaveLength(44);
+        expect(hexes.filter((h) => h.terrain === 'desert')).toHaveLength(3);
+        expect(hexes.filter((h) => h.number !== null)).toHaveLength(41);
         expect(hexes.find((h) => h.terrain === 'desert')?.number ?? null).toBeNull();
-        for (const r of RESOURCES) expect(s.bank[r]).toBe(27);
+        for (const r of RESOURCES) expect(s.bank[r]).toBe(30);
         expect(s.devDeck).toHaveLength(44);
-        expect(s.board.harbors.length).toBeGreaterThanOrEqual(11);
+        expect(s.board.harbors.length).toBeGreaterThanOrEqual(13);
         // Häfen teilen sich keine Ecke.
         const topo = getTopology(s.board);
         const corners = new Set(s.board.harbors.flatMap((h) => [topo.edges[h.edge].a, topo.edges[h.edge].b]));
         expect(corners.size).toBe(s.board.harbors.length * 2);
         // Aufstellung: hin und zurück, je eine Siedlung und Straße.
         expect(s.phase).toMatchObject({ kind: 'setup', order: [...Array(n).keys(), ...[...Array(n).keys()].reverse()] });
-        expect(getTopology(s.board).hexes).toHaveLength(37);
+        expect(getTopology(s.board).hexes).toHaveLength(44);
       }
     });
   }

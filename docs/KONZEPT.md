@@ -6,7 +6,7 @@ Ein Brettspiel für Remote-Teams: Rohstoffe sammeln, handeln, Straßen und Siedl
 
 | Thema | Entscheidung |
 |---|---|
-| Spielerzahl | 2–8. Ab 5 Spielern gelten die Regeln der offiziellen 5–6-Erweiterung. Für 7–8 Spieler gibt es eine eigene Erweiterung auf der klassischen Karte: 37 Felder (2 Wüsten), Bank 27 je Rohstoff, 44 Entwicklungskarten (26 Ritter, je 4 Straßenbau, Erfindung, Monopol, 6 Siegpunkte), Sonderbauphase wie ab 5. Die Erweiterungen (Fischgründe, Flussläufe, Stadtwacht) gibt es nur bis 6 Spieler. |
+| Spielerzahl | 2–8. Ab 5 Spielern gelten die Regeln der offiziellen 5–6-Erweiterung. Für 7–8 Spieler gibt es eine eigene Erweiterung auf der klassischen Karte: 44 Felder als breit gezogenes Sechseck (3 Wüsten), Bank 30 je Rohstoff, 44 Entwicklungskarten (26 Ritter, je 4 Straßenbau, Erfindung, Monopol, 6 Siegpunkte), Sonderbauphase wie ab 5. Die Erweiterungen (Fischgründe, Flussläufe, Stadtwacht) gibt es nur bis 6 Spieler. |
 | Netzwerk | Peer-to-Peer über WebRTC. Der Browser des Gastgebers ist die Spielleitung. |
 | Verbindungsaufbau | [Trystero](https://github.com/dmotz/trystero) über öffentliche Nostr-Relays. Nur der Verbindungsaufbau läuft darüber, Spieldaten gehen direkt und verschlüsselt zwischen den Browsern. |
 | Frontend | Angular + TypeScript, Spielbrett als SVG |

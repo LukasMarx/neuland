@@ -14,7 +14,7 @@ const METROPOLIS_SIZE = 68;
 const WALL_SIZE = 84;
 const GUARD_SIZE = 36;
 /** Auf großen Brettern sind die Felder kleiner, Figuren und Marken werden dort größer gezeichnet. */
-const PIECE_SCALE = { base: 1, ext: 1.2, big: 1.3 } as const;
+const PIECE_SCALE = { base: 1, ext: 1.2, big: 1.4 } as const;
 const MAX_PIECE_SCALE = 1.4;
 /** Wie weit Wasser und Häfen über die Küste hinausragen, in Feldradien. */
 const OCEAN_GROW = 0.8;

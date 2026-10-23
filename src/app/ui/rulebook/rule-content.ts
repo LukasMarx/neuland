@@ -433,12 +433,12 @@ const GROSSE_RUNDE: Chapter = {
             {
               topic: 'Insel',
               before: '19 Felder, 1 Wüste',
-              after: '30 Felder, 2 Wüsten (7–8 Spieler: 37)',
+              after: '30 Felder, 2 Wüsten (7–8 Spieler: 44, 3 Wüsten)',
             },
             {
               topic: 'Bank',
               before: '19 Karten je Rohstoff',
-              after: '24 je Rohstoff (7–8 Spieler: 27)',
+              after: '24 je Rohstoff (7–8 Spieler: 30)',
             },
             {
               topic: 'Entwicklungskarten',
