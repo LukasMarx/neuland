@@ -892,14 +892,6 @@ export class GameView {
     return g.players.flatMap((_, i) => (i !== seat && victoryPoints(g, i, false) >= mine ? [i] : []));
   });
 
-  /**
-   * Breite Hand: Neben den Rohstoffen liegen weitere Karten oder Stapel (Güter, Entwicklungs- oder
-   * Einflusskarten, Münzen, Marken, Fische). Dann kommt das Bauraster unter die Hand, sonst wird es gequetscht.
-   */
-  protected readonly wideHand = computed(
-    () => this.cityWatch() || this.myDevCards().length > 0 || this.myCoins() !== null || this.myTokens() !== null || this.fishing(),
-  );
-
   protected readonly canPlayDev = computed(() => {
     const g = this.g();
     return this.isCurrent() && (g.phase.kind === 'roll' || g.phase.kind === 'main') && !g.devPlayed;

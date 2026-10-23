@@ -245,14 +245,19 @@
     }
   </aside>
 
-  <section class="dock" [class.trading]="showTable() || offerView()" [class.wide]="wideHand()">
-    @if (showTable()) {
-      <app-trade-table [game]="game" [seat]="seat()" [prefill]="tradePrefill()" (close)="closeTrade()" />
-    } @else if (offerView()) {
-      <app-offer-panel [game]="game" [seat]="seat()" (counter)="openTrade($event)" />
-    } @else if (cityOpen() && seat() >= 0) {
-      <app-city-panel [game]="game" [seat]="seat()" (close)="cityOpen.set(false)" (chooseCity)="chooseMetropolis($event)" />
-    } @else {
+  <section class="dock">
+    <!-- Handel, Angebote und Stadtausbau schweben über der Hand: Brett und Hand bleiben, wo sie sind. -->
+    @if (showTable() || offerView() || (cityOpen() && seat() >= 0)) {
+      <div class="dock-panel">
+        @if (showTable()) {
+          <app-trade-table [game]="game" [seat]="seat()" [prefill]="tradePrefill()" (close)="closeTrade()" />
+        } @else if (offerView()) {
+          <app-offer-panel [game]="game" [seat]="seat()" (counter)="openTrade($event)" />
+        } @else {
+          <app-city-panel [game]="game" [seat]="seat()" (close)="cityOpen.set(false)" (chooseCity)="chooseMetropolis($event)" />
+        }
+      </div>
+    }
     @if (me(); as self) {
       <div class="hand" data-hand="dev">
         @for (r of handCards(); track r; let i = $index) {
@@ -432,9 +437,7 @@
     } @else {
       <div class="hand spectating muted">Du schaust zu.</div>
     }
-    }
 
-    <!-- Bleibt beim Handeln bestehen (nur ausgeblendet), damit die Würfel ihren Zustand behalten. -->
     <div class="turn">
       <app-dice-tray
         [dice]="game.dice"

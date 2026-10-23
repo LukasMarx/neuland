@@ -475,6 +475,7 @@ kbd {
 .dock {
   // Breite der Handkarten (Rohstoffe, Güter, Entwicklung, Einfluss); die Höhe folgt im Verhältnis 2:3.
   --card-w: 92px;
+  position: relative;
   grid-area: dock;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -485,12 +486,30 @@ kbd {
   border-top: 1px solid var(--line);
 }
 
-.dock.trading {
-  grid-template-columns: minmax(0, 1fr);
-  padding: 10px 20px 12px;
+// Handel, Angebote, Stadtausbau: ein Feld über der Hand, das über dem Brett schwebt, statt das Dock
+// zu vergrößern (sonst schrumpft das Brett bei jedem Angebot für alle).
+.dock-panel {
+  position: absolute;
+  // Mittig über dem Brett, nicht über der Verlaufsspalte (320 px rechts).
+  left: calc((100% - 320px) / 2);
+  bottom: calc(100% + 8px);
+  z-index: 7;
+  width: min(1100px, calc(100% - 320px - 32px));
+  max-height: calc(100vh - 230px);
+  overflow: auto;
+  translate: -50% 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 -10px 34px rgb(0 0 0 / 0.5);
+  animation: dock-panel-in 0.16s ease-out;
+}
 
-  .turn {
-    display: none;
+@keyframes dock-panel-in {
+  from {
+    opacity: 0;
+    translate: -50% 10px;
   }
 }
 
@@ -1133,16 +1152,10 @@ kbd {
   }
 }
 
-// Nur auf breiten Bildschirmen; unter 961 px gilt die einspaltige Anordnung weiter unten.
-@media (min-width: 961px) and (max-width: 1280px) {
-  .dock {
-    @include stacked-dock;
-  }
-}
-
-// Breite Hand (Entwicklung, Güter, Einfluss …): Das Bauraster kommt immer unter die Hand.
+// Ab 961 px immer zweizeilig (Hand oben, Bauraster darunter): Kämen erst mit der ersten
+// Entwicklungskarte zwei Zeilen, spränge das Layout mitten im Spiel. Darunter gilt die einspaltige Anordnung.
 @media (min-width: 961px) {
-  .dock.wide:not(.trading) {
+  .dock {
     @include stacked-dock;
   }
 }
@@ -1153,6 +1166,11 @@ kbd {
 @media (max-width: 960px) {
   .dock {
     --card-w: 78px;
+  }
+
+  .dock-panel {
+    left: 50%;
+    width: calc(100% - 24px);
   }
 
   .layout {
