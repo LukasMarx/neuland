@@ -1,0 +1,91 @@
+// Ohne Kapselung (siehe erklaer.ts): alles hängt an .erklaer-… oder an html.erklaer.
+
+.erklaer-buehne {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.erklaer-spiel {
+  position: absolute;
+  inset: 0;
+  // Eigene Stapelebene: Fenster und Banner der Spielansicht bleiben unter Blende und Karten.
+  z-index: 0;
+}
+
+// Mauszeiger und Klickwelle der Aufnahme (demo-video) im Neuland-Ton statt im Stil des Werkzeugs.
+html.erklaer .__dv-ripple {
+  border-color: var(--accent) !important;
+}
+
+html.erklaer-ohne-zeiger .__dv-cursor {
+  opacity: 0 !important;
+}
+
+.erklaer-karte {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  // Die Blende bleibt als bunter Rand sichtbar, die Mitte wird ruhig.
+  background: radial-gradient(ellipse 46% 52% at 50% 50%, rgb(18 28 36 / 0.97) 55%, rgb(18 28 36 / 0) 100%);
+
+  > * {
+    animation: erklaer-steigt 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .insel {
+    width: 300px;
+    height: 300px;
+    margin-bottom: 12px;
+    animation:
+      erklaer-steigt 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both,
+      erklaer-schwimmt 4s ease-in-out 700ms infinite;
+    filter: drop-shadow(0 18px 24px rgb(0 0 0 / 0.5));
+  }
+
+  .zeile {
+    animation-delay: 90ms;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  h1 {
+    animation-delay: 160ms;
+    margin: 14px 0 0;
+    font-size: 104px;
+    font-weight: 900;
+    letter-spacing: -0.015em;
+    line-height: 1.05;
+    color: var(--text);
+  }
+
+  .unter {
+    animation-delay: 240ms;
+    margin-top: 22px;
+    font-size: 34px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+}
+
+@keyframes erklaer-steigt {
+  from {
+    opacity: 0;
+    transform: translateY(36px);
+  }
+}
+
+@keyframes erklaer-schwimmt {
+  50% {
+    transform: translateY(-10px) rotate(-1deg);
+  }
+}

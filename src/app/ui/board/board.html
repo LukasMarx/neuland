@@ -245,7 +245,7 @@
   }
 
   @for (h of hexSpots(); track h.id) {
-    <g class="hex-target" (click)="hexPick.emit(h.id)">
+    <g class="hex-target" [attr.data-hex]="h.id" (click)="hexPick.emit(h.id)">
       <title>{{ hexGhost() === 'robber' ? 'Räuber hierhin' : hexGhost() === 'trader' ? 'Händler hierhin' : 'Dieses Feld wählen' }}</title>
       <polygon [attr.points]="h.points" />
       @if (hexGhost() === 'robber') {
@@ -266,7 +266,7 @@
   }
 
   @for (e of edgeSpots(); track e.id) {
-    <g class="edge-target" (click)="edgePick.emit(e.id)">
+    <g class="edge-target" [attr.data-edge]="e.id" (click)="edgePick.emit(e.id)">
       <line class="hit" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" />
       <line class="mark" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" />
       @if (edgeGhost() === 'none') {
@@ -286,7 +286,7 @@
   }
 
   @for (v of vertexSpots(); track v.id) {
-    <g class="vertex-target" (click)="vertexPick.emit(v.id)">
+    <g class="vertex-target" [attr.data-vertex]="v.id" (click)="vertexPick.emit(v.id)">
       <circle class="hit" [attr.cx]="v.x" [attr.cy]="v.y" [attr.r]="S * 0.26" />
       <circle class="mark" [attr.cx]="v.x" [attr.cy]="v.y" [attr.r]="S * 0.13" />
       @if (ghost(); as kind) {

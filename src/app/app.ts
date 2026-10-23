@@ -37,7 +37,8 @@ import { Gate } from './ui/gate/gate';
 export class App {
   private readonly roomService = inject(RoomService);
   protected readonly toast = signal<string | null>(null);
-  protected readonly unlocked = computed(() => accessPassword() !== null);
+  /** Die Erklärbühne zeigt nur feste Spielstände ohne Verbindung, dafür braucht es kein Passwort. */
+  protected readonly unlocked = computed(() => accessPassword() !== null || location.hash.startsWith('#/erklaer'));
 
   constructor() {
     let timer: ReturnType<typeof setTimeout> | undefined;

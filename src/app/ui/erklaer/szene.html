@@ -1,0 +1,132 @@
+@switch (szene()) {
+  @case ('rohstoffe') {
+    <h2 class="kopf">Fünf Rohstoffe</h2>
+    <div class="reihe rohstoffe" [class.wuesten-takt]="takt() >= 2">
+      @for (r of rohstoffe; track r.land; let i = $index) {
+        <figure class="paar" [class.da]="takt() >= 1" [style.--i]="i">
+          <img class="feld" [src]="r.feld" alt="" />
+          <img class="karte" [src]="r.karte" alt="" />
+          <figcaption><span>{{ r.land }}</span> <b>{{ r.ertrag }}</b></figcaption>
+        </figure>
+      }
+      <figure class="paar wueste" [class.da]="takt() >= 2">
+        <img class="feld" [src]="wueste" alt="" />
+        <div class="karte leer">–</div>
+        <figcaption><span>Wüste</span> <b>nichts</b></figcaption>
+      </figure>
+    </div>
+  }
+
+  @case ('zahlen') {
+    <h2 class="kopf">Welche Zahl fällt?</h2>
+    <div class="reihe zahlen" [class.betont]="takt() >= 2">
+      @for (z of zahlen; track z.n; let i = $index) {
+        <div class="zahl" [class.da]="takt() >= 1" [class.rot]="z.rot" [class.selten]="z.selten" [style.--i]="i">
+          <div class="saeule">
+            @for (p of z.pips; track $index) {
+              <i></i>
+            }
+          </div>
+          <div class="chip">{{ z.n }}</div>
+        </div>
+      }
+    </div>
+  }
+
+  @case ('punkte') {
+    <h2 class="kopf">Siegpunkte</h2>
+    <div class="reihe punkte" [class.ziel-takt]="takt() >= 2">
+      @for (p of punkte; track p.name; let i = $index) {
+        <figure class="punkt" [class.da]="takt() >= 1" [class.karte]="p.form === 'karte'" [class.klein]="p.form === 'klein'" [style.--i]="i">
+          <img [src]="p.bild" alt="" />
+          <figcaption>{{ p.name }}</figcaption>
+          <div class="wert">{{ p.wert }}</div>
+        </figure>
+      }
+    </div>
+    <div class="ziel" [class.da]="takt() >= 2">
+      <img [src]="lorbeer" alt="" />
+      <div><b>10</b> Punkte gewinnen</div>
+    </div>
+  }
+
+  @case ('abstand') {
+    <h2 class="kopf">Die Abstandsregel</h2>
+    @let a = abstand;
+    <svg class="abstand" viewBox="-560 -400 1120 800" role="img" aria-label="Abstandsregel">
+      @for (h of a.hexes; track $index) {
+        <image [attr.href]="h.src" [attr.x]="h.x - a.r" [attr.y]="h.y - a.r" [attr.width]="2 * a.r" [attr.height]="2 * a.r" />
+      }
+      @for (e of a.ecken; track $index) {
+        @if (e.abstand === 1) {
+          <g [attr.transform]="'translate(' + e.x + ',' + e.y + ')'">
+            <g class="sperre" [class.da]="takt() >= 2">
+              <circle r="30" />
+              <path d="M-13,-13 L13,13 M13,-13 L-13,13" />
+            </g>
+          </g>
+        } @else if (e.abstand === 2) {
+          <g [attr.transform]="'translate(' + e.x + ',' + e.y + ')'">
+            <g class="frei" [class.da]="takt() >= 3">
+              <circle r="30" />
+              <path d="M-13,1 L-4,10 L14,-10" />
+            </g>
+          </g>
+        }
+      }
+      <image class="siedlung" [class.da]="takt() >= 1" [attr.href]="siedlungRot"
+        [attr.x]="a.siedlung.x - 60" [attr.y]="a.siedlung.y - 68" width="120" height="120" />
+    </svg>
+  }
+
+  @case ('kosten') {
+    <h2 class="kopf">Was kostet was?</h2>
+    <div class="kosten">
+      @for (k of kosten; track k.name; let i = $index) {
+        <div class="posten" [class.da]="takt() >= i + 1" [class]="k.form">
+          <img class="was" [src]="k.bild" alt="" />
+          <div class="name">{{ k.name }}</div>
+          <div class="preis">
+            @for (c of k.karten; track $index) {
+              <img [src]="c" alt="" [style.--j]="$index" />
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  @case ('handel') {
+    <h2 class="kopf">Tauschen mit Bank und Hafen</h2>
+    <div class="reihe handel">
+      @for (h of handel; track h.name; let i = $index) {
+        <div class="kurs" [class.da]="takt() >= (i === 0 ? 1 : 2)" [style.--i]="i === 0 ? 0 : i - 1">
+          <div class="name">{{ h.name }}</div>
+          <div class="tausch">
+            <div class="stapel">
+              @for (c of h.gib; track $index) {
+                <img [src]="c" alt="" [style.--j]="$index" />
+              }
+            </div>
+            <div class="pfeil">→</div>
+            <img class="eins" [src]="kartenRuecken" alt="" />
+          </div>
+          <div class="wert">{{ h.kurs }}</div>
+          <div class="hinweis">{{ h.hinweis }}</div>
+        </div>
+      }
+    </div>
+  }
+
+  @case ('entwicklung') {
+    <h2 class="kopf">Entwicklungskarten</h2>
+    <div class="reihe entwicklung" [class.fokus]="takt() >= 1 && takt() <= 3">
+      @for (c of entwicklung; track c.name; let i = $index) {
+        <figure class="ekarte" [class.da]="takt() >= 1" [class.dran]="takt() === c.takt" [style.--i]="i">
+          <img [src]="c.bild" alt="" />
+          <figcaption>{{ c.name }}</figcaption>
+        </figure>
+      }
+    </div>
+  }
+}

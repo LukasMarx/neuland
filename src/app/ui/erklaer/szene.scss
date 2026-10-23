@@ -1,0 +1,559 @@
+// Szenen sind für die Bühne von 1920 × 1080 gebaut (siehe erklaer.scss).
+:host {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 64px;
+  background:
+    radial-gradient(ellipse at 50% 40%, #1d2b36 0%, transparent 70%),
+    var(--bg);
+}
+
+$auf: cubic-bezier(0.2, 0.9, 0.3, 1.25);
+
+.kopf {
+  margin: 0;
+  font-size: 64px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  animation: kopf 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes kopf {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+.reihe {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 36px;
+}
+
+// Alles, was mit einem Takt kommt, springt leicht versetzt ins Bild.
+.da {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+// ── Rohstoffe ──────────────────────────────────────────────
+
+.paar {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  opacity: 0;
+  transform: translateY(40px) scale(0.85);
+  transition:
+    opacity 400ms ease-out,
+    transform 600ms $auf,
+    filter 500ms;
+  // Etwa ein Paar pro gesprochenem „Wald gibt Holz“, damit die Aufzählung mit der Stimme mitläuft.
+  transition-delay: calc(var(--i, 0) * 950ms);
+
+  .feld {
+    width: 220px;
+    height: 220px;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.45));
+  }
+
+  .karte {
+    width: 132px;
+    height: 198px;
+    border-radius: 12px;
+    object-fit: cover;
+    box-shadow: 0 10px 22px rgb(0 0 0 / 0.45);
+    margin-top: -46px;
+    transform: rotate(-3deg);
+  }
+
+  .leer {
+    display: grid;
+    place-items: center;
+    background: var(--panel-2);
+    border: 2px dashed var(--line-strong);
+    color: var(--muted);
+    font-size: 48px;
+    box-shadow: none;
+  }
+
+  figcaption {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.15;
+
+    span {
+      font-size: 22px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    b {
+      font-size: 34px;
+      font-weight: 900;
+      color: var(--text);
+    }
+  }
+}
+
+.paar.wueste {
+  transition-delay: 0ms;
+}
+
+.wuesten-takt .paar:not(.wueste) {
+  filter: saturate(0.5) brightness(0.6);
+  transition-delay: 0ms;
+}
+
+// ── Zahlen ─────────────────────────────────────────────────
+
+.zahlen {
+  gap: 28px;
+  margin-top: 24px;
+}
+
+.zahl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  opacity: 0;
+  transform: translateY(30px);
+  transition:
+    opacity 300ms ease-out,
+    transform 500ms $auf,
+    filter 500ms,
+    scale 500ms $auf;
+  transition-delay: calc(var(--i, 0) * 90ms);
+
+  .saeule {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 10px;
+
+    i {
+      display: block;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0.85;
+    }
+  }
+
+  .chip {
+    width: 112px;
+    height: 112px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(circle at 40% 35%, #fbf3dc, #e6d5ae);
+    border: 4px solid #8a7550;
+    box-shadow:
+      inset 0 0 0 8px rgb(138 117 80 / 0.25),
+      0 8px 16px rgb(0 0 0 / 0.4);
+    font-size: 50px;
+    font-weight: 800;
+    color: #2b2418;
+  }
+
+  &.rot {
+    .chip {
+      color: #c0281f;
+    }
+
+    .saeule i {
+      background: #e0574b;
+    }
+  }
+}
+
+.betont .zahl {
+  transition-delay: 0ms;
+
+  &.rot {
+    scale: 1.18;
+  }
+
+  &.selten {
+    filter: brightness(0.55);
+  }
+}
+
+// ── Siegpunkte ─────────────────────────────────────────────
+
+.punkte {
+  gap: 48px;
+  align-items: flex-start;
+}
+
+.punkt {
+  margin: 0;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  opacity: 0;
+  transform: translateY(40px) scale(0.85);
+  transition:
+    opacity 400ms ease-out,
+    transform 600ms $auf;
+  transition-delay: calc(var(--i, 0) * 550ms);
+
+  img {
+    width: 170px;
+    height: 170px;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.45));
+  }
+
+  // Die Stadt ist sichtbar größer als die Siedlung, wie auf dem Brett.
+  &.klein img {
+    width: 130px;
+    height: 170px;
+  }
+
+  &.karte img {
+    width: 116px;
+    border-radius: 10px;
+    object-fit: cover;
+    box-shadow: 0 10px 22px rgb(0 0 0 / 0.45);
+    filter: none;
+  }
+
+  figcaption {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: center;
+    line-height: 1.15;
+    min-height: 2.3em;
+  }
+
+  .wert {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 38px;
+    font-weight: 900;
+  }
+}
+
+.ziel-takt .punkt {
+  transition-delay: 0ms;
+}
+
+.ziel {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 400ms ease-out,
+    transform 700ms $auf;
+  font-size: 54px;
+  font-weight: 800;
+  color: var(--text);
+
+  img {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+  }
+
+  b {
+    font-size: 96px;
+    font-weight: 1000;
+    color: var(--accent);
+    vertical-align: -8px;
+  }
+}
+
+// ── Abstandsregel ──────────────────────────────────────────
+
+.abstand {
+  width: 1120px;
+  height: 800px;
+  margin: -10px 0 -60px;
+  overflow: visible;
+
+  image {
+    filter: drop-shadow(0 6px 8px rgb(0 0 0 / 0.35));
+  }
+
+  .siedlung,
+  .sperre,
+  .frei {
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+    transition:
+      opacity 300ms ease-out,
+      scale 500ms $auf;
+    scale: 0.4;
+  }
+
+  .siedlung.da,
+  .sperre.da,
+  .frei.da {
+    opacity: 1;
+    scale: 1;
+  }
+
+  .sperre {
+    circle {
+      fill: #2a1210;
+      stroke: #e58a78;
+      stroke-width: 5;
+    }
+
+    path {
+      stroke: #e58a78;
+      stroke-width: 7;
+      stroke-linecap: round;
+    }
+  }
+
+  .frei {
+    circle {
+      fill: #11261a;
+      stroke: #7cc48a;
+      stroke-width: 5;
+    }
+
+    path {
+      fill: none;
+      stroke: #7cc48a;
+      stroke-width: 7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  }
+}
+
+// ── Baukosten ──────────────────────────────────────────────
+
+.kosten {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  width: 1400px;
+}
+
+.posten {
+  display: grid;
+  grid-template-columns: 150px 470px 1fr;
+  align-items: center;
+  gap: 28px;
+  padding: 14px 28px;
+  border-radius: 20px;
+  background: rgb(255 255 255 / 0.03);
+  opacity: 0;
+  transform: translateX(-60px);
+  transition:
+    opacity 350ms ease-out,
+    transform 550ms $auf;
+
+  .was {
+    width: 130px;
+    height: 110px;
+    object-fit: contain;
+    justify-self: center;
+    filter: drop-shadow(0 8px 10px rgb(0 0 0 / 0.45));
+  }
+
+  &.strasse .was {
+    width: 140px;
+    height: 70px;
+  }
+
+  &.karte .was {
+    width: 76px;
+    height: 112px;
+    border-radius: 8px;
+    object-fit: cover;
+    filter: none;
+    box-shadow: 0 8px 16px rgb(0 0 0 / 0.45);
+  }
+
+  .name {
+    font-size: 46px;
+    font-weight: 900;
+    color: var(--text);
+  }
+
+  .preis {
+    display: flex;
+    gap: 14px;
+
+    img {
+      width: 76px;
+      height: 114px;
+      border-radius: 9px;
+      object-fit: cover;
+      box-shadow: 0 6px 12px rgb(0 0 0 / 0.45);
+      opacity: 0;
+      transform: translateY(20px) rotate(-4deg);
+      transition:
+        opacity 250ms ease-out,
+        transform 450ms $auf;
+      transition-delay: calc(200ms + var(--j) * 120ms);
+    }
+  }
+
+  &.da .preis img {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// ── Handel ─────────────────────────────────────────────────
+
+.handel {
+  gap: 70px;
+  align-items: stretch;
+}
+
+.kurs {
+  width: 470px;
+  padding: 36px 30px 30px;
+  border-radius: 24px;
+  background: rgb(255 255 255 / 0.035);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  opacity: 0;
+  transform: translateY(40px) scale(0.9);
+  transition:
+    opacity 400ms ease-out,
+    transform 600ms $auf;
+  transition-delay: calc(var(--i, 0) * 700ms);
+
+  .name {
+    font-size: 40px;
+    font-weight: 900;
+    color: var(--text);
+  }
+
+  .tausch {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    height: 170px;
+  }
+
+  .stapel {
+    position: relative;
+    display: flex;
+
+    img {
+      width: 84px;
+      height: 126px;
+      border-radius: 9px;
+      object-fit: cover;
+      box-shadow: 0 6px 12px rgb(0 0 0 / 0.45);
+      margin-left: -48px;
+      transform: rotate(calc(-6deg + var(--j) * 4deg));
+
+      &:first-child {
+        margin-left: 0;
+      }
+    }
+  }
+
+  .pfeil {
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--accent);
+  }
+
+  .eins {
+    width: 92px;
+    height: 138px;
+    border-radius: 10px;
+    object-fit: cover;
+    box-shadow: 0 8px 16px rgb(0 0 0 / 0.5);
+  }
+
+  .wert {
+    font-size: 64px;
+    font-weight: 1000;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hinweis {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+}
+
+// ── Entwicklungskarten ─────────────────────────────────────
+
+.entwicklung {
+  gap: 34px;
+  align-items: flex-start;
+}
+
+.ekarte {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  opacity: 0;
+  transform: translateY(60px) rotate(-6deg);
+  transition:
+    opacity 400ms ease-out,
+    transform 650ms $auf,
+    filter 450ms,
+    translate 500ms $auf,
+    scale 500ms $auf;
+  transition-delay: calc(var(--i, 0) * 120ms);
+
+  img {
+    width: 230px;
+    height: 345px;
+    border-radius: 16px;
+    object-fit: cover;
+    box-shadow: 0 14px 28px rgb(0 0 0 / 0.5);
+  }
+
+  figcaption {
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--text);
+  }
+}
+
+.fokus .ekarte {
+  transition-delay: 0ms;
+
+  &:not(.dran) {
+    filter: saturate(0.4) brightness(0.5);
+  }
+
+  &.dran {
+    translate: 0 -24px;
+    scale: 1.08;
+  }
+}
