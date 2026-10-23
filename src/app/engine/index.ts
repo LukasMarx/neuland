@@ -6,3 +6,4 @@ export * from './auto';
 export * from './bot';
 export * from './variants';
 export * from './secrets';
+export * from './stats';

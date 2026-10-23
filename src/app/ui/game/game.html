@@ -911,7 +911,7 @@
         ></i>
       }
     </div>
-    <div class="modal winner">
+    <div class="modal winner" [class.with-stats]="!!game.stats">
       <div class="trophy">🏆</div>
       <h2>{{ status() }}</h2>
       <ol>
@@ -922,6 +922,9 @@
           </li>
         }
       </ol>
+      @if (game.stats) {
+        <app-end-stats [game]="game" />
+      }
       <div class="row end">
         @if (!room.isHost()) {
           <span class="muted">Der Gastgeber kann eine neue Runde starten.</span>

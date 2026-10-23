@@ -179,6 +179,31 @@ export interface LogEntry {
   text: string;
 }
 
+/** Statistik für den Endstand. Nur öffentlich Bekanntes, damit sie in jeder Sicht stehen darf. */
+export interface GameStats {
+  /** Würfe je Augensumme, Index = Summe (0 und 1 bleiben leer). */
+  dice: number[];
+  /** Je Sitz: Rohstoffe aus Feldern (Aufstellung, Würfeln und Gold). */
+  produced: number[];
+  /** Je Sitz: Erträge, die der Räuber verhindert hat. */
+  blocked: number[];
+  /** Je Sitz: Karten, die man anderen mit dem Räuber genommen hat, und die einem genommen wurden. */
+  stolen: number[];
+  robbed: number[];
+  /** Je Sitz: bei einer 7 abgeworfene Karten. */
+  discarded: number[];
+  /** Je Sitz: Tauschgeschäfte mit Mitspielern und an Bank oder Hafen abgegebene Karten. */
+  trades: number[];
+  bankCards: number[];
+  /** Je Sitz: gekaufte Entwicklungskarten. */
+  devBought: number[];
+  /**
+   * Offene Siegpunkte je Sitz nach einem Zug; der letzte Eintrag ist der Endstand mit allen Punkten.
+   * Lange Spiele werden ausgedünnt (siehe stats.ts), deshalb steht der Zug dabei.
+   */
+  vp: { turn: number; points: number[] }[];
+}
+
 export interface GameState {
   /** Kennung dieser Partie. Stände verschiedener Partien werden nie über die Version verglichen. */
   id?: string;
@@ -222,6 +247,8 @@ export interface GameState {
   /** Kartenbewegungen der letzten Aktion. */
   transfers: Transfer[];
   winner: number | null;
+  /** Fehlt in Spielständen von vor der Statistik. */
+  stats?: GameStats;
   /** Hafenvogt (Variante): Sitz mit der Sonderkarte, sonst null. */
   harborMaster?: number | null;
   /** Würfelstapel (Variante): verbleibende Karten je Summe. Keine Reihenfolge, gezogen wird erst beim Würfeln. */

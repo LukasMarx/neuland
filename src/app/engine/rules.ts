@@ -2,6 +2,7 @@ import { generateBoard, getTopology, placeFishingGrounds, placeRivers, vertexHar
 import { mapById, mapFits } from './maps';
 import { BRIDGE_COINS, DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, GOODS_SUPPLY, GUARDS_PER_LEVEL, HARBOR_MASTER_POINTS, LAKE_NUMBERS, MAX_WALLS, METROPOLIS_POINTS, NEUTRALS, PROGRESS_LIMIT, RAIDER_TRACK, RIVER_COINS, VariantId, VARIANTS } from './variants';
 import { randomInt, RngState, shuffle } from './rng';
+import { emptyStats, recordStats } from './stats';
 import {
   Action,
   COSTS,
@@ -143,6 +144,7 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
     if (fog) state.fog = fog;
   }
   if (hasVariant(state, 'duell')) setUpDuel(state);
+  state.stats = emptyStats(state.players.length);
   if (hasVariant(state, 'stadtwacht')) {
     for (const c of COMMODITIES) setCount(state.bank, c, GOODS_SUPPLY);
     state.improvements = state.players.map(() => ({ market: 0, council: 0, scholars: 0 }));
@@ -180,6 +182,7 @@ export function applyAction(prev: GameState, seat: number, action: Action): Game
   if (HANDLERS[action.type](s, seat, action as never) === false) return prev;
   s.version = prev.version + 1;
   checkWinner(s);
+  recordStats(prev, s, seat, action, (i, hidden) => victoryPoints(s, i, hidden));
   return s;
 }
 
@@ -2282,7 +2285,15 @@ function produce(s: GameState, sum: number): { gold: number[]; got: boolean[] } 
   };
   s.board.hexes.forEach((hex, id) => {
     const terrain = hex.terrain;
-    if (hex.number !== sum || id === s.robber || (!isResource(terrain) && terrain !== 'gold')) return;
+    if (hex.number !== sum || (!isResource(terrain) && terrain !== 'gold')) return;
+    if (id === s.robber) {
+      // Für die Statistik: Was der Räuber hier verhindert.
+      for (const v of topo.hexes[id].corners) {
+        const b = s.buildings[v];
+        if (b && !s.players[b.owner].neutral && s.stats) s.stats.blocked[b.owner] += b.type === 'city' ? 2 : 1;
+      }
+      return;
+    }
     for (const v of topo.hexes[id].corners) {
       const b = s.buildings[v];
       // Neutrale Mitspieler sammeln nichts.

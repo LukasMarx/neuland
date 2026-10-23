@@ -84,6 +84,7 @@ import { RESOURCE_ART } from '../shared/resource-art';
 import { DEV_CARD_HELP } from '../shared/labels';
 import { ResourcePicker } from '../shared/resource-picker';
 import { CardInspector } from './card-inspector';
+import { EndStats } from './end-stats';
 import { DiceTray, ROLL_DURATION_MS } from './dice-tray';
 import { BannerEvent, EventBanner } from './event-banner';
 import { FlyLayer } from './fly-layer';
@@ -152,7 +153,7 @@ const AUTO_ROLL_MS = 5000;
 
 @Component({
   selector: 'app-game',
-  imports: [Board, CardFace, CardInspector, ChatBox, CityPanel, DiceTray, EventBanner, FlyLayer, OfferPanel, ResourcePicker, Rulebook, TradeTable],
+  imports: [Board, CardFace, CardInspector, ChatBox, CityPanel, DiceTray, EndStats, EventBanner, FlyLayer, OfferPanel, ResourcePicker, Rulebook, TradeTable],
   templateUrl: './game.html',
   styleUrl: './game.scss',
   host: { '(document:keydown)': 'onKey($event)' },
