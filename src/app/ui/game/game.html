@@ -277,8 +277,8 @@
           @if (i === 5) {
             <span class="divider" title="Güter"></span>
           }
-          <div class="rcard" [attr.data-hand]="r" [class.zero]="!n(self.resources, r)" [class.tradable]="canTrade() && isCurrent() && n(self.resources, r) > 0" [title]="resourceNames[r] + (canTrade() && isCurrent() ? ' · Klick zum Handeln' : '')" (click)="handClick(r)">
-            <app-card-face [kind]="r" [badge]="n(self.resources, r)" />
+          <div class="rcard" [attr.data-hand]="r" [class.zero]="!n(shownHand() ?? self.resources, r)" [class.tradable]="canTrade() && isCurrent() && n(self.resources, r) > 0" [title]="resourceNames[r] + (canTrade() && isCurrent() ? ' · Klick zum Handeln' : '')" (click)="handClick(r)">
+            <app-card-face [kind]="r" [badge]="n(shownHand() ?? self.resources, r)" />
             @if (handDelta(); as d) {
               @for (id of [d.id]; track id) {
                 @if (d.values[r]) {

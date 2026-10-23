@@ -455,6 +455,12 @@ export class GameView {
   protected readonly winnerReady = signal(false);
   /** Kurz eingeblendete Änderungen an der eigenen Hand („+2“, „−1“). */
   protected readonly handDelta = signal<{ values: Partial<Record<Card, number>>; id: number } | null>(null);
+  /**
+   * Was die Handkarten gerade zeigen, solange es vom Spielstand abweicht: Bekommt man Karten, steht die neue Zahl
+   * erst da, wenn sie in der Hand landen (wie das „+n“), nicht schon, während die Würfel noch rollen. Nur Anzeige;
+   * alle Prüfungen rechnen mit dem echten Stand.
+   */
+  protected readonly shownHand = signal<ResourceCounts | null>(null);
 
   private readonly logList = viewChild<ElementRef<HTMLElement>>('logList');
   private readonly fly = viewChild(FlyLayer);
@@ -1131,7 +1137,10 @@ export class GameView {
         // Ein anderer Spielstand derselben Runde (neue Partie, Host-Wechsel) zählt nicht als Spielzug:
         // keine Flüge, keine Banner, nur Vorwärtsschritte derselben Partie.
         const switched = lastGame !== null && lastGame.id !== g.id;
-        if (switched) previous = null;
+        if (switched) {
+          previous = null;
+          this.shownHand.set(null);
+        }
         const isNew = !switched && lastVersion !== null && g.version > lastVersion;
         const rolled = rollKey !== null && rollKey !== lastRollKey;
         const delay = rolled ? ROLL_DURATION_MS + 150 : 0;
@@ -1151,11 +1160,16 @@ export class GameView {
           for (const r of CARDS) if (count(current, r) !== count(previous, r)) values[r] = count(current, r) - count(previous, r);
           if (Object.keys(values).length) {
             clearTimeout(deltaTimer);
+            const arrival = isNew && (g.transfers ?? []).length ? delay + 650 : 0;
+            // Kommen Karten dazu, bleibt die alte Zahl stehen, bis sie landen. Gehen nur Karten weg, sinkt sie sofort.
+            const gains = Object.values(values).some((v) => v! > 0);
+            this.shownHand.set(gains && arrival ? (this.shownHand() ?? { ...previous }) : null);
             // Das „+n“ erscheint, wenn die Karten ankommen.
             deltaTimer = setTimeout(() => {
+              this.shownHand.set(null);
               this.handDelta.set({ values, id: Date.now() });
               deltaTimer = setTimeout(() => this.handDelta.set(null), 1800);
-            }, isNew && (g.transfers ?? []).length ? delay + 650 : 0);
+            }, arrival);
           }
         }
         previous = current ? { ...current } : null;
