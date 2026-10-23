@@ -235,6 +235,12 @@ kbd {
   &:hover:not(:disabled) {
     color: var(--text);
   }
+
+  .icon {
+    display: none;
+    font-size: 16px;
+    line-height: 1;
+  }
 }
 
 @media (max-width: 1600px) {
@@ -1238,8 +1244,9 @@ kbd {
     width: calc(100% - 24px);
   }
 
+  // minmax(0, …): Sonst wächst die Spalte auf die Mindestbreite ihres Inhalts und die Seite wird breiter als der Bildschirm.
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto 62vh auto auto;
     grid-template-areas:
       'top'
@@ -1250,10 +1257,19 @@ kbd {
   }
 
   .topbar {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       'brand tools'
       'players players';
+  }
+
+  // „Einstellungen“ ist für die schmale Kopfzeile zu lang: dort nur das Zahnrad.
+  .tool .label {
+    display: none;
+  }
+
+  .tool .icon {
+    display: inline;
   }
 
   .brand {
@@ -1292,7 +1308,7 @@ kbd {
   }
 
   .dock {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       'turn'
       'hand'
@@ -1318,7 +1334,7 @@ kbd {
   }
 
   .layout.side-closed {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
 
     .side {
       padding: 4px 18px;

@@ -85,7 +85,9 @@
 
     <div class="tools">
       <button class="tool" (click)="rulesOpen.set(true)" title="Regelbuch öffnen">Regeln</button>
-      <button class="tool" (click)="settingsOpen.set(true)" title="Musik, Effekte und Sprecher einstellen">Einstellungen</button>
+      <button class="tool" (click)="settingsOpen.set(true)" title="Musik, Effekte und Sprecher einstellen" aria-label="Einstellungen">
+        <span class="label">Einstellungen</span><span class="icon" aria-hidden="true">⚙</span>
+      </button>
       <button class="tool" (click)="leave.emit()">Verlassen</button>
     </div>
   </header>

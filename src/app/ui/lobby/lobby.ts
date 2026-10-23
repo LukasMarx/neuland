@@ -6,10 +6,11 @@ import { ChatBox } from '../shared/chat-box';
 import { MapThumb } from './map-thumb';
 import { allChapters, chapterForVariant, ChapterId } from '../rulebook/rule-content';
 import { Rulebook } from '../rulebook/rulebook';
+import { SettingsDialog } from '../shared/settings-dialog';
 
 @Component({
   selector: 'app-lobby',
-  imports: [ChatBox, MapThumb, Rulebook],
+  imports: [ChatBox, MapThumb, Rulebook, SettingsDialog],
   template: `
     @let r = room.room()!;
     <main>
@@ -21,8 +22,12 @@ import { Rulebook } from '../rulebook/rulebook';
           <button (click)="copy()" [title]="inviteLink">{{ copied() ? 'Link kopiert ✓' : 'Link kopieren' }}</button>
         </div>
         <button (click)="openRules(null)" title="Regelbuch öffnen">Regeln</button>
+        <button (click)="settingsOpen.set(true)" title="Musik, Effekte und Sprecher einstellen">Einstellungen</button>
         <button (click)="leave.emit()">Verlassen</button>
       </header>
+      @if (settingsOpen()) {
+        <app-settings-dialog (close)="settingsOpen.set(false)" />
+      }
       @if (rulesOpen()) {
         <app-rulebook [chapters]="ruleChapters" [startChapter]="rulesStart()" (close)="rulesOpen.set(false)" />
       }
@@ -451,6 +456,7 @@ export class Lobby {
   protected readonly vpOptions = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
   protected readonly copied = signal(false);
   protected readonly rulesOpen = signal(false);
+  protected readonly settingsOpen = signal(false);
   /** In der Lobby stehen alle Kapitel im Buch, damit man vor dem Einschalten nachlesen kann. */
   protected readonly ruleChapters = allChapters();
   protected readonly rulesStart = signal<ChapterId | null>(null);

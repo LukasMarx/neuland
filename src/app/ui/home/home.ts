@@ -1,9 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { recentRooms, RoomService } from '../../net/room.service';
+import { SettingsDialog } from '../shared/settings-dialog';
 
 @Component({
   selector: 'app-home',
+  imports: [SettingsDialog],
   template: `
     <main>
       <header>
@@ -56,9 +58,37 @@ import { recentRooms, RoomService } from '../../net/room.service';
           }
         </section>
       }
+
+      <footer>
+        <button class="link" (click)="settingsOpen.set(true)">Einstellungen</button>
+        <a class="link" href="#/klaenge">Klangprobe</a>
+      </footer>
     </main>
+    @if (settingsOpen()) {
+      <app-settings-dialog (close)="settingsOpen.set(false)" />
+    }
   `,
   styles: `
+    footer {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      font-size: 13px;
+    }
+    .link {
+      padding: 0;
+      border: none;
+      background: none;
+      color: var(--muted);
+      font: inherit;
+      text-decoration: underline;
+      cursor: pointer;
+
+      &:hover:not(:disabled) {
+        background: none;
+        color: var(--text);
+      }
+    }
     main {
       max-width: 460px;
       margin: 0 auto;
@@ -152,6 +182,7 @@ export class Home {
   protected readonly name = signal(this.room.name());
   protected readonly code = signal('');
   protected readonly recent = recentRooms();
+  protected readonly settingsOpen = signal(false);
 
   protected create(): void {
     if (!this.name().trim()) return;
