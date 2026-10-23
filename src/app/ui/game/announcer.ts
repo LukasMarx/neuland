@@ -1,26 +1,33 @@
-import { GameState, getTopology } from '../../engine';
+import { GameState } from '../../engine';
 import { VoiceEvent } from '../shared/voice';
-
-/** Wie oft der Erzfeind eine neue Straße kommentiert; sonst redet er bei jedem Zug. */
-const ENEMY_ROAD_CHANCE = 0.2;
 
 /**
  * Was sich zwischen zwei Spielständen aus meiner Sicht (Sitz `seat`) Ansagenswertes getan hat.
- * Zugbeginn, Tauschangebote, Zögern und Verbindungen meldet die Spielansicht selbst.
+ * Zugbeginn, Bauhinweis, Tauschangebote, Zögern und Verbindungen meldet die Spielansicht selbst;
+ * sie sorgt auch dafür, dass der Erzfeind höchstens eine Straße je Zug kommentiert.
  */
-export function voiceEvents(prev: GameState, next: GameState, seat: number, random: () => number = Math.random): VoiceEvent[] {
+export function voiceEvents(prev: GameState, next: GameState, seat: number): VoiceEvent[] {
   if (seat < 0 || next.version <= prev.version) return [];
   const events: VoiceEvent[] = [];
   const isEnemy = (s: number | null) => s !== null && s !== seat && !next.players[s]?.neutral;
+  const setup = next.phase.kind === 'setup';
 
-  // Eine 7 aus meinem eigenen Wurf.
-  if (prev.phase.kind === 'roll' && next.phase.kind !== 'roll' && prev.current === seat && next.dice && next.dice[0] + next.dice[1] === 7) {
-    events.push('mySeven');
+  // Eine 7 (egal von wem) und ich muss abwerfen. Abwerfen aus anderen Gründen (Stadtwacht) hat `to` oder `then`.
+  const discard = next.phase.kind === 'discard' ? next.phase : null;
+  if (discard && prev.phase.kind !== 'discard' && !discard.to && !discard.then && (discard.pending[seat] ?? 0) > 0) {
+    events.push('mustDiscard');
   }
 
-  if (next.longestRoad !== prev.longestRoad) {
-    if (next.longestRoad === seat) events.push('myLongestRoad');
-    else if (isEnemy(next.longestRoad)) events.push('enemyLongestRoad');
+  // Meine Sonderbaurunde beginnt.
+  const special = next.phase.kind === 'specialBuild' ? next.phase : null;
+  const wasMine = prev.phase.kind === 'specialBuild' && prev.phase.queue[0] === seat;
+  if (special && special.queue[0] === seat && !wasMine) events.push('mySpecialBuild');
+
+  if (next.longestRoad === seat) {
+    if (prev.longestRoad !== seat) events.push('myLongestRoad');
+    else if (next.roadLengths[seat] > prev.roadLengths[seat]) events.push('myLongestRoadGrows');
+  } else if (next.longestRoad !== prev.longestRoad && isEnemy(next.longestRoad)) {
+    events.push('enemyLongestRoad');
   }
   if (next.largestArmy !== prev.largestArmy) {
     if (next.largestArmy === seat) events.push('myLargestArmy');
@@ -36,14 +43,9 @@ export function voiceEvents(prev: GameState, next: GameState, seat: number, rand
     events.push('robbedMe');
   }
 
-  // Neue gegnerische Siedlung an einer meiner Straßen: Dort hätte ich bauen können.
-  const topo = getTopology(next.board);
-  const settledNearMe = next.buildings.some(
-    (b, v) => b && !prev.buildings[v] && b.type === 'settlement' && isEnemy(b.owner) && topo.vertices[v].edges.some((e) => next.roads[e] === seat),
-  );
-  if (settledNearMe && next.phase.kind !== 'setup') events.push('enemySettlesNearMe');
-  else if (next.phase.kind !== 'setup' && next.roads.some((r, e) => r !== null && prev.roads[e] === null && isEnemy(r)) && random() < ENEMY_ROAD_CHANCE) {
-    events.push('enemyRoad');
+  if (!setup) {
+    if (next.buildings.some((b, v) => b && !prev.buildings[v] && b.type === 'settlement' && isEnemy(b.owner))) events.push('enemySettlement');
+    else if (next.roads.some((r, e) => r !== null && prev.roads[e] === null && isEnemy(r))) events.push('enemyRoad');
   }
   return events;
 }

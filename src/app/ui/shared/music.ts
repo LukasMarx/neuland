@@ -49,7 +49,7 @@ export class BackgroundMusic {
     });
   }
 
-  /** Leiser, solange eine Fanfare oder der Sprecher zu hören ist, danach langsam zurück. */
+  /** Leiser, solange der Sprecher zu hören ist, danach langsam zurück. */
   duck(seconds: number): void {
     const audio = this.audio;
     if (!audio || audio.paused) return;

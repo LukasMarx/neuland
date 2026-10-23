@@ -5,7 +5,7 @@ import { Announcer, VOICE } from './voice';
 
 const CHANNELS: { id: AudioChannel; name: string; hint: string }[] = [
   { id: 'music', name: 'Musik', hint: 'Mittelalterliche Hintergrundmusik' },
-  { id: 'effects', name: 'Effekte', hint: 'Fanfare, wenn du dran bist, und Würfel' },
+  { id: 'effects', name: 'Effekte', hint: 'Würfelklappern' },
   { id: 'voice', name: 'Sprecher', hint: 'Berater und Erzfeind kommentieren das Spiel' },
 ];
 

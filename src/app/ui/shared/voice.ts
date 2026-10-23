@@ -9,9 +9,12 @@ export type Speaker = 'friend' | 'enemy';
 
 export type VoiceEvent =
   | 'myTurn'
+  | 'mySetupTurn'
   | 'canBuild'
-  | 'mySeven'
+  | 'mySpecialBuild'
+  | 'mustDiscard'
   | 'myLongestRoad'
+  | 'myLongestRoadGrows'
   | 'myLargestArmy'
   | 'myMonopoly'
   | 'tradeOffer'
@@ -21,7 +24,7 @@ export type VoiceEvent =
   | 'enemyMonopoly'
   | 'enemyLongestRoad'
   | 'enemyLargestArmy'
-  | 'enemySettlesNearMe'
+  | 'enemySettlement'
   | 'enemyRoad'
   | 'idle';
 
@@ -35,38 +38,41 @@ const clip = (speaker: Speaker, id: string, text: string): VoiceClip => ({ id, s
 
 export const VOICE: Record<VoiceEvent, { when: string; clips: VoiceClip[] }> = {
   myTurn: {
-    when: 'Du bist dran (nach der Fanfare)',
+    when: 'Du bist dran',
     clips: [
       clip('friend', 'zug-sire', 'Nun ist es an Euch, Sire.'),
       clip('friend', 'zug-wohlan', 'Wohlan, Ihr seid am Zug.'),
       clip('friend', 'zug-wuerfel', 'Die Würfel warten auf Euch, Mylord.'),
     ],
   },
-  canBuild: {
-    when: 'Nach deinem Wurf, wenn du etwas bauen kannst (höchstens jeden dritten Zug)',
-    clips: [
-      clip('friend', 'bauen-befehl', 'Die Bauleute warten auf Euren Befehl.'),
-      clip('friend', 'bauen-zeit', 'Wohlan, Zeit für Eure Bauwerke.'),
-    ],
+  mySetupTurn: {
+    when: 'Du bist dran in der Aufbauphase',
+    clips: [clip('friend', 'zug-sire', 'Nun ist es an Euch, Sire.'), clip('friend', 'zug-wohlan', 'Wohlan, Ihr seid am Zug.')],
   },
-  mySeven: { when: 'Du würfelst eine 7', clips: [clip('friend', 'raeuber-tribut', 'Die Räuber fordern ihren Tribut.')] },
+  canBuild: {
+    when: 'Nach deinem Wurf, wenn du eine Siedlung oder Stadt bauen kannst (höchstens jeden dritten Zug)',
+    clips: [clip('friend', 'bauen-befehl', 'Die Bauleute warten auf Euren Befehl.')],
+  },
+  mySpecialBuild: { when: 'Deine Sonderbaurunde beginnt', clips: [clip('friend', 'bauen-zeit', 'Wohlan, Zeit für Eure Bauwerke.')] },
+  mustDiscard: { when: 'Eine 7 fällt und du musst abwerfen', clips: [clip('friend', 'raeuber-tribut', 'Die Räuber fordern ihren Tribut.')] },
   myLongestRoad: {
     when: 'Du bekommst die längste Handelsstraße',
     clips: [clip('friend', 'handelsstrasse-meister', 'Ein neuer Meister der Handelswege.'), clip('friend', 'handelsstrasse-weiter', 'Kein Handelsweg reicht weiter.')],
+  },
+  myLongestRoadGrows: {
+    when: 'Du baust deine längste Handelsstraße weiter aus',
+    clips: [clip('friend', 'handelsstrasse-weiter', 'Kein Handelsweg reicht weiter.')],
   },
   myLargestArmy: {
     when: 'Du bekommst die größte Rittermacht',
     clips: [clip('friend', 'rittermacht-anfuehrer', 'Die größte Streitmacht hat einen neuen Anführer.')],
   },
   myMonopoly: { when: 'Du spielst ein Monopol', clips: [clip('friend', 'monopol', 'Ein Monopol füllt die Schatzkammer.')] },
-  tradeOffer: { when: 'Ein Tauschangebot an dich', clips: [clip('friend', 'handel-vorgeschlagen', 'Ein Handel wurde vorgeschlagen.')] },
+  tradeOffer: { when: 'Jemand schlägt dir einen Handel vor', clips: [clip('friend', 'handel-vorgeschlagen', 'Ein Handel wurde vorgeschlagen.')] },
   playerLeft: { when: 'Ein Mitspieler verliert die Verbindung', clips: [clip('friend', 'spieler-verlassen', 'Ein Spieler hat das Spiel verlassen.')] },
   playerBack: { when: 'Ein Mitspieler ist wieder da', clips: [clip('friend', 'spieler-zurueck', 'Ein Spieler ist zurückgekehrt.')] },
-  robbedMe: {
-    when: 'Ein Gegner raubt dir eine Karte',
-    clips: [clip('enemy', 'vorraete-aufgehoben', 'Eure Vorräte sind bei mir besser aufgehoben.'), clip('enemy', 'alles-meins', 'Mit Euren Vorräten? Alles meins!')],
-  },
-  enemyMonopoly: { when: 'Ein Gegner nimmt dir mit einem Monopol Karten ab', clips: [clip('enemy', 'alles-meins', 'Mit Euren Vorräten? Alles meins!')] },
+  robbedMe: { when: 'Ein Gegner raubt dich aus', clips: [clip('enemy', 'vorraete-aufgehoben', 'Eure Vorräte sind bei mir besser aufgehoben.')] },
+  enemyMonopoly: { when: 'Ein Gegner spielt ein Monopol gegen dich', clips: [clip('enemy', 'alles-meins', 'Mit Euren Vorräten? Alles meins!')] },
   enemyLongestRoad: {
     when: 'Ein Gegner bekommt die längste Handelsstraße',
     clips: [clip('enemy', 'strassen-reichen-weit', 'Meine Straßen reichen weit. Euer Einfluss endet hier.')],
@@ -75,12 +81,18 @@ export const VOICE: Record<VoiceEvent, { when: string; clips: VoiceClip[] }> = {
     when: 'Ein Gegner bekommt die größte Rittermacht',
     clips: [clip('enemy', 'ritter-bereit', 'Meine Ritter stehen bereit. Wählt Eure nächsten Schritte weise.')],
   },
-  enemySettlesNearMe: {
-    when: 'Ein Gegner siedelt an einer deiner Straßen',
+  enemySettlement: {
+    when: 'Ein Gegner baut eine Siedlung (nicht in der Aufbauphase)',
     clips: [clip('enemy', 'land-gehoert-mir', 'Dieses Land gehört nun mir. Ihr hättet schneller sein müssen.')],
   },
-  enemyRoad: { when: 'Ein Gegner baut eine Straße (ab und zu)', clips: [clip('enemy', 'alle-wege', 'Bald führen alle Wege durch mein Reich.')] },
-  idle: { when: 'Du zögerst in deinem Zug länger als 45 Sekunden', clips: [clip('enemy', 'na-los', 'Na los, deine Straßen bauen sich nicht von allein.')] },
+  enemyRoad: {
+    when: 'Ein Gegner baut eine Straße (nicht in der Aufbauphase, höchstens einmal je Zug)',
+    clips: [clip('enemy', 'alle-wege', 'Bald führen alle Wege durch mein Reich.')],
+  },
+  idle: {
+    when: 'Du hast nach deinem Wurf 60 Sekunden lang nichts getan',
+    clips: [clip('enemy', 'na-los', 'Na los, deine Straßen bauen sich nicht von allein.')],
+  },
 };
 
 export const clipUrl = (c: VoiceClip) => `audio/${c.speaker}/${c.id}.mp3`;

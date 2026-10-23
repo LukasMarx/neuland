@@ -1,6 +1,6 @@
 import { isDevMode, signal } from '@angular/core';
 
-/** Die drei Klangkanäle: Hintergrundmusik, Effekte (Fanfare, Würfel, Hinweiston) und die Sprecher. */
+/** Die drei Klangkanäle: Hintergrundmusik, Effekte (Würfel, Hinweiston) und die Sprecher. */
 export type AudioChannel = 'music' | 'effects' | 'voice';
 
 export interface ChannelSettings {

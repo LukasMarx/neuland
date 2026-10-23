@@ -85,10 +85,9 @@ import { DEV_CARD_HELP } from '../shared/labels';
 import { ResourcePicker } from '../shared/resource-picker';
 import { CardInspector } from './card-inspector';
 import { EndStats } from './end-stats';
-import { audioSettings, channelVolume } from '../shared/audio-settings';
+import { audioSettings } from '../shared/audio-settings';
 import { BackgroundMusic } from '../shared/music';
 import { SettingsDialog } from '../shared/settings-dialog';
-import { fanfare, FANFARE_SECONDS } from '../shared/sounds';
 import { Announcer } from '../shared/voice';
 import { voiceEvents } from './announcer';
 import { DiceTray, ROLL_DURATION_MS } from './dice-tray';
@@ -111,8 +110,8 @@ type Dialog =
   | { kind: 'guard'; vertex: number }
   | { kind: 'progress'; card: ProgressCard };
 
-/** So lange darf man im eigenen Zug zögern, bevor der Erzfeind stichelt. */
-const IDLE_TAUNT_MS = 45_000;
+/** So lange darf man nach dem eigenen Wurf nichts tun, bevor der Erzfeind stichelt. */
+const IDLE_TAUNT_MS = 60_000;
 
 const FISH_EFFECTS: { effect: FishEffect; label: string }[] = [
   { effect: 'robber', label: 'Räuber vom Brett nehmen' },
@@ -394,8 +393,9 @@ export class GameView {
   private readonly player = new BackgroundMusic();
   /** Berater und Erzfeind; die Musik wird leiser, solange einer spricht. */
   private readonly announcer = new Announcer((seconds) => this.player.duck(seconds));
-  /** Zug, in dem der Berater zuletzt ans Bauen erinnert hat. */
+  /** Zug, in dem der Berater zuletzt ans Bauen erinnert hat, und in dem der Erzfeind zuletzt eine Straße kommentiert hat. */
   private buildHintTurn = -Infinity;
+  private roadTauntTurn = -1;
   protected readonly discardPick = signal<ResourceCounts>(emptyResources());
   protected readonly plentyPick = signal<ResourceCounts>(emptyResources());
   protected readonly tokenPick = signal<ResourceCounts>(emptyResources());
@@ -1031,11 +1031,11 @@ export class GameView {
       const mine = this.myTurn() && this.g().phase.kind !== 'ended';
       if (mine && !wasMyTurn) {
         untracked(() => {
-          const fanfareOn = channelVolume('effects') > 0;
-          fanfare('kurz');
-          if (fanfareOn) this.player.duck(FANFARE_SECONDS.kurz);
-          // In der Aufbauphase wird nicht gewürfelt, da passt keiner der Sätze. Ohne Fanfare spricht er sofort.
-          if (this.g().turn > 0) this.announcer.say('myTurn', fanfareOn ? (FANFARE_SECONDS.kurz - 1) * 1000 : 0);
+          // Nur wenn mein Zug wirklich beginnt, nicht beim Abwerfen oder in der Sonderbaurunde.
+          // In der Aufbauphase wird nicht gewürfelt, da fällt der Satz mit den Würfeln weg.
+          const g = this.g();
+          if (g.phase.kind === 'setup') this.announcer.say('mySetupTurn');
+          else if (g.phase.kind === 'roll' && g.current === this.seat()) this.announcer.say('myTurn');
           const me = this.me();
           if (me) this.pushBanner({ kind: 'turn', title: this.bannerText(), name: me.name, color: me.color, tag: this.g().turn ? `Zug ${this.g().turn}` : 'Aufbauphase' });
         });
@@ -1043,17 +1043,23 @@ export class GameView {
       wasMyTurn = mine;
     });
 
-    // Zögern im eigenen Zug: Nach 45 Sekunden ohne neuen Spielstand stichelt der Erzfeind, einmal je Zug.
+    // Zögern: Hat man nach dem eigenen Wurf eine Minute lang nichts getan, stichelt der Erzfeind, einmal je Zug.
+    // „Nichts getan“ heißt: kein eigener Eintrag im Verlauf seit dem Wurf.
+    const rolledTurn = computed(() => {
+      const g = this.g();
+      return g.phase.kind === 'main' && g.current === this.seat() ? g.turn : null;
+    });
+    const myEntries = () => this.g().log.filter((e) => e.seat === this.seat()).length;
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
     let idleTurn = -1;
     effect(() => {
-      const g = this.g();
-      const waiting = this.myTurn() && g.phase.kind === 'main' && g.turn !== idleTurn;
+      const turn = rolledTurn();
       clearTimeout(idleTimer);
-      if (!waiting) return;
+      if (turn === null || turn === idleTurn) return;
+      const before = untracked(myEntries);
       idleTimer = setTimeout(() => {
-        idleTurn = g.turn;
-        this.announcer.say('idle');
+        idleTurn = turn;
+        if (untracked(myEntries) === before) this.announcer.say('idle');
       }, IDLE_TAUNT_MS);
     });
     inject(DestroyRef).onDestroy(() => clearTimeout(idleTimer));
@@ -1164,13 +1170,20 @@ export class GameView {
   /** Erkennt Ereignisse aus dem Unterschied zwischen zwei Spielständen und stellt Banner dafür an. */
   /** Berater und Erzfeind kommentieren den neuen Spielstand; nach einem Wurf erst, wenn die Würfel liegen. */
   private announce(prev: GameState, g: GameState, rolled: boolean, delay: number): void {
-    for (const event of voiceEvents(prev, g, this.seat())) this.announcer.say(event, delay);
-    // Nach dem eigenen Wurf: Gibt es etwas zu bauen, mahnt der Berater, aber nicht jeden Zug.
+    for (const event of voiceEvents(prev, g, this.seat())) {
+      // Straßen der Gegner kommentiert der Erzfeind höchstens einmal je Zug.
+      if (event === 'enemyRoad') {
+        if (this.roadTauntTurn === g.turn) continue;
+        this.roadTauntTurn = g.turn;
+      }
+      this.announcer.say(event, delay);
+    }
+    // Nach dem eigenen Wurf: Ist eine Siedlung oder Stadt drin, mahnt der Berater, aber nicht jeden Zug.
     const seat = this.seat();
     if (rolled && prev.current === seat && g.phase.kind === 'main' && g.turn - this.buildHintTurn >= 3) {
       setTimeout(() => {
         const options = this.buildOptions();
-        if (this.myTurn() && Object.values(options).some((o) => o.enabled)) {
+        if (this.myTurn() && (options.settlement.enabled || options.city.enabled)) {
           this.buildHintTurn = this.g().turn;
           this.announcer.say('canBuild');
         }

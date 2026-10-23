@@ -1,7 +1,7 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { audioSettings } from '../shared/audio-settings';
 import { BackgroundMusic } from '../shared/music';
-import { fanfare, FANFARE_SECONDS, SOUNDS } from '../shared/sounds';
+import { SOUNDS } from '../shared/sounds';
 import { Announcer, Speaker, VOICE, VoiceClip } from '../shared/voice';
 
 const SPEAKERS: { id: Speaker; name: string; role: string }[] = [
@@ -73,10 +73,10 @@ function voiceLines(speaker: Speaker): { clip: VoiceClip; when: string }[] {
             </span>
           </li>
           <li>
-            <button (click)="fanfareOverMusic()" [disabled]="!music()" aria-label="Fanfare über der Musik abspielen">▶</button>
+            <button (click)="voiceOverMusic()" [disabled]="!music()" aria-label="Sprecher über der Musik abspielen">▶</button>
             <span>
-              <b>Fanfare über der Musik</b>
-              <span class="muted">Die Musik wird für die Fanfare leiser (erst Musik starten)</span>
+              <b>Sprecher über der Musik</b>
+              <span class="muted">Die Musik wird leiser, solange jemand spricht (erst Musik starten)</span>
             </span>
           </li>
         </ul>
@@ -152,8 +152,8 @@ export class SoundCheck {
     else this.player.stop();
   }
 
-  protected fanfareOverMusic(): void {
-    fanfare('kurz', this.effectsVolume());
-    this.player.duck(FANFARE_SECONDS.kurz);
+  protected voiceOverMusic(): void {
+    const clips = VOICE.myTurn.clips;
+    this.voice.play(clips[Math.floor(Math.random() * clips.length)]);
   }
 }

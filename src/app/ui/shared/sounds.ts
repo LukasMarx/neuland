@@ -6,21 +6,7 @@ import { channelVolume } from './audio-settings';
  * ins Spiel kommt nur, was dort freigegeben ist.
  */
 
-export type FanfareVariant = 'kurz' | 'lang';
-
-/** Fanfare, wenn man dran ist: Anfang von „Majestic Brass Fanfare“ (luis_humanoide), zwei Schnittfassungen. */
-export const FANFARE_SECONDS: Record<FanfareVariant, number> = { kurz: 4.3, lang: 6.3 };
-const FANFARE_VOLUME = 0.6;
-
-export function fanfare(variant: FanfareVariant = 'kurz', volume = channelVolume('effects')): void {
-  if (volume <= 0) return;
-  const audio = new Audio(`web/sounds/fanfare-${variant}.m4a`);
-  audio.volume = FANFARE_VOLUME * volume;
-  // Ohne Klick vorher lässt der Browser keinen Ton zu; dann eben still.
-  audio.play().catch(() => undefined);
-}
-
-/** Zwei helle Töne; früher bei „Du bist dran“ und Tauschangeboten, heute sprechen dort Fanfare und Berater. */
+/** Zwei helle Töne; früher bei „Du bist dran“ und Tauschangeboten, heute spricht dort der Berater. */
 export function chime(volume = channelVolume('effects')): void {
   if (volume <= 0) return;
   try {
@@ -78,8 +64,6 @@ export interface SoundInfo {
 }
 
 export const SOUNDS: SoundInfo[] = [
-  { id: 'fanfare-kurz', name: 'Fanfare, kurz (4,3 s)', when: 'Du bist dran', play: (v) => fanfare('kurz', v) },
-  { id: 'fanfare-lang', name: 'Fanfare, lang (6,3 s)', when: '', play: (v) => fanfare('lang', v) },
   { id: 'chime', name: 'Hinweiston', when: '', play: chime },
   { id: 'rattle', name: 'Würfelklappern', when: 'Jemand würfelt', play: rattle },
 ];
