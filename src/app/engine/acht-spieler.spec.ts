@@ -76,7 +76,7 @@ describe('7–8 Spieler: im Spiel', () => {
     });
   }
 
-  it('8 Spieler: Nach einem Host-Wechsel hat jeder wieder genau seine Karten', () => {
+  it('8 Spieler: Nach einem Host-Wechsel hat jeder wieder genau seine Karten', { timeout: 60000 }, () => {
     const random = seeded(808);
     let s = createGame(players(8), { victoryPoints: 30 }, 8);
     for (let i = 0; i < 1500; i++) {

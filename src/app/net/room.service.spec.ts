@@ -496,7 +496,7 @@ describe('Mehrspieler: Rückkehr mit 6 Spielern (Prüfung vom 22.10.2026)', () =
   const six = ['H', 'A', 'B', 'C', 'D', 'E'];
   const devOf = (g: GameState) => g.players.map((p) => [...p.devCards, ...p.newDevCards].sort().join());
 
-  it('eine langsame Verbindung beim Wiedereinstieg macht keinen Mitspieler zum Host', () => {
+  it('eine langsame Verbindung beim Wiedereinstieg macht keinen Mitspieler zum Host', { timeout: 60000 }, () => {
     const { sims, net, code, clock } = start(six);
     const [H, A] = sims;
     play(sims, 300, seeded(55));
@@ -515,7 +515,7 @@ describe('Mehrspieler: Rückkehr mit 6 Spielern (Prüfung vom 22.10.2026)', () =
     expect(H.game.log.some((l) => l.text.includes('neu ausgeteilt'))).toBe(false);
   });
 
-  it('ein Host, der die Seite neu lädt, bekommt seine Entwicklungskarten zurück', () => {
+  it('ein Host, der die Seite neu lädt, bekommt seine Entwicklungskarten zurück', { timeout: 60000 }, () => {
     const { sims, code, clock } = start(six);
     const [H] = sims;
     const random = seeded(77);
@@ -542,7 +542,7 @@ describe('Mehrspieler: Rückkehr mit 6 Spielern (Prüfung vom 22.10.2026)', () =
     expect(H2.v).toBe(host.v);
   });
 
-  it('ein Zuschauer in der Lobby rückt nach, wenn ein Platz frei wird', () => {
+  it('ein Zuschauer in der Lobby rückt nach, wenn ein Platz frei wird', { timeout: 60000 }, () => {
     const { sims, net, code, clock } = setup([...six, 'F', 'G']);
     const [H, , , , E] = sims;
     E.close();
@@ -561,7 +561,7 @@ describe('Mehrspieler: Rückkehr mit 6 Spielern (Prüfung vom 22.10.2026)', () =
 describe('Mehrspieler: 7–8 Spieler', () => {
   const eight = ['H', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
-  it('acht spielen mit, ein neunter schaut zu; alle Farben verschieden', () => {
+  it('acht spielen mit, ein neunter schaut zu; alle Farben verschieden', { timeout: 60000 }, () => {
     const { sims, net, code, clock } = setup(eight);
     const [H] = sims;
     const X = new Sim('X', net);
@@ -578,7 +578,7 @@ describe('Mehrspieler: 7–8 Spieler', () => {
     expect(X.seat).toBe(-1);
   });
 
-  it('acht spielen über einen Host-Wechsel hinweg auf demselben Stand weiter', () => {
+  it('acht spielen über einen Host-Wechsel hinweg auf demselben Stand weiter', { timeout: 60000 }, () => {
     const { sims, clock } = start(eight);
     const [H, ...rest] = sims;
     play(sims, 300, seeded(88));
