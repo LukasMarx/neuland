@@ -90,6 +90,8 @@ import { FlyLayer } from './fly-layer';
 import { hasOfferView, offerFor, OfferPanel } from './offer-panel';
 import { TradeTable, withdrawOffers } from './trade-table';
 import { CityPanel } from './city-panel';
+import { chaptersFor } from '../rulebook/rule-content';
+import { Rulebook } from '../rulebook/rulebook';
 
 type BuildMode = 'road' | 'settlement' | 'city' | 'ship' | 'moveShip' | 'bridge' | 'wall' | 'metropolis' | 'guards' | 'guardMove' | 'progress';
 type Dialog =
@@ -150,7 +152,7 @@ const AUTO_ROLL_MS = 5000;
 
 @Component({
   selector: 'app-game',
-  imports: [Board, CardFace, CardInspector, ChatBox, CityPanel, DiceTray, EventBanner, FlyLayer, OfferPanel, ResourcePicker, TradeTable],
+  imports: [Board, CardFace, CardInspector, ChatBox, CityPanel, DiceTray, EventBanner, FlyLayer, OfferPanel, ResourcePicker, Rulebook, TradeTable],
   templateUrl: './game.html',
   styleUrl: './game.scss',
   host: { '(document:keydown)': 'onKey($event)' },
@@ -358,6 +360,9 @@ export class GameView {
   protected readonly offerView = computed(() => hasOfferView(this.g(), this.seat()));
   /** Vergrößert angesehene Entwicklungskarte samt Ausgangsposition in der Hand. */
   protected readonly inspect = signal<{ card: DevCard; origin: DOMRect } | null>(null);
+  protected readonly rulesOpen = signal(false);
+  /** Regelbuch: Grundspiel und alles, was in dieser Partie dazukommt. */
+  protected readonly ruleChapters = computed(() => chaptersFor(this.g().settings, this.g().players.filter((p) => !p.neutral).length));
   /** Automatisch würfeln: Zeitpunkt, zu dem gewürfelt wird, und die verbleibenden Sekunden für die Anzeige. */
   protected readonly rollDeadline = signal<number | null>(null);
   private readonly rollTick = signal(Date.now());
@@ -1544,8 +1549,8 @@ export class GameView {
   protected onKey(event: KeyboardEvent): void {
     const target = event.target as HTMLElement | null;
     if (target?.closest('input, textarea, select') || event.metaKey || event.ctrlKey || event.altKey) return;
-    // Die Kartenansicht schließt sich selbst mit Esc; dahinter soll nichts ausgelöst werden.
-    if (this.inspect()) return;
+    // Kartenansicht und Regelbuch schließen sich selbst mit Esc; dahinter soll nichts ausgelöst werden.
+    if (this.inspect() || this.rulesOpen()) return;
     if (event.key === 'Escape' && this.info()) {
       this.info.set(null);
       return;

@@ -1,0 +1,324 @@
+@let ch = chapter();
+<div class="backdrop" (click)="close.emit()"></div>
+
+<div
+  class="book"
+  lang="de"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Regelbuch"
+  [attr.data-chapter]="ch.id"
+>
+  <nav class="ribbons" aria-label="Kapitel">
+    @for (c of chapters(); track c.id) {
+      <button
+        type="button"
+        class="ribbon"
+        [attr.data-chapter]="c.id"
+        [class.on]="c.id === ch.id"
+        [attr.aria-current]="c.id === ch.id ? 'page' : null"
+        [title]="c.title"
+        (click)="open(c.id)"
+      >
+        <img [src]="c.emblem" alt="" />
+        <span>{{ c.tab }}</span>
+      </button>
+    }
+  </nav>
+
+  <div class="cover">
+    <div class="spread" #spreadEl [class.single]="!spread()">
+      @for (s of shown(); track s.key; let left = $first) {
+        <article class="page" [class.left]="left && spread()" [class.right]="!left || !spread()">
+          @if (s.page; as page) {
+            <header class="running">{{ ch.title }}</header>
+            <div class="body">
+              @for (p of page.pieces; track $index) {
+                @if (p.zoom < 1) {
+                  <!-- Verkleinert: Platz nur für die kleinere Höhe, der Inhalt schrumpft von oben. -->
+                  <div class="unit" [style.height.px]="p.height * p.zoom">
+                    <div class="scaled" [style.transform]="'scale(' + p.zoom + ')'">
+                      <ng-container *ngTemplateOutlet="piece; context: { $implicit: p.piece }" />
+                    </div>
+                  </div>
+                } @else {
+                  <div class="unit">
+                    <ng-container *ngTemplateOutlet="piece; context: { $implicit: p.piece }" />
+                  </div>
+                }
+              }
+            </div>
+            <footer class="folio">{{ roman(s.index! + 1) }}</footer>
+          } @else if (!s.pending) {
+            <div class="finis" aria-hidden="true">
+              <div class="flourish"><span></span>❦<span></span></div>
+              <p>Ende des Kapitels</p>
+            </div>
+          }
+        </article>
+      }
+      @if (spread()) {
+        <div class="gutter" aria-hidden="true"></div>
+      }
+
+      <!-- Messblatt: gleiche Breite und Höhe wie eine Seite, alle Stücke untereinander. -->
+      <article class="page measure" #measure aria-hidden="true" inert>
+        <header class="running">{{ ch.title }}</header>
+        <div class="body">
+          @for (u of units(); track $index) {
+            <div class="unit">
+              <ng-container *ngTemplateOutlet="piece; context: { $implicit: u.piece }" />
+            </div>
+          }
+        </div>
+        <footer class="folio">i</footer>
+      </article>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button
+      type="button"
+      class="turn"
+      (click)="prev()"
+      [disabled]="!hasPrev()"
+      aria-label="Zurückblättern"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 L8 12 L15 19" /></svg>
+    </button>
+    <span class="where">{{ ch.title }} · {{ pageLabel() }}</span>
+    <button
+      type="button"
+      class="turn"
+      (click)="next()"
+      [disabled]="!hasNext()"
+      aria-label="Weiterblättern"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5 L16 12 L9 19" /></svg>
+    </button>
+  </div>
+
+  <button
+    type="button"
+    class="shut"
+    (click)="close.emit()"
+    aria-label="Regelbuch schließen"
+    title="Schließen (Esc)"
+  >
+    ✕
+  </button>
+</div>
+
+@if (playing(); as id) {
+  @let clip = video(id);
+  <div class="theater" (click)="closeVideo()">
+    <div class="screen" (click)="$event.stopPropagation()">
+      <video
+        #film
+        [src]="clip?.src"
+        controls
+        autoplay
+        (ended)="videoEnded()"
+        (play)="ended.set(false)"
+      ></video>
+      @if (ended()) {
+        <div class="end">
+          <div class="card">
+            <span class="kicker">Teil {{ videoNumber() }} von {{ videoCount }}</span>
+            <h3>{{ clip?.title }}</h3>
+            <div class="flourish" aria-hidden="true"><span></span>❦<span></span></div>
+            @if (nextVideo(); as next) {
+              <button #nextButton type="button" class="primary next" (click)="playVideo(next)">
+                Weiter: {{ video(next)?.title }}
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5 L16 12 L9 19" /></svg>
+              </button>
+            } @else {
+              <p class="done">Das war der letzte Teil. Viel Spaß beim Spielen!</p>
+              <button #nextButton type="button" class="primary next" (click)="closeVideo()">
+                Zurück zum Buch
+              </button>
+            }
+            <div class="more">
+              <button type="button" (click)="replay()">Nochmal ansehen</button>
+              @if (nextVideo()) {
+                <button type="button" (click)="closeVideo()">Zurück zum Buch</button>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+    <button type="button" class="shut" (click)="closeVideo()" aria-label="Video schließen">
+      ✕
+    </button>
+  </div>
+}
+
+<ng-template #piece let-b>
+  @switch (b.kind) {
+    @case ('opening') {
+      <div class="opening">
+        <img class="emblem" [src]="chapter().emblem" alt="" />
+        <h2>{{ chapter().title }}</h2>
+        <div class="flourish" aria-hidden="true"><span></span>❦<span></span></div>
+      </div>
+    }
+    @case ('h') {
+      <h3 class="rubric">{{ b.text }}</h3>
+    }
+    @case ('p') {
+      @if (b.initial) {
+        @let parts = initial(b);
+        <p class="lead">
+          <span class="initial" aria-hidden="true">{{ parts[0] }}</span
+          ><span class="sr-only">{{ parts[0] }}</span
+          ><span [innerHTML]="parts[1]"></span>
+        </p>
+      } @else {
+        <p [innerHTML]="b.html"></p>
+      }
+    }
+    @case ('list') {
+      @if (b.numbered) {
+        <ol [style.counter-reset]="'step ' + ((b.start ?? 1) - 1)">
+          @for (item of b.items; track $index) {
+            <li [innerHTML]="item"></li>
+          }
+        </ol>
+      } @else {
+        <ul>
+          @for (item of b.items; track $index) {
+            <li [innerHTML]="item"></li>
+          }
+        </ul>
+      }
+    }
+    @case ('note') {
+      <aside class="note">
+        <b>{{ b.label ?? 'Merke' }}</b
+        ><span [innerHTML]="b.html"></span>
+      </aside>
+    }
+    @case ('scene') {
+      <figure class="plate">
+        <app-rule-scene [scene]="b.scene" [label]="b.caption" />
+        <figcaption>{{ b.caption }}</figcaption>
+      </figure>
+    }
+    @case ('video') {
+      @let v = video(b.video);
+      <figure class="plate film">
+        <button
+          type="button"
+          class="play"
+          (click)="playVideo(b.video)"
+          [attr.aria-label]="'Erklärvideo abspielen: ' + b.caption"
+        >
+          @if (v?.poster) {
+            <img [src]="v!.poster" alt="" />
+          }
+          <span class="seal" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M9 6 L18 12 L9 18 Z" /></svg>
+          </span>
+        </button>
+        <figcaption>
+          Erklärvideo · {{ b.caption }}
+          @if (v?.length) {
+            · {{ v!.length }}
+          }
+        </figcaption>
+      </figure>
+    }
+    @case ('gallery') {
+      <figure class="gallery">
+        <div class="items">
+          @for (item of b.items; track item.src) {
+            <div class="item" [attr.data-shape]="item.shape">
+              <img [src]="item.src" alt="" />
+              <span>{{ item.label }}</span>
+            </div>
+          }
+        </div>
+        @if (b.caption) {
+          <figcaption>{{ b.caption }}</figcaption>
+        }
+      </figure>
+    }
+    @case ('costs') {
+      <table class="costs">
+        <tbody>
+          @for (row of b.rows; track row.label) {
+            <tr>
+              <td class="what"><img [src]="row.image" alt="" /></td>
+              <td>
+                <b>{{ row.label }}</b>
+                @if (row.note) {
+                  <small>{{ row.note }}</small>
+                }
+              </td>
+              <td class="price">
+                @for (card of costCards(row.cost); track $index) {
+                  <img [src]="art(card)" [alt]="cardName(card)" [title]="cardName(card)" />
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+    @case ('changes') {
+      <div class="changes" [class.continued]="b.head === false">
+        @if (b.head !== false) {
+          <div class="change head" aria-hidden="true">
+            <span class="before">Grundspiel</span>
+            <span class="arrow">➝</span>
+            <span class="after">{{ b.now }}</span>
+          </div>
+        }
+        @for (row of b.rows; track row.topic) {
+          <div class="change">
+            <b class="topic">{{ row.topic }}</b>
+            <span class="before" [innerHTML]="row.before"></span>
+            <span class="arrow" aria-label="wird zu">➝</span>
+            <span class="after" [innerHTML]="row.after"></span>
+          </div>
+        }
+      </div>
+    }
+    @case ('trades') {
+      <dl class="trades">
+        @for (row of b.rows; track row.label) {
+          <div class="trade">
+            <dt>{{ row.label }}</dt>
+            <dd class="swap">
+              @for (i of repeat(row.count); track i) {
+                @if (row.give === 'any') {
+                  <img class="back" [src]="cardArt.back" alt="" />
+                } @else {
+                  <img [src]="art(row.give)" [alt]="cardName(row.give)" />
+                }
+              }
+              <span class="arrow" aria-label="gegen">➝</span>
+              <img class="back" [src]="cardArt.back" alt="1 nach Wahl" />
+            </dd>
+            <dd class="hint">{{ row.note }}</dd>
+          </div>
+        }
+      </dl>
+    }
+    @case ('progress') {
+      <ul class="progress-list">
+        @for (card of progressCards(b.track, b.cards); track card.id) {
+          <li>
+            <img [src]="'web/cards/progress/' + card.id + '.jpg'" alt="" />
+            <span>
+              <b>{{ card.name }}</b> <small>×{{ card.copies }}</small
+              ><br />
+              {{ card.text }}
+            </span>
+          </li>
+        }
+      </ul>
+    }
+  }
+</ng-template>

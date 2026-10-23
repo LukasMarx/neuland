@@ -4,10 +4,12 @@ import { MAX_PLAYERS, PLAYER_COLORS } from '../../net/protocol';
 import { LOCAL_MODE, RoomService } from '../../net/room.service';
 import { ChatBox } from '../shared/chat-box';
 import { MapThumb } from './map-thumb';
+import { chaptersFor } from '../rulebook/rule-content';
+import { Rulebook } from '../rulebook/rulebook';
 
 @Component({
   selector: 'app-lobby',
-  imports: [ChatBox, MapThumb],
+  imports: [ChatBox, MapThumb, Rulebook],
   template: `
     @let r = room.room()!;
     <main>
@@ -18,8 +20,12 @@ import { MapThumb } from './map-thumb';
           <b class="code">{{ r.code }}</b>
           <button (click)="copy()" [title]="inviteLink">{{ copied() ? 'Link kopiert ✓' : 'Link kopieren' }}</button>
         </div>
+        <button (click)="rulesOpen.set(true)" title="Regelbuch öffnen">Regeln</button>
         <button (click)="leave.emit()">Verlassen</button>
       </header>
+      @if (rulesOpen()) {
+        <app-rulebook [chapters]="ruleChapters()" (close)="rulesOpen.set(false)" />
+      }
 
       <div class="layout">
         <aside class="side">
@@ -421,6 +427,9 @@ export class Lobby {
   protected readonly maxPlayers = MAX_PLAYERS;
   protected readonly vpOptions = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
   protected readonly copied = signal(false);
+  protected readonly rulesOpen = signal(false);
+  /** Regelbuch mit den Kapiteln, die mit den jetzigen Einstellungen gelten würden. */
+  protected readonly ruleChapters = computed(() => chaptersFor(this.room.room()!.settings, Math.max(2, this.present())));
   protected readonly inviteLink = `${location.origin}${location.pathname}${LOCAL_MODE ? '?local' : ''}#/${this.room.code()}`;
 
   protected readonly takenColors = computed(() => new Set(this.room.room()?.players.map((p) => p.color)));

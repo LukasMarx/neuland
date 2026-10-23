@@ -84,6 +84,7 @@
     </div>
 
     <div class="tools">
+      <button class="tool" (click)="rulesOpen.set(true)" title="Regelbuch öffnen">Regeln</button>
       <button class="tool" (click)="toggleSound()" [title]="sound() ? 'Ton ausschalten' : 'Ton einschalten'">{{ sound() ? 'Ton an' : 'Ton aus' }}</button>
       <button class="tool" (click)="leave.emit()">Verlassen</button>
     </div>
@@ -473,6 +474,10 @@
 </div>
 
 <app-fly-layer />
+
+@if (rulesOpen()) {
+  <app-rulebook [chapters]="ruleChapters()" (close)="rulesOpen.set(false)" />
+}
 
 @if (inspected(); as i) {
   <app-card-inspector
