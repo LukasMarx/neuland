@@ -56,4 +56,4 @@ Format, Alphakanal und transparente Ecken der Einzeldateien: `pruefung-nachtrag.
 
 ## Neu eingegangener Auftrag: Stadtwacht III
 
-Während dieser Lieferung wurde auf Wunsch des Nutzers `48a0564` gepullt. Neu im [Grafikauftrag](grafik-auftrag.md#stadtwacht-iii-einflusskarten): **25 Einflusskarten-Motive, drei Rückseiten und eine Händlerfigur mit Farbvarianten**. Diese neue Lieferung steht noch aus. Auch die ausdrücklich optionalen Wächter-Aktionssymbole sind noch offen.
+Während dieser Lieferung wurde auf Wunsch des Nutzers `48a0564` gepullt. Neu im [Grafikauftrag](grafik-auftrag.md#stadtwacht-iii-einflusskarten): **25 Einflusskarten-Motive, drei Rückseiten und eine Händlerfigur mit Farbvarianten**. Diese und alle optionalen Motive wurden am 23.10.2026 fertiggestellt: [Folgelieferung mit Vorschau](../stadtwacht-2026-10-23/LIEFERUNG.md).

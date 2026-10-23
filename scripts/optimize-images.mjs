@@ -19,6 +19,10 @@ const selected = new Set(process.argv.slice(2));
  * `out` legt eine zweite Fassung desselben Ordners an, z. B. große Karten für die Kartenansicht.
  */
 const GROUPS = [
+  { dir: 'cards', size: 384, format: 'jpeg' },
+  { dir: 'cards', out: 'cards-large', size: 900, format: 'jpeg' },
+  { dir: 'cards/progress', size: 384, format: 'jpeg' },
+  { dir: 'cards/progress', out: 'cards-large/progress', size: 900, format: 'jpeg' },
   { dir: 'cards/symbolstark', size: 384, format: 'jpeg' },
   { dir: 'cards/symbolstark', out: 'cards-large/symbolstark', size: 900, format: 'jpeg' },
   { dir: 'tiles/papiercollage', size: 384, format: 'png', except: { 'ocean.png': { size: 1024, format: 'jpeg' } } },

@@ -153,6 +153,16 @@
         0.5
       ],
       "recommendedBoardWidth": 24
+    },
+    "trader": {
+      "label": "Händler",
+      "width": 256,
+      "height": 256,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "recommendedBoardWidth": 30
     }
   },
   "assets": {
@@ -263,6 +273,18 @@
       "brown": "pieces/papiercollage/guard3-brown.png",
       "grey-light": "pieces/papiercollage/guard3-grey-light.png",
       "grey-dark": "pieces/papiercollage/guard3-grey-dark.png"
+    },
+    "trader": {
+      "red": "pieces/papiercollage/trader-red.png",
+      "blue": "pieces/papiercollage/trader-blue.png",
+      "gold": "pieces/papiercollage/trader-gold.png",
+      "purple": "pieces/papiercollage/trader-purple.png",
+      "white": "pieces/papiercollage/trader-white.png",
+      "orange": "pieces/papiercollage/trader-orange.png",
+      "green": "pieces/papiercollage/trader-green.png",
+      "brown": "pieces/papiercollage/trader-brown.png",
+      "grey-light": "pieces/papiercollage/trader-grey-light.png",
+      "grey-dark": "pieces/papiercollage/trader-grey-dark.png"
     }
   }
 }

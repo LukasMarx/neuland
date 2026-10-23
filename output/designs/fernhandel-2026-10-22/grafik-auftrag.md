@@ -4,9 +4,9 @@
 
 **Geliefert und eingebunden:** See, Fischgrund, Fischplättchen 1–3, Rostiger Anker (Symbol und Banner), Handelsmarke, graue Figuren der Neutralen, Hafenvogt-Abzeichen, Banner-Motiv Leuchtturm. Lieferung siehe `README.md` in diesem Ordner.
 
-**Offen, neu seit der Lieferung (Flussläufe):** Brücke in Spielerfarben (`bridge-base.png`, über die Pipeline), Münze, Abzeichen „meiste“ und „wenigste Münzen“. Die Lieferung beruhte auf einem älteren Stand des Auftrags, in dem Flussläufe noch fehlte.
+**Grafiken geliefert am 22.10.2026 (Flussläufe):** Brücke in Spielerfarben, Münze, Abzeichen „meiste“ und „wenigste Münzen“. [Lieferübersicht](../stadtwacht-2026-10-22/LIEFERUNG.md); Einbindung separat.
 
-**Offen, optional:** Banner-Motiv Fisch, Würfelstapel Vorder- und Rückseite.
+**Optionale Motive geliefert am 23.10.2026:** Banner-Motiv Fisch sowie Würfelstapel Vorder- und Rückseite, jeweils mit Web-Fassungen. [Lieferung und Vorschau](../stadtwacht-2026-10-23/LIEFERUNG.md); Einbindung separat.
 
 ## Worum es geht
 

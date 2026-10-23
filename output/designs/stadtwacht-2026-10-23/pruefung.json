@@ -1,0 +1,326 @@
+[
+  {
+    "path": "public/cards/progress/agitator.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/alarmBell.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/armory.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/back-council.png",
+    "size": [
+      1024,
+      1536
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/back-market.png",
+    "size": [
+      1024,
+      1536
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/back-scholars.png",
+    "size": [
+      1024,
+      1536
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/banner/papiercollage/fish.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/banner/papiercollage/pirate.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/banquet.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/bond.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/bulkBuy.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/charter.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/dice-deck-back.png",
+    "size": [
+      1024,
+      1536
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/dice-deck-front.png",
+    "size": [
+      1024,
+      1536
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/envoy.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/fair.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/fortune.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/gallery.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/icons/city/guard-activate.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/city/guard-chase.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/city/guard-move.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/icons/city/guard-upgrade.png",
+    "size": [
+      256,
+      256
+    ],
+    "mode": "RGBA",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/guildRight.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/intrigue.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/landReform.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/lodge.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/observatory.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/peddler.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/pileDriver.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/pulley.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/scout.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/surveyor.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/taxCollector.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/tradingPost.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/turncoat.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  },
+  {
+    "path": "public/cards/progress/waterwheel.png",
+    "size": [
+      512,
+      384
+    ],
+    "mode": "RGB",
+    "validated": true
+  }
+]

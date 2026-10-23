@@ -257,9 +257,528 @@
       "references": [],
       "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Palisade: a complete circular ring of thick pointed wooden stakes with two horizontal wooden braces. Neutral warm brown wood. Broad clear empty central hole, diameter at least 70% of outer diameter, completely TRANSPARENT center and exterior, no ground, no buildings. Ring should look almost circular from high overhead. Camera steep overhead: 75 degrees above the board plane, only 15 degrees off vertical. Dominant top surfaces, strongly foreshortened vertical surfaces, no horizon, never frontal or low isometric.  Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
       "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-84b0e945-ef86-4148-ad4c-24df175e9c16.png"
+    },
+    {
+      "name": "agitator",
+      "label": "Unruhestifter",
+      "direction": "council",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/agitator.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. One animated speaker standing on a wooden crate gesturing to four townspeople listening with raised hands, blue cloak. No speech bubbles, friendly nonviolent scene. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: blue.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-3f5d2282-8ef8-4204-883f-ec4aeb816bff.png"
+    },
+    {
+      "name": "alarmBell",
+      "label": "Alarmglocke",
+      "direction": "council",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/alarmBell.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Large golden bell hanging in a short cream blue-roofed tower, two small watchmen hurrying toward it. Bell dominant. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: blue.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-4cc13acd-b3c0-4640-af4c-b5b06648c8d0.png"
+    },
+    {
+      "name": "armory",
+      "label": "Waffenkammer",
+      "direction": "scholars",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/armory.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Compact wooden armory rack displaying two spears, two cream shields and a helmet, dark green cloth behind. No characters. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: forest green.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-eb2c0578-5dbe-4598-bd19-b742a48d258b.png"
+    },
+    {
+      "name": "back-council",
+      "label": "Rückseite Rat",
+      "direction": "council",
+      "group": "stadtwacht",
+      "kind": "back",
+      "path": "public/cards/progress/back-council.png",
+      "width": 1024,
+      "height": 1536,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/back.png",
+        "F:/Projects/VsCode/angular/neuland/public/icons/city/council.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Portrait 2:3 full-bleed playing card BACK. Keep the layered geometric paper ornament layout of reference 1, recolor its dominant background to deep royal blue. Replace the central landscape with the direction emblem from reference 2, simplified but recognizable. Cream and gold concentric geometric paper ornaments surround it. Ref 1 is layout/material; ref 2 is the central emblem only. Cohesive dignified composition. No writing, no title, no corners with values.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-91bc1d1b-806e-45b1-a346-17a7d43deee2.png"
+    },
+    {
+      "name": "back-market",
+      "label": "Rückseite Markt",
+      "direction": "market",
+      "group": "stadtwacht",
+      "kind": "back",
+      "path": "public/cards/progress/back-market.png",
+      "width": 1024,
+      "height": 1536,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/back.png",
+        "F:/Projects/VsCode/angular/neuland/public/icons/city/market.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Portrait 2:3 full-bleed playing card BACK. Keep the layered geometric paper ornament layout of reference 1, recolor its dominant background to golden yellow. Replace the central landscape with the direction emblem from reference 2, simplified but recognizable. Cream and gold concentric geometric paper ornaments surround it. Ref 1 is layout/material; ref 2 is the central emblem only. Cohesive dignified composition. No writing, no title, no corners with values.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-6b5afd59-943b-4150-8da0-2d9457aeb054.png"
+    },
+    {
+      "name": "back-scholars",
+      "label": "Rückseite Gelehrte",
+      "direction": "scholars",
+      "group": "stadtwacht",
+      "kind": "back",
+      "path": "public/cards/progress/back-scholars.png",
+      "width": 1024,
+      "height": 1536,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/back.png",
+        "F:/Projects/VsCode/angular/neuland/public/icons/city/scholars.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Portrait 2:3 full-bleed playing card BACK. Keep the layered geometric paper ornament layout of reference 1, recolor its dominant background to forest green. Replace the central landscape with the direction emblem from reference 2, simplified but recognizable. Cream and gold concentric geometric paper ornaments surround it. Ref 1 is layout/material; ref 2 is the central emblem only. Cohesive dignified composition. No writing, no title, no corners with values.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-6247b5f2-6e67-491c-a0a2-d32aa5732f32.png"
+    },
+    {
+      "name": "banquet",
+      "label": "Festbankett",
+      "direction": "council",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/banquet.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. A long wooden banquet table with three golden goblets, simple bread and fruit, blue cloth runner, no people. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: blue.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-b2656feb-f044-44f6-81a0-2af24e178efd.png"
+    },
+    {
+      "name": "bond",
+      "label": "Schuldschein",
+      "direction": "market",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/bond.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. One hand passing a folded blank paper with golden wax seal across a wooden table holding a few gold coins. No writing, two hands maximum. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: golden yellow.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-59629d56-2304-41d6-a938-21bde90f6e37.png"
+    },
+    {
+      "name": "bulkBuy",
+      "label": "Großeinkauf",
+      "direction": "market",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/bulkBuy.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Merchant pushing a wooden cart loaded with three full tied sacks; yellow scarf. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: golden yellow.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-7e12a2a4-8b94-4be6-8017-5117aed9e7b4.png"
+    },
+    {
+      "name": "charter",
+      "label": "Stadtrecht",
+      "direction": "council",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/charter.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Blank parchment with a large blue wax seal and a cream shield bearing a simple blue city silhouette; no writing. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: blue.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-49b2c411-132b-444f-9759-95f64dd9a489.png"
+    },
+    {
+      "name": "envoy",
+      "label": "Gesandter",
+      "direction": "council",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/envoy.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Mounted envoy on a small brown horse carrying one blank rolled parchment and a blue pennant. Friendly compact side silhouette. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: blue.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-cd26df75-6f65-42dc-86cc-50ed89257403.png"
+    },
+    {
+      "name": "fair",
+      "label": "Jahrmarkt",
+      "direction": "market",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/fair.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Three compact colorful market stalls with simple hanging pennants, golden yellow canopy dominant, blue and green accents. No crowds or lettering. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: golden yellow.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-d7f54cd2-4c3b-4b25-b955-5dc0ea79fe4c.png"
+    },
+    {
+      "name": "fortune",
+      "label": "Losbuch",
+      "direction": "scholars",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/fortune.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Open blank book with only simple gold star, crescent and sun pictograms, beside two cream dice with recessed round pips. Green book cover. No written text or numerals. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: forest green.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-78cfb1ff-2036-4317-841d-f5d9561647be.png"
+    },
+    {
+      "name": "gallery",
+      "label": "Stollen",
+      "direction": "scholars",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/gallery.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Dark mine entrance with sturdy timber frame and one small mining cart full of angular silver gray ore, green hillside. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: forest green.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-2526214b-0dc8-41ab-8e69-a8ee9db77150.png"
+    },
+    {
+      "name": "guard-activate",
+      "label": "Wächter bereit machen",
+      "path": "public/icons/city/guard-activate.png",
+      "width": 256,
+      "height": 256,
+      "group": "stadtwacht",
+      "kind": "icon",
+      "transparent": true,
+      "references": [],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. One chunky wooden torch with bright golden orange paper flame, simple bold silhouette readable at 22 pixels. Genuine transparent background including gaps, no backdrop, no glow, no floor or ground shadow. One centered motif occupying 85% square, generous clean margin, no frame or badge.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-c26ec421-c16f-4a49-8ba7-e397665c9379.png"
+    },
+    {
+      "name": "guard-chase",
+      "label": "Räuber vertreiben",
+      "path": "public/icons/city/guard-chase.png",
+      "width": 256,
+      "height": 256,
+      "group": "stadtwacht",
+      "kind": "icon",
+      "transparent": true,
+      "references": [],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. One small dark charcoal floppy robber hat being swept to the right by one broad cream curved arrow; no person, friendly clear motion icon at 22 pixels. Genuine transparent background including gaps, no backdrop, no glow, no floor or ground shadow. One centered motif occupying 85% square, generous clean margin, no frame or badge.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-8f7ae562-e48f-49c5-a8bb-2c3297a60377.png"
+    },
+    {
+      "name": "guard-move",
+      "label": "Wächter ziehen",
+      "path": "public/icons/city/guard-move.png",
+      "width": 256,
+      "height": 256,
+      "group": "stadtwacht",
+      "kind": "icon",
+      "transparent": true,
+      "references": [],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Two simple brown boot footprints offset diagonally in a walking pattern, thick paper cutouts, readable at 22 pixels. Genuine transparent background including gaps, no backdrop, no glow, no floor or ground shadow. One centered motif occupying 85% square, generous clean margin, no frame or badge.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-015383a4-0480-4c9d-b837-d253d0d66128.png"
+    },
+    {
+      "name": "guard-upgrade",
+      "label": "Wächter aufwerten",
+      "path": "public/icons/city/guard-upgrade.png",
+      "width": 256,
+      "height": 256,
+      "group": "stadtwacht",
+      "kind": "icon",
+      "transparent": true,
+      "references": [],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. One large cream upward arrow with a small golden five-point star attached at its base, one cohesive simple icon readable at 22 pixels. Genuine transparent background including gaps, no backdrop, no glow, no floor or ground shadow. One centered motif occupying 85% square, generous clean margin, no frame or badge.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-9571d3b3-69e8-4865-ac67-88e0ceb6d700.png"
+    },
+    {
+      "name": "guildRight",
+      "label": "Zunftrecht",
+      "direction": "market",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/guildRight.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Blank rolled parchment charter with a large golden wax seal embossed with a simple hammer-and-wheel guild emblem, no writing. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: golden yellow.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-f500d2c7-f94b-4e1b-93ab-06491d720660.png"
+    },
+    {
+      "name": "intrigue",
+      "label": "Ränkespiel",
+      "direction": "council",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/intrigue.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Two cloaked figures leaning close and whispering behind one partially drawn blue curtain. Clear two-person silhouette, no speech bubbles. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: blue.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-a5acfab8-8ab6-49a7-abe2-010b58189da6.png"
+    },
+    {
+      "name": "landReform",
+      "label": "Flurbereinigung",
+      "direction": "scholars",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/landReform.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. A parchment land map of three green and ochre fields, a short measuring chain, and two plain cream round counters linked by two curved exchange arrows. Counters completely blank; game adds numbers later. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: forest green.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-94b46efa-5491-4edb-b99c-2a05a635b578.png"
+    },
+    {
+      "name": "lodge",
+      "label": "Bauhütte",
+      "direction": "scholars",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/lodge.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Two friendly stonemasons working on a half-built cream city gate with simple wooden scaffolding and green cloth canopy. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: forest green.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-1348b1bd-557c-4e68-b9b5-1aa0ba914b6b.png"
+    },
+    {
+      "name": "observatory",
+      "label": "Sternwarte",
+      "direction": "scholars",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/observatory.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Small cream observatory with forest green dome and large brass telescope looking into a small deep-blue patch of paper sky with five simple stars. No zodiac lettering. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: forest green.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-dabb911f-4632-452d-8d29-2dcd956468ee.png"
+    },
+    {
+      "name": "peddler",
+      "label": "Wanderhändler",
+      "direction": "market",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/peddler.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Friendly traveling merchant with loaded wicker back carrier and walking staff, golden yellow coat, sturdy boots. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: golden yellow.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-1b0beb86-fba7-4b8e-ae55-b326e1b33536.png"
+    },
+    {
+      "name": "pileDriver",
+      "label": "Pfahlramme",
+      "direction": "scholars",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/pileDriver.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Small wooden pile-driving frame with a raised heavy block above a pointed wooden stake, green accents, simple mechanism. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: forest green.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-2b1c5242-fcdc-4e6a-941c-5fc4b1ac6b14.png"
+    },
+    {
+      "name": "pulley",
+      "label": "Flaschenzug",
+      "direction": "scholars",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/pulley.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Two large wooden rope pulleys on a simple green-painted beam lifting one cream stone block. Mechanism clearly visible. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: forest green.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-02f4e9fb-f62f-4790-8e46-bed355b2aefe.png"
+    },
+    {
+      "name": "scout",
+      "label": "Kundschafter",
+      "direction": "council",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/scout.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Hooded scout in muted blue peering through simple brass binoculars from behind a small green bush. Face friendly, no weapons. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: blue.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-e2785cd7-614a-4d5e-bb1f-da34954c8b5d.png"
+    },
+    {
+      "name": "surveyor",
+      "label": "Landvermesser",
+      "direction": "scholars",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/surveyor.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Surveyor in green cloak holding a plain wooden measuring staff beside a short path marked with three wooden stakes and string, no numbers or marks. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: forest green.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-cf50916d-40d4-4b00-8a99-04dee8ecd867.png"
+    },
+    {
+      "name": "taxCollector",
+      "label": "Steuereintreiber",
+      "direction": "council",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/taxCollector.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Standing tax collector in blue coat holding a full small coin purse and a blank wooden writing board. No writing. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: blue.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-4703d55c-baea-4dfa-8262-e52ed0865377.png"
+    },
+    {
+      "name": "trader",
+      "label": "Händlerfigur",
+      "path": "output/designs/pieces-2026-10-21/sources/trader.png",
+      "width": 256,
+      "height": 256,
+      "group": "stadtwacht",
+      "kind": "piece",
+      "transparent": true,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/pieces/papiercollage/guard1-red.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Small merchant miniature with a broad pure saturated scarlet red coat and cream hood, holding a clear brass balance scale. No armor or spear. Brown boots, brown belt. The RED COAT is the ONLY recolorable surface; all other materials neutral cream, brass or brown. Camera strictly near-overhead, 80 degrees above board plane / 10 degrees off vertical: see hood top and shoulders, torso strongly foreshortened. Reference shows paper construction and overhead camera. Compact bold silhouette clear at 30 pixels, no pedestal. Genuine transparent background including gaps, no backdrop, no glow, no floor or ground shadow. One centered motif occupying 85% square, generous clean margin, no frame or badge.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-219efa15-26df-427e-a79e-cc9dda92cf6f.png"
+    },
+    {
+      "name": "tradingPost",
+      "label": "Frachtkontor",
+      "direction": "market",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/tradingPost.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Compact warehouse on a wooden quay with one lifting crane and three wooden crates, golden yellow roof. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: golden yellow.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-bba26eb3-3ab6-4729-9131-972d4149ee30.png"
+    },
+    {
+      "name": "turncoat",
+      "label": "Überläufer",
+      "direction": "council",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/turncoat.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. One watchman changing an outer tabard from warm ochre to blue: blue fabric pulled over one shoulder, old ochre tabard held in other hand. Simple readable character action, no emblems. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: blue.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-7413becb-50ec-44bf-babb-27820b007622.png"
+    },
+    {
+      "name": "waterwheel",
+      "label": "Wasserrad",
+      "direction": "scholars",
+      "group": "stadtwacht",
+      "kind": "motif",
+      "path": "public/cards/progress/waterwheel.png",
+      "width": 512,
+      "height": 384,
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/wood.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Large wooden mill wheel turning in a small blue stream, a small golden wheat field behind it, green banks. Landscape composition 4:3, single uncluttered main motif, fills center 80%; plain warm parchment paper background with subdued scene details. Artwork for upper half of a small 78x108 playing card, no card frame or title area. Scene must read clearly at 78x58 px. Reference image is for paper craftsmanship only; change layout to landscape and use the requested subject. Direction accent: forest green.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-b55b9f85-79bb-424b-b042-68d5850895b6.png"
     }
   ],
   "generator": "Built-in image_gen",
   "boardPerspective": "Steep overhead: approximately 75 degrees above the board plane. UI and banner motifs use their specified presentation views.",
-  "export": "Cards RGB 1024x1536; isolated assets RGBA with proportional resize and transparent padding; source pieces normalized by palette scripts. Red surfaces recolored with the existing mask pipeline."
+  "export": "Cards RGB 1024x1536; isolated assets RGBA with proportional resize and transparent padding; source pieces normalized by palette scripts. Red surfaces recolored with the existing mask pipeline.",
+  "additionalDelivery": "../stadtwacht-2026-10-23/LIEFERUNG.md"
 }

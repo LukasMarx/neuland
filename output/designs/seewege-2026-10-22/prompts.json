@@ -112,6 +112,20 @@
       "references": [],
       "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. Two offset blank cream playing cards with two bold curved opposing arrows in muted teal and warm ochre indicating exchange. No hands. Very simple clear UI symbol. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
       "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-03867d5a-0140-40cd-83d9-2ebf771a1337.png"
+    },
+    {
+      "name": "banner-pirate",
+      "label": "Banner Kaperschiff",
+      "path": "public/banner/papiercollage/pirate.png",
+      "width": 1024,
+      "height": 1024,
+      "group": "seewege",
+      "kind": "icon",
+      "transparent": true,
+      "references": [],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. One small dark brown wooden ship in side view with charcoal black sails and one little cream pennant, a few short teal paper waves beneath. Friendly adventurous atmosphere, no skulls or weapons, large coherent compact banner motif. Genuine transparent background including gaps, no backdrop, no glow, no floor or ground shadow. One centered motif occupying 85% square, generous clean margin, no frame or badge.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-aaee63ca-4742-4dce-b527-89fd63c13ba9.png"
     }
-  ]
+  ],
+  "additionalDelivery": "../stadtwacht-2026-10-23/LIEFERUNG.md"
 }

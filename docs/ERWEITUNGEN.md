@@ -800,7 +800,7 @@ Aufwand M1: ca. 1–1,5 Wochen. Danach ist klar, ob die Hook-Struktur trägt, be
 
 ## 6. Grafiken: Arbeitsauftrag für den Bild-Agenten
 
-**Liefernachtrag 22.10.2026:** Flussläufe, Stadtwacht I/II und die Bedienelemente sind als Grafiken samt Farbvarianten und Web-Fassungen fertig; die Einbindung folgt separat. [Lieferübersicht](../output/designs/stadtwacht-2026-10-22/LIEFERUNG.md). Neu eingegangen und noch offen: Stadtwacht III mit 25 Einflusskarten-Motiven, drei Rückseiten und der Händlerfigur.
+**Liefernachtrag 23.10.2026:** Stadtwacht III und alle optionalen Motive sind fertig: 25 Einflusskarten-Motive, drei Rückseiten, Händler in zehn Farben, vier Wächter-Aktionssymbole, Fisch- und Kaperschiff-Banner sowie Vorder- und Rückseite des Würfelstapels. Originale und Web-Fassungen liegen in den beauftragten Verzeichnissen. [Lieferübersicht und Vorschau](../output/designs/stadtwacht-2026-10-23/LIEFERUNG.md). Die Einbindung folgt durch den Code-Agenten. Flussläufe, Stadtwacht I/II und die übrigen Bedienelemente wurden bereits am 22.10.2026 geliefert: [vorherige Lieferung](../output/designs/stadtwacht-2026-10-22/LIEFERUNG.md).
 
 Für alle neuen Motive gilt, was [GRAFIKEN.md](GRAFIKEN.md) festlegt: Papiercollage-Stil, Licht von oben links, Gelände als spitze Sechsecke mit freier Mitte, Figuren als transparente PNGs mit Grundbild + Maske für die acht Spielerfarben (`scripts/build-piece-assets.py`), Karten textfrei im Design „Symbolstark“, Web-Fassungen über `node scripts/optimize-images.mjs`. Prompts und Vorschauen kommen wie bisher nach `output/designs/<thema>-<datum>/`.
 
@@ -820,7 +820,7 @@ Bedarf nach Paket (Details in den Abschnitten 2.x):
 | Fernhandel II | Oase, Burg/Sonderstätten | Kamel, Kantenritter ×8, Plünderer, Wagen 3 Stufen ×8 | Waren (4), Aufträge | – |
 | Ferne Küsten | Schlupfwinkel, Fischgrund-Feld, Dorf, Inselrat | großes Schiff ×8, Siedlertrupp ×8, Matrose ×8, Hafenort ×8 | Gold, Fisch, Gewürz, Auftragsleisten | Land entdeckt, Schlupfwinkel |
 
-Stand 22.10.2026: Seewege komplett geliefert und eingebunden, Fischgründe, Duell und Hafenvogt ebenso; offen sind Flussläufe (Brücke, Münze, Abzeichen), Stadtwacht I und II, Symbole für die Knöpfe „Versetzen“, „Handeln“ und „Ausbau“ sowie optionale Motive. Konkrete Aufträge mit Dateinamen, Formaten und Einbindung: Seewege (mit Nebel und Inselbonus) in `output/designs/seewege-2026-10-22/grafik-auftrag.md`, Fischgründe, Duell, Flussläufe, Hafenvogt und Würfelstapel in `output/designs/fernhandel-2026-10-22/grafik-auftrag.md`, Stadtwacht I in `output/designs/stadtwacht-2026-10-22/grafik-auftrag.md`.
+Stand 23.10.2026: Alle in den drei konkreten Grafikaufträgen genannten Motive einschließlich der optionalen sind geliefert. Seewege, Fischgründe, Duell und Hafenvogt wurden bereits zuvor eingebunden; die neueren Lieferungen benötigen noch die Einbindung durch den Code-Agenten. Dateinamen, Formate und Einbindung: Seewege (mit Nebel und Inselbonus) in `output/designs/seewege-2026-10-22/grafik-auftrag.md`, Fischgründe, Duell, Flussläufe, Hafenvogt und Würfelstapel in `output/designs/fernhandel-2026-10-22/grafik-auftrag.md`, Stadtwacht I–III in `output/designs/stadtwacht-2026-10-22/grafik-auftrag.md`.
 
 ---
 

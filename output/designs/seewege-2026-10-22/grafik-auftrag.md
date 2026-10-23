@@ -4,9 +4,9 @@
 
 **Geliefert und eingebunden:** Goldfeld, Nebelfeld, Schiff in allen Farben (Draufsicht, auch in den beiden Grautönen), Kaperschiff, Banner-Motive Schiff und Insel, Inselbonus-Symbol. Lieferung siehe `README.md` in diesem Ordner.
 
-**Offen, neu seit der Lieferung:** Symbole für die Knöpfe „Versetzen“ und „Handeln“ im Bauraster (siehe „Bedienelemente“). Seit dort echte Figuren stehen, fallen die Textzeichen ⤳ und ⇄ daneben auf.
+**Grafiken geliefert am 22.10.2026:** Symbole für die Knöpfe „Versetzen“ und „Handeln“ im Bauraster. [Lieferübersicht](../stadtwacht-2026-10-22/LIEFERUNG.md); Einbindung separat.
 
-**Offen, optional:** Banner-Motiv Kaperschiff (erst nötig, wenn es ein Banner „Kaperschiff versetzt“ gibt).
+**Optionales Motiv geliefert am 23.10.2026:** Kaperschiff-Banner inklusive Web-Fassung. [Lieferung und Vorschau](../stadtwacht-2026-10-23/LIEFERUNG.md); für ein künftiges Banner „Kaperschiff versetzt“ bereit.
 
 ## Worum es geht
 

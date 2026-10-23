@@ -172,6 +172,50 @@
       "references": [],
       "prompt": "Use case: stylized-concept. Asset for Neuland board game. Handmade layered paper collage miniature, visible fine paper fibers, crisp cut edges, warm cream neutral materials, soft self-shading. No lettering, numbers, logos, borders or watermark. A single golden paper coin with one simple embossed wave, no other mark. Genuine transparent background including all gaps. Single isolated centered object occupying 85% canvas; no backdrop, floor, ground shadow or badge. Clear bold silhouette legible when reduced to 24 pixels. ",
       "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-6d957ce8-3e4b-4cdc-9de7-d7d44c466a0b.png"
+    },
+    {
+      "name": "banner-fish",
+      "label": "Banner Fisch",
+      "path": "public/banner/papiercollage/fish.png",
+      "width": 1024,
+      "height": 1024,
+      "group": "fernhandel",
+      "kind": "icon",
+      "transparent": true,
+      "references": [],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. One large silvery teal fish leaping over three layered turquoise waves with a few cream water droplets, friendly compact paper miniature banner emblem. Genuine transparent background including gaps, no backdrop, no glow, no floor or ground shadow. One centered motif occupying 85% square, generous clean margin, no frame or badge.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-0fe0efed-9da4-4158-a030-ee17c633b7fd.png"
+    },
+    {
+      "name": "dice-deck-back",
+      "label": "Würfelstapel Rückseite",
+      "path": "public/cards/dice-deck-back.png",
+      "width": 1024,
+      "height": 1536,
+      "group": "fernhandel",
+      "kind": "back",
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/back.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Portrait 2:3 full-bleed card in same paper materials and layered teal, cream and gold geometric ornament as reference. BACK: central emblem of two chunky cream dice tilted slightly in opposite directions, simple recessed black round pips (three and five), surrounded by layered geometric paper ornaments. Teal background, cream and gold accents. No text, letters or numerals.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-c22b941c-eff6-4496-a796-fc997b2ca68c.png"
+    },
+    {
+      "name": "dice-deck-front",
+      "label": "Würfelstapel Vorderseite",
+      "path": "public/cards/dice-deck-front.png",
+      "width": 1024,
+      "height": 1536,
+      "group": "fernhandel",
+      "kind": "back",
+      "transparent": false,
+      "references": [
+        "F:/Projects/VsCode/angular/neuland/public/cards/symbolstark/back.png"
+      ],
+      "prompt": "Use case: stylized-concept. Neuland board game illustration in the established handmade PAPER COLLAGE style: clearly layered cut and torn colored paper, tactile visible fibers, chunky readable silhouettes, warm cream stone and brown wood, soft light from upper left. Friendly miniature world. NO words, letters, numbers, pseudo-writing, logos or watermark. Portrait 2:3 full-bleed card in same paper materials and layered teal, cream and gold geometric ornament as reference. FRONT: broad calm cream central paper area with two large EMPTY cream rounded-square recessed spaces side by side for dice pips added by the game. Absolutely no pips, dots or numbers inside those two spaces. Decoration only near outer edge. No text, letters or numerals.",
+      "source": "C:\\Users\\marxl\\.codex\\generated_images\\01a15efa-8db3-7691-acf7-efdc86401013\\exec-d4f60c0d-6e1c-4bdd-8180-cc6b0ed82928.png"
     }
-  ]
+  ],
+  "additionalDelivery": "../stadtwacht-2026-10-23/LIEFERUNG.md"
 }

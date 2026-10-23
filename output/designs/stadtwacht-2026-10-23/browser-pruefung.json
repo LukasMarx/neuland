@@ -1,0 +1,48 @@
+[
+  {
+    "group": "market",
+    "images": 98,
+    "font": "\"Nunito Sans\", sans-serif",
+    "overflow": false,
+    "pending": 0
+  },
+  {
+    "group": "council",
+    "images": 98,
+    "font": "\"Nunito Sans\", sans-serif",
+    "overflow": false,
+    "pending": 0
+  },
+  {
+    "group": "scholars",
+    "images": 98,
+    "font": "\"Nunito Sans\", sans-serif",
+    "overflow": false,
+    "pending": 0
+  },
+  {
+    "group": "backs",
+    "images": 98,
+    "font": "\"Nunito Sans\", sans-serif",
+    "overflow": false,
+    "pending": 0
+  },
+  {
+    "group": "extras",
+    "images": 98,
+    "font": "\"Nunito Sans\", sans-serif",
+    "overflow": false,
+    "pending": 0
+  },
+  {
+    "group": "trader",
+    "images": 98,
+    "font": "\"Nunito Sans\", sans-serif",
+    "overflow": false,
+    "pending": 0
+  },
+  {
+    "mobile": true,
+    "overflow": false
+  }
+]
