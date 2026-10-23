@@ -101,6 +101,7 @@ export class Board {
       destroy.onDestroy(() => observer.disconnect());
     });
     destroy.onDestroy(() => this.host.removeEventListener('click', swallow, true));
+    destroy.onDestroy(() => clearTimeout(this.noticeTimer));
   }
   protected readonly ghostBuildingImage = computed(() => {
     const kind = this.ghost();
@@ -459,6 +460,25 @@ export class Board {
     const targets = new Set(this.hexTargets());
     return this.hexes().filter((h) => targets.has(h.id));
   });
+
+  /**
+   * Räuberzug: Das Feld, auf dem der Räuber steht, ist kein Ziel. Ein Klick darauf soll nicht stumm
+   * verpuffen und wie ein gesetzter Räuber aussehen, deshalb ist es eigens markiert und sagt, warum.
+   */
+  protected readonly robberStay = computed(() => {
+    const robber = this.game().robber;
+    const targets = this.hexTargets();
+    if (this.hexGhost() !== 'robber' || !targets.length || robber < 0 || targets.includes(robber)) return null;
+    return this.hexes()[robber] ?? null;
+  });
+  protected readonly robberNotice = signal(false);
+  private noticeTimer: ReturnType<typeof setTimeout> | undefined;
+
+  protected stayPick(): void {
+    this.robberNotice.set(true);
+    clearTimeout(this.noticeTimer);
+    this.noticeTimer = setTimeout(() => this.robberNotice.set(false), 2400);
+  }
 
   zoomBy(factor: number, at?: { x: number; y: number }): void {
     const before = this.view();

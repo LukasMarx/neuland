@@ -115,4 +115,32 @@ describe('Papierfiguren auf dem Brett', () => {
     expect(element.querySelector('.building image')!.getAttribute('href')).toContain('city-blue.png');
     expect(element.querySelector('.building title')!.textContent).toContain('Blau: Stadt');
   });
+
+  it('Räuberzug: Das eigene Feld des Räubers ist kein Ziel und sagt beim Klick, warum', () => {
+    const { fixture, element, game } = render();
+    const others = game.board.hexes.map((_, id) => id).filter((id) => id !== game.robber);
+    fixture.componentRef.setInput('hexTargets', others);
+    fixture.detectChanges();
+    const picks: number[] = [];
+    fixture.componentInstance.hexPick.subscribe((id) => picks.push(id));
+
+    const stay = element.querySelector<SVGGElement>('.robber-stay')!;
+    expect(stay.dataset['hex']).toBe(String(game.robber));
+    expect(element.querySelector(`.hex-target[data-hex="${game.robber}"]`)).toBeNull();
+    expect(element.querySelector('.robber-note')).toBeNull();
+    // Auch die Figur, die ins Nachbarfeld ragt, gehört zu ihrem Feld.
+    stay.querySelector('.figure')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+    expect(element.querySelector('.robber-note')!.textContent).toContain('Der Räuber muss auf ein anderes Feld');
+    expect(picks).toEqual([]);
+
+    // Ohne Räuberzug (keine Feldziele) und bei anderen Feldzielen keine Markierung.
+    fixture.componentRef.setInput('hexTargets', []);
+    fixture.detectChanges();
+    expect(element.querySelector('.robber-stay')).toBeNull();
+    fixture.componentRef.setInput('hexTargets', others);
+    fixture.componentRef.setInput('hexGhost', 'trader');
+    fixture.detectChanges();
+    expect(element.querySelector('.robber-stay')).toBeNull();
+  });
 });

@@ -644,6 +644,47 @@ text {
   }
 }
 
+// Räuberzug: Das Feld des Räubers ist kein Ziel und sagt das beim Klick.
+.robber-stay {
+  cursor: not-allowed;
+
+  polygon {
+    fill: rgb(0 0 0 / 0.3);
+    stroke: rgb(255 255 255 / 0.35);
+    stroke-width: 2;
+  }
+
+  .figure {
+    fill: transparent;
+  }
+}
+
+.robber-note {
+  pointer-events: none;
+  animation: note-in 0.18s ease-out;
+
+  rect {
+    fill: #18242e;
+    stroke: #d4b06a;
+    stroke-width: 1.5;
+  }
+
+  text {
+    fill: #e8e2d6;
+    font-size: 14px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+}
+
+// Nur Deckkraft: Ein CSS-transform würde die Position aus dem transform-Attribut überschreiben.
+@keyframes note-in {
+  from {
+    opacity: 0;
+  }
+}
+
 @keyframes pulse {
   50% {
     opacity: 0.55;
