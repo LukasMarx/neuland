@@ -128,7 +128,7 @@
     @if (h.lake || h.number || h.robber || h.trader) {
       <g class="hex-top" [attr.data-hex]="h.id" [class.hit]="h.hit" [class.revealed]="h.revealed">
         @if (h.lake) {
-          <g class="lake-numbers" [attr.transform]="h.tokenTransform || null">
+          <g class="lake-numbers" [attr.transform]="h.lakeTransform || null">
             <rect [attr.x]="h.x - 26" [attr.y]="h.y + S * 0.05 - 9" width="52" height="18" rx="9" />
             <text [attr.x]="h.x" [attr.y]="h.y + S * 0.05">2 3 11 12</text>
           </g>

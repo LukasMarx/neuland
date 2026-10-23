@@ -16,6 +16,8 @@ const GUARD_SIZE = 36;
 /** Auf großen Brettern sind die Felder kleiner, Figuren und Marken werden dort größer gezeichnet. */
 const PIECE_SCALE = { base: 1, ext: 1.2, big: 1.4 } as const;
 const MAX_PIECE_SCALE = 1.4;
+/** Zahlenmarken kleiner als der Figurenmaßstab: groß gezeichnet machen sie das Brett unruhig. */
+const TOKEN_SCALE = 0.75;
 /**
  * Rand um jede Spielerfigur, in Brett-Einheiten (mal Figurenmaßstab): innen in der Spielerfarbe, außen dunkel.
  * Die Gebäudegrafiken tragen die Farbe sonst nur auf den Dächern, bei fünf und mehr Spielern sind sie so kaum zu unterscheiden.
@@ -236,7 +238,9 @@ export class Board {
         transform: `translate(${(h.x * S).toFixed(1)},${(h.y * S).toFixed(1)})${h.id % 2 ? ' scale(-1,1)' : ''}`,
         number,
         // Marke und Räuber wachsen um ihren eigenen Mittelpunkt.
-        tokenTransform: scaleAround(h.x * S, h.y * S + S * 0.05, this.k()),
+        tokenTransform: scaleAround(h.x * S, h.y * S + S * 0.05, this.k() * TOKEN_SCALE),
+        // Der Hinweis auf dem See ist Text, der bleibt in voller Größe lesbar.
+        lakeTransform: scaleAround(h.x * S, h.y * S + S * 0.05, this.k()),
         robberTransform: `translate(${h.x * S + S * 0.42 * this.k()},${h.y * S + S * 0.1}) scale(${this.k()})`,
         red: number === 6 || number === 8,
         robber: g.robber === h.id,
