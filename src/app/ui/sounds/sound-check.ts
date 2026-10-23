@@ -1,6 +1,25 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { BackgroundMusic } from '../shared/music';
 import { fanfare, FANFARE_SECONDS, SOUNDS } from '../shared/sounds';
+import { Announcer, Speaker, VOICE, VoiceClip } from '../shared/voice';
+
+const SPEAKERS: { id: Speaker; name: string; role: string }[] = [
+  { id: 'friend', name: 'Berater', role: 'kommentiert, was dir gelingt' },
+  { id: 'enemy', name: 'Erzfeind', role: 'kommentiert, was deine Gegner tun' },
+];
+
+/** Jeder Satz einmal, mit allen Anlässen, zu denen er kommt. */
+function voiceLines(speaker: Speaker): { clip: VoiceClip; when: string }[] {
+  const lines = new Map<string, { clip: VoiceClip; when: string[] }>();
+  for (const { when, clips } of Object.values(VOICE)) {
+    for (const clip of clips.filter((c) => c.speaker === speaker)) {
+      const line = lines.get(clip.id) ?? { clip, when: [] };
+      line.when.push(when);
+      lines.set(clip.id, line);
+    }
+  }
+  return [...lines.values()].map((l) => ({ clip: l.clip, when: l.when.join(' · ') }));
+}
 
 /** Klangprobe: jeden Ton des Spiels einzeln anhören, bevor er ins Spiel kommt. */
 @Component({
@@ -25,6 +44,23 @@ import { fanfare, FANFARE_SECONDS, SOUNDS } from '../shared/sounds';
           }
         </ul>
       </section>
+
+      @for (s of speakers; track s.id) {
+        <section class="panel">
+          <h2>{{ s.name }} <span class="muted">{{ s.role }}</span></h2>
+          <ul>
+            @for (l of s.lines; track l.clip.id) {
+              <li>
+                <button (click)="voice.play(l.clip)" [attr.aria-label]="'„' + l.clip.text + '“ abspielen'">▶</button>
+                <span>
+                  <b>{{ l.clip.text }}</b>
+                  <span class="muted">{{ l.when }}</span>
+                </span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
 
       <section class="panel">
         <ul>
@@ -59,6 +95,16 @@ import { fanfare, FANFARE_SECONDS, SOUNDS } from '../shared/sounds';
     h1 {
       font-size: 2rem;
     }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.1rem;
+
+      .muted {
+        font-size: 0.85rem;
+        font-weight: 400;
+        margin-left: 6px;
+      }
+    }
     ul {
       margin: 0;
       padding: 0;
@@ -85,11 +131,16 @@ import { fanfare, FANFARE_SECONDS, SOUNDS } from '../shared/sounds';
 })
 export class SoundCheck {
   protected readonly sounds = SOUNDS;
+  protected readonly speakers = SPEAKERS.map((s) => ({ ...s, lines: voiceLines(s.id) }));
   protected readonly music = signal(false);
   private readonly player = new BackgroundMusic();
+  protected readonly voice = new Announcer((seconds) => this.player.duck(seconds));
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.player.stop());
+    inject(DestroyRef).onDestroy(() => {
+      this.player.stop();
+      this.voice.stop();
+    });
   }
 
   protected toggleMusic(): void {

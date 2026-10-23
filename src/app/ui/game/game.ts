@@ -86,7 +86,9 @@ import { ResourcePicker } from '../shared/resource-picker';
 import { CardInspector } from './card-inspector';
 import { EndStats } from './end-stats';
 import { BackgroundMusic } from '../shared/music';
-import { chime, fanfare, FANFARE_SECONDS } from '../shared/sounds';
+import { fanfare, FANFARE_SECONDS } from '../shared/sounds';
+import { Announcer } from '../shared/voice';
+import { voiceEvents } from './announcer';
 import { DiceTray, ROLL_DURATION_MS } from './dice-tray';
 import { BannerEvent, EventBanner } from './event-banner';
 import { FlyLayer } from './fly-layer';
@@ -106,6 +108,9 @@ type Dialog =
   | { kind: 'coins' }
   | { kind: 'guard'; vertex: number }
   | { kind: 'progress'; card: ProgressCard };
+
+/** So lange darf man im eigenen Zug zögern, bevor der Erzfeind stichelt. */
+const IDLE_TAUNT_MS = 45_000;
 
 const FISH_EFFECTS: { effect: FishEffect; label: string }[] = [
   { effect: 'robber', label: 'Räuber vom Brett nehmen' },
@@ -389,6 +394,10 @@ export class GameView {
   /** Hintergrundmusik, standardmäßig aus. */
   protected readonly music = signal(localStorage.getItem('neuland:music') === 'on');
   private readonly player = new BackgroundMusic();
+  /** Berater und Erzfeind; die Musik wird leiser, solange einer spricht. */
+  private readonly announcer = new Announcer((seconds) => this.player.duck(seconds));
+  /** Zug, in dem der Berater zuletzt ans Bauen erinnert hat. */
+  private buildHintTurn = -Infinity;
   protected readonly discardPick = signal<ResourceCounts>(emptyResources());
   protected readonly plentyPick = signal<ResourceCounts>(emptyResources());
   protected readonly tokenPick = signal<ResourceCounts>(emptyResources());
@@ -942,6 +951,7 @@ export class GameView {
     inject(DestroyRef).onDestroy(() => {
       clearInterval(clock);
       this.player.stop();
+      this.announcer.stop();
     });
 
     effect(() => (this.music() ? this.player.start() : this.player.stop()));
@@ -1021,12 +1031,49 @@ export class GameView {
           if (this.sound()) {
             fanfare('kurz');
             this.player.duck(FANFARE_SECONDS.kurz);
+            // In der Aufbauphase wird nicht gewürfelt, da passt keiner der Sätze.
+            if (this.g().turn > 0) this.announcer.say('myTurn', (FANFARE_SECONDS.kurz - 1) * 1000);
           }
           const me = this.me();
           if (me) this.pushBanner({ kind: 'turn', title: this.bannerText(), name: me.name, color: me.color, tag: this.g().turn ? `Zug ${this.g().turn}` : 'Aufbauphase' });
         });
       }
       wasMyTurn = mine;
+    });
+
+    // Zögern im eigenen Zug: Nach 45 Sekunden ohne neuen Spielstand stichelt der Erzfeind, einmal je Zug.
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    let idleTurn = -1;
+    effect(() => {
+      const g = this.g();
+      const waiting = this.myTurn() && g.phase.kind === 'main' && g.turn !== idleTurn;
+      clearTimeout(idleTimer);
+      if (!waiting) return;
+      idleTimer = setTimeout(() => {
+        idleTurn = g.turn;
+        if (this.sound()) this.announcer.say('idle');
+      }, IDLE_TAUNT_MS);
+    });
+    inject(DestroyRef).onDestroy(() => clearTimeout(idleTimer));
+
+    // Mitspieler verlieren die Verbindung oder kommen zurück (Bots zählen nicht).
+    let wasOnline: Map<number, boolean> | null = null;
+    effect(() => {
+      const online = new Map(
+        this.playerRows()
+          .filter((p) => !p.neutral && !p.lobbyBot && p.seat !== this.seat())
+          .map((p) => [p.seat, p.online] as const),
+      );
+      untracked(() => {
+        if (wasOnline && this.sound() && this.g().phase.kind !== 'ended') {
+          for (const [seat, on] of online) {
+            const before = wasOnline.get(seat);
+            if (before === true && !on) this.announcer.say('playerLeft');
+            else if (before === false && on) this.announcer.say('playerBack');
+          }
+        }
+        wasOnline = online;
+      });
     });
 
     // Ein neues Tauschangebot an mich meldet sich wie „Du bist dran“, im Tab-Titel und mit Ton.
@@ -1042,7 +1089,7 @@ export class GameView {
         : pending
           ? `● Tauschangebot von ${g.players[g.current].name} – Neuland`
           : 'Neuland';
-      if (pending && pending.id !== lastOfferId && this.sound()) untracked(() => chime());
+      if (pending && pending.id !== lastOfferId && this.sound()) untracked(() => this.announcer.say('tradeOffer'));
       lastOfferId = pending?.id ?? lastOfferId;
     });
 
@@ -1069,6 +1116,7 @@ export class GameView {
         lastRollKey = rollKey;
         if (isNew) this.fly()?.play(g.transfers ?? [], this.seat(), delay);
         if (isNew && lastGame) this.detectEvents(lastGame, g, delay);
+        if (isNew && lastGame && this.sound()) this.announce(lastGame, g, rolled, delay);
         if (g.phase.kind !== 'ended') {
           this.winnerReady.set(false);
           this.winnerHidden.set(false);
@@ -1112,6 +1160,22 @@ export class GameView {
   }
 
   /** Erkennt Ereignisse aus dem Unterschied zwischen zwei Spielständen und stellt Banner dafür an. */
+  /** Berater und Erzfeind kommentieren den neuen Spielstand; nach einem Wurf erst, wenn die Würfel liegen. */
+  private announce(prev: GameState, g: GameState, rolled: boolean, delay: number): void {
+    for (const event of voiceEvents(prev, g, this.seat())) this.announcer.say(event, delay);
+    // Nach dem eigenen Wurf: Gibt es etwas zu bauen, mahnt der Berater, aber nicht jeden Zug.
+    const seat = this.seat();
+    if (rolled && prev.current === seat && g.phase.kind === 'main' && g.turn - this.buildHintTurn >= 3) {
+      setTimeout(() => {
+        const options = this.buildOptions();
+        if (this.myTurn() && Object.values(options).some((o) => o.enabled)) {
+          this.buildHintTurn = this.g().turn;
+          this.announcer.say('canBuild');
+        }
+      }, delay);
+    }
+  }
+
   private detectEvents(prev: GameState, g: GameState, delay: number): void {
     const who = (seat: number) => ({ name: g.players[seat].name, color: g.players[seat].color });
 

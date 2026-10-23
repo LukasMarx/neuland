@@ -16,7 +16,7 @@ export function fanfare(variant: FanfareVariant = 'kurz'): void {
   audio.play().catch(() => undefined);
 }
 
-/** Zwei helle Töne: Tauschangebot an mich (früher auch „Du bist dran“). */
+/** Zwei helle Töne; früher bei „Du bist dran“ und Tauschangeboten, heute sprechen dort Fanfare und Berater. */
 export function chime(): void {
   try {
     const ctx = new AudioContext();
@@ -74,6 +74,6 @@ export interface SoundInfo {
 export const SOUNDS: SoundInfo[] = [
   { id: 'fanfare-kurz', name: 'Fanfare, kurz (4,3 s)', when: 'Du bist dran', play: () => fanfare('kurz') },
   { id: 'fanfare-lang', name: 'Fanfare, lang (6,3 s)', when: '', play: () => fanfare('lang') },
-  { id: 'chime', name: 'Hinweiston', when: 'Ein Tauschangebot an dich', play: chime },
+  { id: 'chime', name: 'Hinweiston', when: '', play: chime },
   { id: 'rattle', name: 'Würfelklappern', when: 'Jemand würfelt', play: rattle },
 ];
