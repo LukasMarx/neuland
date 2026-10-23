@@ -74,7 +74,7 @@ import {
   progressCount,
   progressStackSize,
 } from '../../engine';
-import { AWAY_MS, RoomService } from '../../net/room.service';
+import { BOT_TAKEOVER_MS, RoomService } from '../../net/room.service';
 import { Board } from '../board/board';
 import { ChatBox } from '../shared/chat-box';
 import { CardFace } from '../shared/card-face';
@@ -214,8 +214,9 @@ export class GameView {
     return actingSeats(g).flatMap((seat) => {
       const entry = room.players.find((p) => p.id === g.players[seat].id);
       if (!entry || entry.peerId || seat === this.seat()) return [];
+      // Nach BOT_TAKEOVER_MS spielt beim Host ein Bot für ihn weiter (siehe RoomService.runBot).
       const waited = this.now() - (entry.awaySince ?? this.now());
-      return [{ seat, name: g.players[seat].name, color: g.players[seat].color, ready: waited >= AWAY_MS, wait: Math.ceil((AWAY_MS - waited) / 1000) }];
+      return [{ seat, name: g.players[seat].name, color: g.players[seat].color, bot: waited >= BOT_TAKEOVER_MS, wait: Math.max(1, Math.ceil((BOT_TAKEOVER_MS - waited) / 1000)) }];
     });
   });
   protected readonly seat = this.room.mySeat;
@@ -777,6 +778,10 @@ export class GameView {
       // Beim Abwerfen sind mehrere „dran“; dort zählt die Kartenzahl, also kein „am Zug“.
       discarding: g.phase.kind === 'discard' && (g.phase.pending[seat] ?? 0) > 0,
       online: !!members.find((m) => m.id === p.id)?.peerId,
+      bot: (() => {
+        const m = members.find((x) => x.id === p.id);
+        return !!m && !m.peerId && this.now() - (m.awaySince ?? this.now()) >= BOT_TAKEOVER_MS && g.phase.kind !== 'ended';
+      })(),
       me: seat === this.seat(),
     }));
   });

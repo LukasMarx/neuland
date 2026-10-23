@@ -37,6 +37,8 @@
             <small>
               @if (p.neutral) {
                 neutral
+              } @else if (p.bot) {
+                🤖 Bot spielt
               } @else if (!p.online) {
                 getrennt
               } @else if (p.discarding) {
@@ -112,10 +114,10 @@
           <div class="note away">
             <span class="color-dot" [style.background]="a.color"></span>
             <span><b>{{ a.name }}</b> ist nicht verbunden.</span>
-            @if (a.ready) {
-              <button class="small primary" (click)="room.standIn(a.seat)" title="Macht einen zurückhaltenden Zug: würfeln, abwerfen, Räuber versetzen oder Zug beenden">Für {{ a.name }} weiterspielen</button>
+            @if (a.bot) {
+              <span class="muted">Ein Bot spielt für {{ a.name }}, bis er zurück ist.</span>
             } @else {
-              <span class="muted">Weiterspielen für {{ a.name }} in {{ a.wait }} s</span>
+              <span class="muted">Ein Bot übernimmt in {{ a.wait }} s.</span>
             }
           </div>
         }

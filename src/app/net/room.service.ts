@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, InjectionToken, isDevMode, signal } from '@angular/core';
 import * as engine from '../engine';
-import { Action, applyAction, autoAction, createGame, GameSettings, GameState, isView, mapById, rebuild, restoreDevCards, RuleError, Secret, secretOf, VARIANTS, viewFor } from '../engine';
+import { Action, actingSeats, applyAction, autoAction, botAction, createGame, GameSettings, GameState, isView, mapById, rebuild, restoreDevCards, RuleError, Secret, secretOf, VARIANTS, viewFor } from '../engine';
 import { LocalTransport } from './local-transport';
 import {
   compareRank,
@@ -77,6 +77,10 @@ const ACK_TIMEOUT_MS = 4000;
 const OUTBOX_MAX_MS = 30000;
 /** Ab dann darf jeder Mitspieler für einen nicht verbundenen Spieler weiterspielen. */
 export const AWAY_MS = 20000;
+/** Ab dann spielt beim Host ein Bot für einen getrennten Spieler, der dran ist. */
+export const BOT_TAKEOVER_MS = 30000;
+/** Pause zwischen zwei Bot-Zügen, damit die anderen mitlesen können. */
+const BOT_STEP_MS = 1200;
 /** In diesem Fenster wird dieselbe Aktion auf denselben Stand nur einmal geschickt (Doppelklick). */
 const DUPLICATE_MS = 1500;
 /** Beim Host ändert sich der Stand sofort; ein Doppelklick ist dann nur noch an der Zeit zu erkennen. */
@@ -150,6 +154,7 @@ export class RoomService {
   private lastFollowSent = 0;
   /** Peers mit anderer Protokollversion: deren Nachrichten werden nicht verarbeitet. */
   private readonly mismatched = new Set<string>();
+  private botTimer: unknown = null;
   /** Spieler, die gerade ins laufende Spiel zurückgekommen sind, und bis wann sie ihre Karten melden dürfen. */
   private readonly secretWindow = new Map<string, number>();
   /** Wem die anderen gerade folgen; verhindert, dass bei einem einseitigen Abbruch ein zweiter Host entsteht. */
@@ -219,8 +224,8 @@ export class RoomService {
     this.timers.forEach((t) => this.env.clearTimeout(t));
     this.timers = [];
     this.stopTicking();
-    for (const t of [this.watchTimer, this.electTimer]) if (t) this.env.clearTimeout(t);
-    this.watchTimer = this.electTimer = null;
+    for (const t of [this.watchTimer, this.electTimer, this.botTimer]) if (t) this.env.clearTimeout(t);
+    this.watchTimer = this.electTimer = this.botTimer = null;
     this.hostPeer = null;
     this.hostlessSince = null;
     this.peerClients.clear();
@@ -979,6 +984,57 @@ export class RoomService {
     if (!room || !this.isHost() || this.rebuilding) return;
     for (const peer of this.connectedPeers()) this.sendRoom(peer);
     save(this.env.storage, room, this.game());
+    this.scheduleBot();
+  }
+
+  /** Nach jeder Änderung beim Host: Ist ein getrennter Spieler dran, spielt bald der Bot für ihn. */
+  private scheduleBot(ms = BOT_STEP_MS): void {
+    if (this.botTimer !== null) return;
+    this.botTimer = this.env.setTimeout(() => {
+      this.botTimer = null;
+      this.runBot();
+    }, ms);
+  }
+
+  /**
+   * Ein Zug des Bots für den ersten getrennten Spieler, der dran ist und seit BOT_TAKEOVER_MS fehlt. Wie
+   * beim Weiterspielen von Hand nur mit Mehrheit. Wer noch nicht lange genug weg ist, wird später geprüft.
+   */
+  private runBot(): void {
+    const game = this.game();
+    const room = this.room();
+    if (!this.isHost() || this.rebuilding || !game || !room || game.phase.kind === 'ended') return;
+    const now = this.env.now();
+    let wait: number | null = null;
+    for (const seat of actingSeats(game)) {
+      const entry = room.players.find((p) => p.id === game.players[seat].id);
+      if (!entry || entry.peerId || entry.id === this.clientId) continue;
+      const away = now - (entry.awaySince ?? now);
+      if (away < BOT_TAKEOVER_MS) {
+        wait = Math.min(wait ?? Infinity, BOT_TAKEOVER_MS - away);
+        continue;
+      }
+      if (!this.hasQuorum()) return;
+      const next = this.tryBotMove(game, seat);
+      if (!next) continue;
+      this.game.set(next);
+      this.broadcast();
+      return;
+    }
+    if (wait !== null) this.scheduleBot(wait + 50);
+  }
+
+  /** Erst der Zug des Bots, notfalls der zurückhaltende aus auto.ts. */
+  private tryBotMove(game: GameState, seat: number): GameState | null {
+    for (const action of [botAction(game, seat), autoAction(game, seat)]) {
+      if (!action) continue;
+      try {
+        return applyAction(this.withFreshRandomness(game), seat, action);
+      } catch {
+        // nächster Versuch
+      }
+    }
+    return null;
   }
 
   private sendRoom(peer: string): void {
@@ -1037,6 +1093,7 @@ export class RoomService {
       const game = this.game();
       this.transport.send({ t: 'tick', rank: roomRank({ room, game }), gameId: game?.id ?? null });
       this.updateHostStatus();
+      this.scheduleBot();
       this.tickTimer = this.env.setTimeout(tick, TICK_MS);
     };
     this.tickTimer = this.env.setTimeout(tick, TICK_MS);

@@ -3,5 +3,6 @@ export * from './board';
 export * from './maps';
 export * from './rules';
 export * from './auto';
+export * from './bot';
 export * from './variants';
 export * from './secrets';

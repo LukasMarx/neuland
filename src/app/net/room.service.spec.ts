@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { actingSeats, GameState, handSize, isConsistent, Resource, ResourceCounts, totalResources } from '../engine';
 import { AWAY_MS } from './room.service';
-import { bySeat, Clock, hostOf, Net, play, resetNet, seeded, setup, Sim } from './testing/fake-net';
+import { botStep, bySeat, Clock, hostOf, Net, play, resetNet, seeded, setup, Sim } from './testing/fake-net';
 
 const board = (s: Sim) => s.game.board.hexes.map((h) => h.terrain).join();
 const versions = (sims: Sim[]) => new Set(sims.map((s) => s.v));
@@ -593,5 +593,71 @@ describe('Mehrspieler: 7–8 Spieler', () => {
     // Wer verbunden war, hat seine Karten behalten (nur H wurde neu ausgeteilt).
     const log = host.game.log.map((l) => l.text).join('\n');
     expect(log).not.toMatch(/Die Karten von [^\n]*\b(A|B|C|D|E|F|G)\b/);
+  });
+});
+
+describe('Mehrspieler: Bot für getrennte Spieler', () => {
+  /** Spielt mit den Verbundenen; ist ein Getrennter dran, vergeht nur Zeit (der Bot beim Host soll ziehen). */
+  function playAround(sims: Sim[], gone: Sim, steps: number, clock: Clock, random: () => number) {
+    let botTurns = 0;
+    for (let i = 0; i < steps; i++) {
+      const host = hostOf(sims.filter((s) => s !== gone))!;
+      const g = host.game;
+      if (g.phase.kind === 'ended') break;
+      const step = botStep(g, random)!;
+      const who = bySeat(sims, g, step.seat)!;
+      if (who === gone) {
+        const before = g.version;
+        clock.advance(1500);
+        if (host.game.version > before) botTurns++;
+        continue;
+      }
+      who.svc.act(step.action);
+      clock.advance(200);
+    }
+    return botTurns;
+  }
+
+  it('nach 30 Sekunden spielt ein Bot für den Getrennten, und das Spiel läuft weiter', { timeout: 60000 }, () => {
+    const { sims, clock } = start(['H', 'A', 'B', 'C']);
+    const [H, , B] = sims;
+    const random = seeded(301);
+    play(sims, 80, random);
+    // Warten, bis B dran ist, dann geht B.
+    for (let i = 0; i < 400 && actingSeats(H.game)[0] !== B.seat; i++) play(sims, 1, random);
+    expect(actingSeats(H.game)).toContain(B.seat);
+    const seatB = B.seat;
+    B.close();
+    clock.advance(20000);
+    const waiting = H.game.version;
+    clock.advance(5000);
+    expect(H.game.version).toBe(waiting); // vor 30 Sekunden zieht niemand für B
+    clock.advance(8000);
+    expect(H.game.version).toBeGreaterThan(waiting); // jetzt der Bot
+    const turn = H.game.turn;
+    const botMoves = playAround(sims, B, 400, clock, random);
+    expect(botMoves).toBeGreaterThan(3);
+    expect(H.game.turn).toBeGreaterThan(turn + 4);
+    expect(isConsistent(H.game)).toBe(true);
+    expect(H.game.players[seatB].name).toBe('B');
+  });
+
+  it('kommt der Spieler zurück, hört der Bot auf', { timeout: 60000 }, () => {
+    const { sims, code, clock } = start(['H', 'A', 'B']);
+    const [H, A, B] = sims;
+    const random = seeded(302);
+    play(sims, 60, random);
+    B.close();
+    clock.advance(35000);
+    playAround(sims, B, 60, clock, random);
+    const B2 = B.reopen();
+    B2.svc.join(code, 'B');
+    clock.advance(3000);
+    // Bis B wieder dran ist, mit H und A weiterspielen; dann darf ohne B nichts passieren.
+    for (let i = 0; i < 300 && !actingSeats(H.game).includes(B2.seat); i++) play([H, A, B2], 1, random);
+    expect(actingSeats(H.game)).toContain(B2.seat);
+    const v = H.game.version;
+    clock.advance(40000);
+    expect(H.game.version).toBe(v);
   });
 });
