@@ -24,6 +24,15 @@ Nach neuen oder geänderten Grafiken einmal ausführen und `public/web/` mit com
 node scripts/optimize-images.mjs
 ```
 
+**Vorladen in der Lobby:** `src/app/ui/shared/image-cache.ts` holt schon in der Lobby
+im Leerlauf, was Brett, Hand und Dock gleich beim Start zeigen (Felder der gewählten
+Karte, Meer, Räuber, Rohstoffkarten und Hafen-Icons, Figuren in den Farben im Raum).
+Teile einer Erweiterung (Schiffe und Kaperschiff bei Seewege, Wächter und Prachtstadt
+bei Stadtwacht usw.) kommen nur dazu, wenn sie gewählt ist; wechselt eine Farbe oder die
+Karte, wird nur das Neue nachgeladen. Wer eine neue Grafik einbaut, die gleich zu
+Spielbeginn sichtbar ist, trägt sie in `gameStartImages()` ein, mit genau derselben
+Adresse wie im Spiel (`web/...`), sonst trifft der Cache nicht.
+
 ## Aktueller Stil: Papiercollage
 
 Die sechs Geländearten verwenden die transparenten PNG-Grafiken in

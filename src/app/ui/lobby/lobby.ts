@@ -1,8 +1,9 @@
-import { Component, computed, inject, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, output, signal } from '@angular/core';
 import { MapDef, mapById, mapFits, MAPS, mapShape, VariantDef, VARIANTS } from '../../engine';
 import { MAX_PLAYERS, PLAYER_COLORS } from '../../net/protocol';
 import { LOCAL_MODE, RoomService } from '../../net/room.service';
 import { ChatBox } from '../shared/chat-box';
+import { gameStartImages, preloadImages } from '../shared/image-cache';
 import { MapThumb } from './map-thumb';
 import { allChapters, chapterForVariant, ChapterId } from '../rulebook/rule-content';
 import { Rulebook } from '../rulebook/rulebook';
@@ -494,6 +495,15 @@ export class Lobby {
     if (v.maxPlayers && n > v.maxPlayers) return `${v.name} gibt es nur für bis zu ${v.maxPlayers} Spieler, gerade sind ${n} da.`;
     return `${v.name} gibt es nur auf Karten ohne Meerfelder.`;
   });
+
+  constructor() {
+    // Grafiken für den Spielstart schon hier holen (im Leerlauf, nach dem Aufbau der Lobby): Wechselt eine
+    // Farbe oder die Karte, kommt nur das Neue dazu.
+    effect(() => {
+      const r = this.room.room();
+      if (r) preloadImages(gameStartImages(r.settings, r.players.map((p) => p.color)));
+    });
+  }
 
   protected fitsNow(map: MapDef): boolean {
     return mapFits(map, Math.max(2, this.present()));
