@@ -86,6 +86,7 @@ import { ResourcePicker } from '../shared/resource-picker';
 import { CardInspector } from './card-inspector';
 import { EndStats } from './end-stats';
 import { BackgroundMusic } from '../shared/music';
+import { chime, fanfare, FANFARE_SECONDS } from '../shared/sounds';
 import { DiceTray, ROLL_DURATION_MS } from './dice-tray';
 import { BannerEvent, EventBanner } from './event-banner';
 import { FlyLayer } from './fly-layer';
@@ -1017,7 +1018,10 @@ export class GameView {
       const mine = this.myTurn() && this.g().phase.kind !== 'ended';
       if (mine && !wasMyTurn) {
         untracked(() => {
-          if (this.sound()) chime();
+          if (this.sound()) {
+            fanfare('kurz');
+            this.player.duck(FANFARE_SECONDS.kurz);
+          }
           const me = this.me();
           if (me) this.pushBanner({ kind: 'turn', title: this.bannerText(), name: me.name, color: me.color, tag: this.g().turn ? `Zug ${this.g().turn}` : 'Aufbauphase' });
         });
@@ -1651,26 +1655,5 @@ export class GameView {
       default:
         return 'Du bist dran!';
     }
-  }
-}
-
-function chime(): void {
-  try {
-    const ctx = new AudioContext();
-    [660, 880].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const start = ctx.currentTime + i * 0.12;
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.12, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.35);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + 0.4);
-    });
-    setTimeout(() => void ctx.close(), 1000);
-  } catch {
-    // Ohne Audio geht es auch.
   }
 }

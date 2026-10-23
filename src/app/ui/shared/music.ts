@@ -8,6 +8,7 @@ const FADE_OUT_MS = 1200;
 export class BackgroundMusic {
   private audio: HTMLAudioElement | null = null;
   private fade: ReturnType<typeof setInterval> | undefined;
+  private unduck: ReturnType<typeof setTimeout> | undefined;
   private readonly onGesture = () => this.play();
 
   start(): void {
@@ -24,12 +25,27 @@ export class BackgroundMusic {
     this.audio = null;
     this.removeGestureListeners();
     clearInterval(this.fade);
+    clearTimeout(this.unduck);
     // Eigener Timer: Ein gleich danach gestartetes neues Stück darf das Ausblenden nicht abbrechen.
     fade(audio, 0, FADE_OUT_MS, () => {
       audio.pause();
       audio.removeAttribute('src');
       audio.load();
     });
+  }
+
+  /** Leiser, solange eine Fanfare oder der Sprecher zu hören ist, danach langsam zurück. */
+  duck(seconds: number): void {
+    const audio = this.audio;
+    if (!audio || audio.paused) return;
+    clearInterval(this.fade);
+    clearTimeout(this.unduck);
+    this.fade = fade(audio, VOLUME * 0.25, 300);
+    this.unduck = setTimeout(() => {
+      if (this.audio !== audio) return;
+      clearInterval(this.fade);
+      this.fade = fade(audio, VOLUME, 1500);
+    }, seconds * 1000);
   }
 
   private play(): void {

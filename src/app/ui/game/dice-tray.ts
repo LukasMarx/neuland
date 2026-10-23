@@ -1,4 +1,5 @@
 import { Component, computed, effect, input, output, signal, untracked } from '@angular/core';
+import { rattle } from '../shared/sounds';
 
 /** Rotation des Würfels, damit die jeweilige Seite nach vorne zeigt. Gegenüberliegende Seiten ergeben 7. */
 const FACE_ROTATION: Record<number, [number, number]> = {
@@ -136,30 +137,5 @@ export class DiceTray {
     const tiltX = -14;
     const tiltY = index === 0 ? 16 : -20;
     return [x + spins * 360 + tiltX, y + spins * 360 * (index === 0 ? 1 : -1) + tiltY];
-  }
-}
-
-/** Kurzes Würfelklappern aus gefiltertem Rauschen, ohne Sounddatei. */
-function rattle(): void {
-  try {
-    const ctx = new AudioContext();
-    const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.04, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length) ** 3;
-    const hits = [0, 0.09, 0.16, 0.27, 0.35, 0.5, 0.62, 0.8, 0.95];
-    for (const at of hits) {
-      const src = ctx.createBufferSource();
-      src.buffer = buffer;
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.value = 1800 + Math.random() * 1600;
-      const gain = ctx.createGain();
-      gain.gain.value = 0.5 * (1 - at);
-      src.connect(filter).connect(gain).connect(ctx.destination);
-      src.start(ctx.currentTime + at);
-    }
-    setTimeout(() => void ctx.close(), 1500);
-  } catch {
-    // Ohne Audio geht es auch.
   }
 }
