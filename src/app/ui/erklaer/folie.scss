@@ -1,0 +1,460 @@
+// Folien sind für die Bühne von 1920 × 1080 gebaut, wie die Szenen (szene.scss).
+:host {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+  padding: 60px 110px;
+  background:
+    radial-gradient(ellipse at 50% 40%, #1d2b36 0%, transparent 70%),
+    var(--bg);
+}
+
+$auf: cubic-bezier(0.2, 0.9, 0.3, 1.25);
+
+.kopf {
+  text-align: center;
+  animation: kopf 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  h2 {
+    margin: 0;
+    font-size: 64px;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+
+  .unter {
+    margin-top: 10px;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+}
+
+@keyframes kopf {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+// Gemeinsames Auftauchen und Hervorheben.
+.zeile:not(.kopfzeile),
+.punkt,
+.stueck,
+.ekarte,
+.notiz {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 380ms ease-out,
+    transform 560ms $auf,
+    filter 400ms,
+    background 400ms,
+    border-color 400ms;
+
+  &.da {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fokus .da:not(.dran) {
+  filter: saturate(0.5) brightness(0.55);
+}
+
+// ── Vergleich ──────────────────────────────────────────────
+
+.vergleich {
+  width: 1640px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .zeile {
+    display: grid;
+    grid-template-columns: 420px 1fr 70px 1fr;
+    align-items: center;
+    gap: 20px;
+    padding: 18px 30px;
+    border-radius: 16px;
+    background: rgb(255 255 255 / 0.035);
+    border-left: 6px solid transparent;
+    font-size: 32px;
+    line-height: 1.25;
+
+    &.dran {
+      border-left-color: var(--accent);
+      background: rgb(212 176 106 / 0.1);
+    }
+  }
+
+  .kopfzeile {
+    background: none;
+    padding-top: 0;
+    padding-bottom: 0;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+
+    span:last-child {
+      color: var(--accent);
+    }
+  }
+
+  .thema {
+    font-weight: 900;
+    color: var(--text);
+  }
+
+  .vorher {
+    color: var(--muted);
+  }
+
+  .pfeil {
+    color: var(--accent);
+    font-weight: 900;
+    text-align: center;
+  }
+
+  .nachher {
+    color: var(--text);
+    font-weight: 700;
+  }
+}
+
+// ── Liste ──────────────────────────────────────────────────
+
+.liste {
+  width: 1560px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &.schmal {
+    width: auto;
+    flex: 1;
+  }
+
+  .punkt {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    padding: 18px 30px;
+    border-radius: 18px;
+    background: rgb(255 255 255 / 0.035);
+    border-left: 6px solid transparent;
+
+    &.dran {
+      border-left-color: var(--accent);
+      background: rgb(212 176 106 / 0.1);
+    }
+  }
+
+  .bild {
+    flex: none;
+    width: 104px;
+    height: 104px;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.45));
+
+    &.karte {
+      width: 72px;
+      height: 108px;
+      border-radius: 8px;
+      object-fit: cover;
+      filter: none;
+      box-shadow: 0 6px 12px rgb(0 0 0 / 0.45);
+    }
+  }
+
+  .marke {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    margin: 0 10px;
+    transform: rotate(30deg);
+    clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+    background: var(--accent);
+  }
+
+  .plakette {
+    flex: none;
+    min-width: 120px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 32px;
+    font-weight: 900;
+    text-align: center;
+    white-space: nowrap;
+
+    &.rechts {
+      margin-left: auto;
+    }
+  }
+
+  .inhalt {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 32px;
+    line-height: 1.3;
+    color: var(--text);
+  }
+
+  .titel {
+    font-size: 36px;
+    font-weight: 900;
+  }
+
+  .text {
+    color: #cfc8ba;
+  }
+
+  .preis {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+
+    img {
+      width: 64px;
+      height: 96px;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: 0 6px 12px rgb(0 0 0 / 0.45);
+    }
+  }
+}
+
+// ── Galerie ────────────────────────────────────────────────
+
+.galerie {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+  max-width: 1720px;
+  flex-wrap: wrap;
+
+  .stueck {
+    margin: 0;
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+    transition-delay: calc(var(--i, 0) * var(--staffel, 90ms));
+
+    &.dran {
+      translate: 0 -14px;
+    }
+  }
+
+  img {
+    width: 190px;
+    height: 190px;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.45));
+
+    &.karte {
+      width: 160px;
+      height: 240px;
+      border-radius: 14px;
+      object-fit: cover;
+      filter: none;
+      box-shadow: 0 12px 24px rgb(0 0 0 / 0.5);
+    }
+
+    &.feld {
+      width: 220px;
+      height: 220px;
+    }
+
+    &.symbol {
+      width: 160px;
+      height: 160px;
+    }
+  }
+
+  figcaption {
+    font-size: 34px;
+    font-weight: 900;
+    color: var(--text);
+    line-height: 1.15;
+  }
+
+  .text {
+    font-size: 26px;
+    line-height: 1.3;
+    color: #cfc8ba;
+  }
+
+  .plakette {
+    padding: 8px 20px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 30px;
+    font-weight: 900;
+  }
+}
+
+// ── Kartenraster ───────────────────────────────────────────
+
+.karten {
+  display: grid;
+  grid-template-columns: repeat(var(--spalten, 5), 300px);
+  gap: 28px 40px;
+  justify-content: center;
+
+  .ekarte {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+    transition-delay: calc(var(--i, 0) * var(--staffel, 70ms));
+
+    &.dran {
+      transition-delay: 0ms;
+      translate: 0 -10px;
+    }
+  }
+
+  img {
+    width: 132px;
+    height: 198px;
+    border-radius: 12px;
+    object-fit: cover;
+    box-shadow: 0 10px 20px rgb(0 0 0 / 0.5);
+  }
+
+  figcaption {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    line-height: 1.25;
+
+    b {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--text);
+    }
+
+    span {
+      font-size: 21px;
+      color: #cfc8ba;
+    }
+  }
+}
+
+.fokus.karten .da {
+  transition-delay: 0ms;
+}
+
+// ── Bild mit Stichpunkten ──────────────────────────────────
+
+.bildfolie {
+  width: 1700px;
+  display: flex;
+  align-items: center;
+  gap: 60px;
+
+  .abbildung {
+    flex: none;
+    width: 720px;
+    height: 600px;
+    display: grid;
+    place-items: center;
+    animation: kopf 700ms cubic-bezier(0.2, 0.8, 0.2, 1) 150ms both;
+
+    app-rule-scene,
+    img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+    }
+
+    // Im Regelbuch ist der Ausschnitt klein gehalten; hier füllt er die Fläche.
+    app-rule-scene ::ng-deep svg {
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      filter: drop-shadow(0 14px 24px rgb(0 0 0 / 0.45));
+    }
+  }
+
+  .inhalt {
+    font-size: 30px;
+  }
+}
+
+// ── Notiz ──────────────────────────────────────────────────
+
+.notiz {
+  max-width: 1500px;
+  padding: 22px 34px;
+  border-radius: 18px;
+  border: 2px solid rgb(212 176 106 / 0.45);
+  background: rgb(212 176 106 / 0.08);
+  font-size: 30px;
+  line-height: 1.35;
+  color: var(--text);
+
+  b {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+}
+
+// ── Dicht: für Folien mit vielen Zeilen ────────────────────
+
+.dicht {
+  gap: 10px;
+
+  .zeile,
+  .punkt {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    font-size: 28px;
+  }
+
+  .inhalt {
+    font-size: 28px;
+  }
+
+  .titel {
+    font-size: 31px;
+  }
+
+  .bild {
+    width: 84px;
+    height: 84px;
+
+    &.karte {
+      width: 58px;
+      height: 87px;
+    }
+  }
+
+  .preis img {
+    width: 54px;
+    height: 81px;
+  }
+}

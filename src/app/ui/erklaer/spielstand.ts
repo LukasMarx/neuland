@@ -9,6 +9,7 @@ import {
   legalRoadEdges,
   legalRobberHexes,
   legalSettlementVertices,
+  mapById,
   NewPlayer,
   Resource,
   robberVictims,
@@ -20,6 +21,9 @@ const PLAYERS: NewPlayer[] = [
   { id: 'bruno', name: 'Bruno', color: '#2f64d6' },
   { id: 'clara', name: 'Clara', color: '#f4f1e8' },
   { id: 'jonas', name: 'Jonas', color: '#ee8a1c' },
+  // Für die große Runde.
+  { id: 'lea', name: 'Lea', color: '#2f9a48' },
+  { id: 'tom', name: 'Tom', color: '#7b4a2a' },
 ];
 /** Seed, bei dem Mara (aus Sicht des Videos „du“) als Erste setzt, danach Bruno, Clara, Jonas. */
 const SEED = 1;
@@ -33,8 +37,15 @@ export interface Spielstand {
 }
 
 export function neuesSpiel(): Spielstand {
-  const state = createGame(PLAYERS, { victoryPoints: 10, map: 'klassisch' }, SEED);
+  const state = createGame(PLAYERS.slice(0, 4), { victoryPoints: 10, map: 'klassisch' }, SEED);
   return { state, seat: state.players.findIndex((p) => p.id === 'mara') };
+}
+
+/** Ein Brett für eine Erweiterung, nach dem Aufbau (die Bots setzen für alle). */
+function erweitert(spieler: number, map: string, variants: string[] = [], seed = SEED): Spielstand {
+  const state = createGame(PLAYERS.slice(0, spieler), { victoryPoints: mapById(map).victoryPoints, map, variants }, seed);
+  const seat = state.players.findIndex((p) => p.id === 'mara');
+  return { state: spieleBis(state, setupDone), seat };
 }
 
 /** Lässt alle Plätze mit dem Bot spielen, bis `done` zutrifft. */
@@ -72,11 +83,11 @@ export function hand(s: GameState, seat: number, cards: Partial<Record<Resource,
   return gib(gib(s, seat, back), seat, cards);
 }
 
+const setupDone = (s: GameState) => s.phase.kind !== 'setup';
+
 export function wende(s: GameState, seat: number, ...actions: Action[]): GameState {
   return actions.reduce((acc, a) => applyAction(acc, seat, a), s);
 }
-
-const setupDone = (s: GameState) => s.phase.kind !== 'setup';
 
 /** Nach dem Aufbau, Mara ist am Zug und würfelt gleich. */
 function nachAufbau(): Spielstand {
@@ -201,6 +212,14 @@ export const SPIELSTAENDE: Record<string, () => Spielstand> = {
     const seat = start.seat;
     return { state: hand(amZug(start.state, seat), seat, { sheep: 1, wheat: 1, ore: 1, wood: 1 }), seat };
   },
+
+  /** Erweiterungen: jeweils das Brett nach dem Aufbau, als Überblick. */
+  gross: () => erweitert(6, 'klassisch'),
+  seewege: () => erweitert(4, 'erste-ueberfahrt'),
+  stadtwacht: () => erweitert(4, 'klassisch', ['stadtwacht']),
+  fischgruende: () => erweitert(4, 'klassisch', ['fischgruende']),
+  flusslaeufe: () => erweitert(4, 'klassisch', ['flusslaeufe']),
+  duell: () => erweitert(2, 'klassisch', ['duell']),
 
   /**
    * Endspurt: Mara hat zwei Städte, eine Siedlung, zwei Siegpunktkarten, vier Straßen am Stück und

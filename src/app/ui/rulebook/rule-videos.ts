@@ -1,11 +1,25 @@
 /**
  * Erklärvideos im Regelbuch. Ein Video erscheint erst, wenn es hier eingetragen ist; bis dahin bleibt
  * die Stelle im Buch einfach leer. Dateien nach `public/web/videos/` legen und eintragen, z. B.
- * `aufbau: clip('02-aufbau', 'Der Aufbau', '0:40')`. Die Reihenfolge hier ist die Reihenfolge, in
- * der „Weiter“ am Ende eines Videos durch die Clips führt.
+ * `aufbau: clip('02-aufbau', 'Der Aufbau', '0:40')`. Die Grundspiel-Clips bilden eine Reihe
+ * (siehe VIDEO_ORDER), die Erweiterungen stehen jeweils für sich.
  */
 export type VideoId =
-  'worum-gehts' | 'aufbau' | 'wuerfeln' | 'bauen' | 'handeln' | 'raeuber' | 'entwicklung' | 'sieg';
+  | 'worum-gehts'
+  | 'aufbau'
+  | 'wuerfeln'
+  | 'bauen'
+  | 'handeln'
+  | 'raeuber'
+  | 'entwicklung'
+  | 'sieg'
+  | 'grosse-runde'
+  | 'seewege'
+  | 'stadtwacht'
+  | 'fischgruende'
+  | 'flusslaeufe'
+  | 'duell'
+  | 'hausregeln';
 
 export interface RuleVideo {
   src: string;
@@ -34,7 +48,14 @@ export const RULE_VIDEOS: Partial<Record<VideoId, RuleVideo>> = {
   raeuber: clip('06-raeuber', 'Die Sieben und der Räuber', '0:35'),
   entwicklung: clip('07-entwicklung', 'Entwicklungskarten', '0:31'),
   sieg: clip('08-sieg', 'Sonderkarten und Sieg', '0:31'),
+  'grosse-runde': clip('09-grosse-runde', 'Die große Runde', '1:12'),
+  seewege: clip('10-seewege', 'Seewege', '2:09'),
+  stadtwacht: clip('11-stadtwacht', 'Stadtwacht', '8:52'),
+  fischgruende: clip('12-fischgruende', 'Fischgründe', '1:51'),
+  flusslaeufe: clip('13-flusslaeufe', 'Flussläufe', '1:19'),
+  duell: clip('14-duell', 'Duell', '1:29'),
+  hausregeln: clip('15-hausregeln', 'Hausregeln', '1:23'),
 };
 
-/** Reihenfolge der Clips, für „Teil 3 von 8“ und den Weiter-Knopf. */
-export const VIDEO_ORDER = Object.keys(RULE_VIDEOS) as VideoId[];
+/** Die Reihe zum Grundspiel, für „Teil 3 von 8“ und den Weiter-Knopf. Erweiterungen gehören nicht dazu. */
+export const VIDEO_ORDER: VideoId[] = ['worum-gehts', 'aufbau', 'wuerfeln', 'bauen', 'handeln', 'raeuber', 'entwicklung', 'sieg'];

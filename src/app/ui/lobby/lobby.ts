@@ -4,7 +4,7 @@ import { MAX_PLAYERS, PLAYER_COLORS } from '../../net/protocol';
 import { LOCAL_MODE, RoomService } from '../../net/room.service';
 import { ChatBox } from '../shared/chat-box';
 import { MapThumb } from './map-thumb';
-import { chaptersFor } from '../rulebook/rule-content';
+import { allChapters, chapterForVariant, ChapterId } from '../rulebook/rule-content';
 import { Rulebook } from '../rulebook/rulebook';
 
 @Component({
@@ -20,11 +20,11 @@ import { Rulebook } from '../rulebook/rulebook';
           <b class="code">{{ r.code }}</b>
           <button (click)="copy()" [title]="inviteLink">{{ copied() ? 'Link kopiert ✓' : 'Link kopieren' }}</button>
         </div>
-        <button (click)="rulesOpen.set(true)" title="Regelbuch öffnen">Regeln</button>
+        <button (click)="openRules(null)" title="Regelbuch öffnen">Regeln</button>
         <button (click)="leave.emit()">Verlassen</button>
       </header>
       @if (rulesOpen()) {
-        <app-rulebook [chapters]="ruleChapters()" (close)="rulesOpen.set(false)" />
+        <app-rulebook [chapters]="ruleChapters" [startChapter]="rulesStart()" (close)="rulesOpen.set(false)" />
       }
 
       <div class="layout">
@@ -120,7 +120,12 @@ import { Rulebook } from '../rulebook/rulebook';
           <section class="panel">
             <h3>Karte</h3>
             @for (group of mapGroups; track group.name) {
-              <h4>{{ group.name }}</h4>
+              <h4>
+                {{ group.name }}
+                @if (group.chapter) {
+                  <button class="small more" title="Regeln zu Seewege im Regelbuch lesen" (click)="openRules(group.chapter)">Regeln</button>
+                }
+              </h4>
               <div class="maps" role="radiogroup" [attr.aria-label]="'Karte, ' + group.name">
                 @for (m of group.maps; track m.id) {
                   @let fits = fitsNow(m);
@@ -169,7 +174,10 @@ import { Rulebook } from '../rulebook/rulebook';
                         <small>{{ blocked ?? v.short }}</small>
                       </span>
                     </label>
-                    <button class="small more" [attr.aria-expanded]="open().has(v.id)" (click)="toggleOpen(v.id)">{{ open().has(v.id) ? 'weniger' : 'mehr' }}</button>
+                    <div class="actions">
+                      <button class="small more" [attr.aria-expanded]="open().has(v.id)" (click)="toggleOpen(v.id)">{{ open().has(v.id) ? 'weniger' : 'mehr' }}</button>
+                      <button class="small more" [title]="'Regeln zu ' + v.name + ' im Regelbuch lesen'" (click)="openRules(chapterFor(v.id))">Regeln</button>
+                    </div>
                     @if (open().has(v.id)) {
                       <p class="full">{{ v.description }}</p>
                     }
@@ -234,11 +242,21 @@ import { Rulebook } from '../rulebook/rulebook';
       margin: 0 0 10px;
     }
     h4 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       margin: 12px 0 6px;
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--muted);
+
+      .more {
+        padding: 1px 8px;
+        font-size: 11px;
+        letter-spacing: normal;
+        text-transform: none;
+      }
     }
     .players {
       list-style: none;
@@ -382,6 +400,11 @@ import { Rulebook } from '../rulebook/rulebook';
         font-size: 12px;
         line-height: 1.35;
       }
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
       .more {
         padding: 1px 8px;
         font-size: 11px;
@@ -428,8 +451,10 @@ export class Lobby {
   protected readonly vpOptions = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
   protected readonly copied = signal(false);
   protected readonly rulesOpen = signal(false);
-  /** Regelbuch mit den Kapiteln, die mit den jetzigen Einstellungen gelten würden. */
-  protected readonly ruleChapters = computed(() => chaptersFor(this.room.room()!.settings, Math.max(2, this.present())));
+  /** In der Lobby stehen alle Kapitel im Buch, damit man vor dem Einschalten nachlesen kann. */
+  protected readonly ruleChapters = allChapters();
+  protected readonly rulesStart = signal<ChapterId | null>(null);
+  protected readonly chapterFor = chapterForVariant;
   protected readonly inviteLink = `${location.origin}${location.pathname}${LOCAL_MODE ? '?local' : ''}#/${this.room.code()}`;
 
   protected readonly takenColors = computed(() => new Set(this.room.room()?.players.map((p) => p.color)));
@@ -469,8 +494,8 @@ export class Lobby {
 
   /** Karten getrennt nach Land und Meer (Seewege). */
   protected readonly mapGroups = [
-    { name: 'Land', maps: MAPS.filter((m) => !m.seafaring) },
-    { name: 'Meer · Seewege', maps: MAPS.filter((m) => m.seafaring) },
+    { name: 'Land', maps: MAPS.filter((m) => !m.seafaring), chapter: null },
+    { name: 'Meer · Seewege', maps: MAPS.filter((m) => m.seafaring), chapter: 'seewege' as ChapterId },
   ];
   protected readonly variantGroups = [
     { kind: 'expansion', name: 'Erweiterungen', hint: 'neue Teile und Regeln', variants: VARIANTS.filter((v) => v.kind === 'expansion') },
@@ -513,6 +538,11 @@ export class Lobby {
     const settings = this.room.room()!.settings;
     const bonus = VARIANTS.filter((v) => settings.variants?.includes(v.id)).reduce((n, v) => n + (v.victoryPoints ?? 0), 0);
     this.room.updateSettings({ ...settings, map: map.id, victoryPoints: map.victoryPoints + bonus });
+  }
+
+  protected openRules(chapter: ChapterId | null): void {
+    this.rulesStart.set(chapter);
+    this.rulesOpen.set(true);
   }
 
   protected variantOn(v: VariantDef): boolean {

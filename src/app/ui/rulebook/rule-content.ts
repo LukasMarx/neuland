@@ -424,6 +424,7 @@ const GROSSE_RUNDE: Chapter = {
           initial: true,
           html: 'Die Nachricht von der Insel hat sich herumgesprochen. Immer mehr Siedler kommen an, und das Land wird größer, damit alle Platz finden.',
         },
+        { kind: 'video', video: 'grosse-runde', caption: 'Was sich mit 5 bis 8 Spielern ändert' },
         { kind: 'h', text: 'Was sich ändert' },
         {
           kind: 'changes',
@@ -496,6 +497,7 @@ const SEEWEGE: Chapter = {
           initial: true,
           html: 'Von der Küste aus sieht man am Horizont weitere Inseln. Die ersten Boote liegen bereit, und wer sich zuerst hinüberwagt, kann dort Land für sich beanspruchen.',
         },
+        { kind: 'video', video: 'seewege', caption: 'Schiffe, Inseln und was auf dem Meer wartet' },
         { kind: 'h', text: 'Was neu dazukommt' },
         {
           kind: 'list',
@@ -620,6 +622,7 @@ const STADTWACHT: Chapter = {
           initial: true,
           html: 'Die Städte der Insel blühen auf, und ihr Reichtum spricht sich herum. Draußen auf dem Meer sammelt sich eine Flotte von Plünderern. Nur wenn die Städte gemeinsam Wächter aufstellen, halten sie dem Angriff stand.',
         },
+        { kind: 'video', video: 'stadtwacht', caption: 'Alles zur Stadtwacht, mit allen Einflusskarten' },
         { kind: 'h', text: 'Was neu dazukommt' },
         {
           kind: 'list',
@@ -945,6 +948,7 @@ const FISCHGRUENDE: Chapter = {
           initial: true,
           html: 'Die Fischer der Insel kennen die besten Stellen an der Küste und im See. Wer dort siedelt, bringt Fang nach Hause und kann ihn gegen allerlei Gefälligkeiten eintauschen.',
         },
+        { kind: 'video', video: 'fischgruende', caption: 'Fische fangen und ausgeben' },
         { kind: 'h', text: 'Was neu dazukommt' },
         {
           kind: 'gallery',
@@ -1037,6 +1041,7 @@ const FLUSSLAEUFE: Chapter = {
           initial: true,
           html: 'Zwei Flüsse ziehen sich durch das Land. An ihren Ufern wird Handel getrieben, und wer Brücken schlägt, verdient gut daran.',
         },
+        { kind: 'video', video: 'flusslaeufe', caption: 'Brücken und Münzen' },
         { kind: 'h', text: 'Was neu dazukommt' },
         {
           kind: 'list',
@@ -1124,6 +1129,7 @@ const DUELL: Chapter = {
           initial: true,
           html: 'Nur zwei Siedler sind auf der Insel gelandet. Doch sie sind nicht allein: Zwei Sippen, die schon länger hier leben, breiten sich mit aus und machen das Land eng.',
         },
+        { kind: 'video', video: 'duell', caption: 'Zu zweit mit den Neutralen' },
         { kind: 'h', text: 'Was neu dazukommt' },
         {
           kind: 'gallery',
@@ -1209,6 +1215,7 @@ const HAUSREGELN: Chapter = {
           initial: true,
           html: 'Jede Runde am Lagerfeuer hat ihre eigenen Bräuche. Hausregeln sind kleine Änderungen am Grundspiel. Ihr habt sie in der Lobby eingeschaltet, und auf den nächsten Seiten steht, was sie bewirken.',
         },
+        { kind: 'video', video: 'hausregeln', caption: 'Milder Räuber, Hafenvogt und Würfelstapel' },
       ],
     },
     {
@@ -1315,6 +1322,16 @@ export const CHAPTERS: Record<ChapterId, Chapter> = {
   duell: DUELL,
   hausregeln: HAUSREGELN,
 };
+
+/** Alle Kapitel mit allen Hausregeln, zum Nachlesen in der Lobby, bevor etwas eingeschaltet ist. */
+export function allChapters(): Chapter[] {
+  return Object.values(CHAPTERS);
+}
+
+/** Das Kapitel, das eine Variante aus der Lobby erklärt. */
+export function chapterForVariant(id: VariantId): ChapterId {
+  return id in CHAPTERS ? (id as ChapterId) : 'hausregeln';
+}
 
 /** Die Kapitel, die in dieser Partie gelten: immer das Grundspiel, dazu Karte, Spielerzahl und Varianten. */
 export function chaptersFor(

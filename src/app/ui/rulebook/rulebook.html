@@ -124,7 +124,7 @@
       @if (ended()) {
         <div class="end">
           <div class="card">
-            <span class="kicker">Teil {{ videoNumber() }} von {{ videoCount }}</span>
+            <span class="kicker">{{ videoNumber() ? 'Teil ' + videoNumber() + ' von ' + videoCount : 'Erweiterung' }}</span>
             <h3>{{ clip?.title }}</h3>
             <div class="flourish" aria-hidden="true"><span></span>❦<span></span></div>
             @if (nextVideo(); as next) {
@@ -133,7 +133,7 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5 L16 12 L9 19" /></svg>
               </button>
             } @else {
-              <p class="done">Das war der letzte Teil. Viel Spaß beim Spielen!</p>
+              <p class="done">{{ videoNumber() ? 'Das war der letzte Teil.' : 'Das war alles zu dieser Erweiterung.' }} Viel Spaß beim Spielen!</p>
               <button #nextButton type="button" class="primary next" (click)="closeVideo()">
                 Zurück zum Buch
               </button>

@@ -1,0 +1,129 @@
+@let f = folie();
+<header class="kopf">
+  <h2>{{ f.kopf }}</h2>
+  @if (f.unter) {
+    <div class="unter">{{ f.unter }}</div>
+  }
+</header>
+
+@switch (f.layout) {
+  @case ('vergleich') {
+    <div class="vergleich" [class.fokus]="fokusAn()" [class.dicht]="f.dicht">
+      <div class="zeile kopfzeile">
+        <span></span>
+        <span>{{ f.vorher ?? 'Grundspiel' }}</span>
+        <span></span>
+        <span>{{ f.nachher ?? 'Jetzt' }}</span>
+      </div>
+      @for (z of zeilen(); track $index) {
+        <div class="zeile" [class.da]="takt() >= z.ab" [class.dran]="takt() === z.dran">
+          <b class="thema">{{ z.titel }}</b>
+          <span class="vorher" [innerHTML]="z.vorher"></span>
+          <span class="pfeil">→</span>
+          <span class="nachher" [innerHTML]="z.nachher"></span>
+        </div>
+      }
+    </div>
+  }
+
+  @case ('liste') {
+    <div class="liste" [class.fokus]="fokusAn()" [class.dicht]="f.dicht">
+      @for (z of zeilen(); track $index) {
+        <ng-container [ngTemplateOutlet]="punkt" [ngTemplateOutletContext]="{ $implicit: z }" />
+      }
+    </div>
+  }
+
+  @case ('galerie') {
+    <div class="galerie" [class.fokus]="fokusAn()" [style.--staffel.ms]="f.staffel ?? 90">
+      @for (z of zeilen(); track $index; let i = $index) {
+        <figure class="stueck" [class.da]="takt() >= z.ab" [class.dran]="takt() === z.dran" [style.--i]="i">
+          @if (z.bild) {
+            <img [class]="z.form ?? 'figur'" [src]="z.bild" alt="" />
+          }
+          @if (z.titel) {
+            <figcaption>{{ z.titel }}</figcaption>
+          }
+          @if (z.html) {
+            <div class="text" [innerHTML]="z.html"></div>
+          }
+          @if (z.wert) {
+            <div class="plakette">{{ z.wert }}</div>
+          }
+        </figure>
+      }
+    </div>
+  }
+
+  @case ('karten') {
+    <div class="karten" [class.fokus]="fokusAn()" [style.--spalten]="spalten()" [style.--staffel.ms]="f.staffel ?? 70">
+      @for (z of zeilen(); track $index; let i = $index) {
+        <figure class="ekarte" [class.da]="takt() >= z.ab" [class.dran]="takt() === z.dran" [style.--i]="i">
+          <img [src]="z.bild" alt="" />
+          <figcaption>
+            <b>{{ z.titel }}</b>
+            @if (z.html) {
+              <span [innerHTML]="z.html"></span>
+            }
+          </figcaption>
+        </figure>
+      }
+    </div>
+  }
+
+  @case ('bild') {
+    <div class="bildfolie">
+      <div class="abbildung">
+        @if (f.szene) {
+          <app-rule-scene [scene]="f.szene" [label]="f.kopf" />
+        } @else if (f.grafik) {
+          <img [src]="f.grafik" alt="" />
+        }
+      </div>
+      <div class="liste schmal" [class.fokus]="fokusAn()">
+        @for (z of zeilen(); track $index) {
+          <ng-container [ngTemplateOutlet]="punkt" [ngTemplateOutletContext]="{ $implicit: z }" />
+        }
+      </div>
+    </div>
+  }
+}
+
+@if (f.notiz; as n) {
+  <aside class="notiz" [class.da]="takt() >= n.takt">
+    @if (n.label) {
+      <b>{{ n.label }}</b>
+    }
+    <span [innerHTML]="n.html"></span>
+  </aside>
+}
+
+<ng-template #punkt let-z>
+  <div class="punkt" [class.da]="takt() >= z.ab" [class.dran]="takt() === z.dran">
+    @if (z.bild) {
+      <img class="bild" [class]="z.form ?? 'symbol'" [src]="z.bild" alt="" />
+    } @else if (z.wert) {
+      <div class="plakette">{{ z.wert }}</div>
+    } @else {
+      <div class="marke"></div>
+    }
+    <div class="inhalt">
+      @if (z.titel) {
+        <b class="titel">{{ z.titel }}</b>
+      }
+      @if (z.html) {
+        <span class="text" [innerHTML]="z.html"></span>
+      }
+    </div>
+    @if (z.karten.length) {
+      <div class="preis">
+        @for (c of z.karten; track $index) {
+          <img [src]="c" alt="" />
+        }
+      </div>
+    }
+    @if (z.bild && z.wert) {
+      <div class="plakette rechts">{{ z.wert }}</div>
+    }
+  </div>
+</ng-template>

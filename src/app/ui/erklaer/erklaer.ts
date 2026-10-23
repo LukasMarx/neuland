@@ -3,6 +3,7 @@ import { Action, actingSeats, botAction } from '../../engine';
 import { RoomService } from '../../net/room.service';
 import { GameView } from '../game/game';
 import { DemoRoom } from './demo-room';
+import { Folie, FolieView } from './folie';
 import { BLENDE_MS, Hexblende } from './hexblende';
 import { SPIELSTAENDE } from './spielstand';
 import { Szene, SzeneId } from './szene';
@@ -11,10 +12,12 @@ export interface Karte {
   art: 'intro' | 'outro';
   titel: string;
   unter?: string;
+  /** Kopfzeile über dem Titel; Vorgabe je nach Art („Grundspiel erklärt“, „Viel Spaß beim Spielen“). */
+  zeile?: string;
 }
 
 /** `spiel: null` kehrt zum geladenen Spielstand zurück, ohne ihn neu aufzubauen. */
-type Inhalt = { szene: SzeneId } | { spiel: string | null } | null;
+type Inhalt = { szene: SzeneId } | { folie: Folie } | { spiel: string | null } | null;
 
 const warte = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /** Die Karte steigt nach der Blende auf und braucht dafür so lange. */
@@ -27,7 +30,7 @@ const KARTE_MS = 700;
  */
 @Component({
   selector: 'app-erklaer',
-  imports: [GameView, Hexblende, Szene],
+  imports: [FolieView, GameView, Hexblende, Szene],
   providers: [DemoRoom, { provide: RoomService, useExisting: DemoRoom }],
   templateUrl: './erklaer.html',
   styleUrl: './erklaer.scss',
@@ -50,6 +53,8 @@ export class ErklaerPage {
     const api = {
       karte: (k: Karte) => this.zeigeKarte(k),
       szene: (id: SzeneId) => this.wechsle({ szene: id }),
+      /** Eine Folie aus Daten des Drehbuchs (siehe folie.ts). */
+      folie: (f: Folie) => this.wechsle({ folie: f }),
       /** Lädt einen Spielstand aus spielstand.ts; ohne Kennung zurück zum laufenden. */
       spiel: (id?: string) => this.wechsle({ spiel: id ?? null }),
       takt: (n?: number) => {
@@ -84,6 +89,10 @@ export class ErklaerPage {
 
   protected szeneId(i: Inhalt): SzeneId | null {
     return i && 'szene' in i ? i.szene : null;
+  }
+
+  protected folieVon(i: Inhalt): Folie | null {
+    return i && 'folie' in i ? i.folie : null;
   }
 
   protected istSpiel(i: Inhalt): boolean {

@@ -7,13 +7,16 @@
   @if (szeneId(inhalt()); as id) {
     <app-erklaer-szene [szene]="id" [takt]="takt()" />
   }
+  @if (folieVon(inhalt()); as f) {
+    <app-erklaer-folie [folie]="f" [takt]="takt()" />
+  }
 
   <app-hexblende [zu]="zu()" />
 
   @if (karte(); as k) {
     <div class="erklaer-karte" [class.outro]="k.art === 'outro'">
       <img class="insel" src="web/banner/papiercollage/island.png" alt="" />
-      <div class="zeile">Neuland · {{ k.art === 'intro' ? 'Grundspiel erklärt' : 'Viel Spaß beim Spielen' }}</div>
+      <div class="zeile">Neuland · {{ k.zeile ?? (k.art === 'intro' ? 'Grundspiel erklärt' : 'Viel Spaß beim Spielen') }}</div>
       <h1>{{ k.titel }}</h1>
       @if (k.unter) {
         <div class="unter">{{ k.unter }}</div>

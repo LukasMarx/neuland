@@ -80,6 +80,8 @@ interface ShownPage {
 })
 export class Rulebook implements OnInit {
   readonly chapters = input.required<Chapter[]>();
+  /** Gleich bei diesem Kapitel aufschlagen, etwa aus der Lobby bei einer Erweiterung. */
+  readonly startChapter = input<ChapterId | null>(null);
   readonly close = output<void>();
 
   protected readonly cardArt = CARD_ART;
@@ -96,8 +98,9 @@ export class Rulebook implements OnInit {
   /** Das laufende Video ist zu Ende: Endkarte mit Weiter-Knopf zeigen. */
   protected readonly ended = signal(false);
   protected readonly videoCount = VIDEO_ORDER.length;
+  /** Platz in der Grundspiel-Reihe, 0 für ein Erweiterungsvideo. */
   protected readonly videoNumber = computed(() => VIDEO_ORDER.indexOf(this.playing()!) + 1);
-  protected readonly nextVideo = computed(() => VIDEO_ORDER[this.videoNumber()] ?? null);
+  protected readonly nextVideo = computed(() => (this.videoNumber() ? (VIDEO_ORDER[this.videoNumber()] ?? null) : null));
   private readonly film = viewChild<ElementRef<HTMLVideoElement>>('film');
   private readonly nextButton = viewChild<ElementRef<HTMLButtonElement>>('nextButton');
 
@@ -180,6 +183,11 @@ export class Rulebook implements OnInit {
   }
 
   ngOnInit(): void {
+    const start = this.startChapter();
+    if (start && this.chapters().some((c) => c.id === start)) {
+      this.open(start);
+      return;
+    }
     // Ein gemerktes Kapitel, das es in dieser Partie nicht gibt, fällt aufs Grundspiel zurück.
     if (this.chapter().id !== this.chapterId()) {
       this.chapterId.set(this.chapter().id);
