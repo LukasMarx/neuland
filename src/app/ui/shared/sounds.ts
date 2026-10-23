@@ -1,4 +1,5 @@
-import { channelVolume } from './audio-settings';
+import { cachedUrl, preload } from './audio-cache';
+import { audioSettings, channelVolume } from './audio-settings';
 
 /**
  * Alle Töne des Spiels an einer Stelle. Ohne Angabe gilt die Lautstärke des Kanals „Effekte“
@@ -29,11 +30,19 @@ export function chime(volume = channelVolume('effects')): void {
   }
 }
 
+const DICE_URL = 'web/sounds/wuerfel.mp3';
+const effectUrl = (id: Effect) => `web/sounds/${id}.m4a`;
+
+/** Lädt Würfel und alle Geräusche im Leerlauf vor (nur bei eingeschalteten Effekten); zusammen gut 250 KB. */
+export function preloadEffects(): void {
+  if (audioSettings().effects.on) preload([DICE_URL, ...(Object.keys(EFFECTS) as Effect[]).map(effectUrl)]);
+}
+
 /** Würfel klappern über den Tisch (Aufnahme, gut eine Sekunde, wie die Würfelanimation). */
 export function rattle(volume = channelVolume('effects')): void {
   if (volume <= 0) return;
   try {
-    const audio = new Audio('web/sounds/wuerfel.mp3');
+    const audio = new Audio(cachedUrl(DICE_URL));
     audio.volume = Math.min(1, volume);
     void audio.play().catch(() => undefined);
   } catch {
@@ -61,7 +70,7 @@ export const EFFECTS: Record<Effect, { name: string; when: string; seconds: numb
 export function effect(id: Effect, volume = channelVolume('effects')): void {
   if (volume <= 0) return;
   try {
-    const audio = new Audio(`web/sounds/${id}.m4a`);
+    const audio = new Audio(cachedUrl(effectUrl(id)));
     audio.volume = Math.min(1, volume);
     void audio.play().catch(() => undefined);
   } catch {

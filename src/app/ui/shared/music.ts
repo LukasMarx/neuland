@@ -109,3 +109,6 @@ function animate(from: number, to: number, ms: number, step: (value: number) => 
   }, 50);
   return timer;
 }
+
+/** Ein Spieler für die ganze App: Die App startet und stoppt ihn, das Spiel macht ihn nur leiser. */
+export const backgroundMusic = new BackgroundMusic();

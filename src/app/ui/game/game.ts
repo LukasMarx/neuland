@@ -86,10 +86,10 @@ import { ResourcePicker } from '../shared/resource-picker';
 import { CardInspector } from './card-inspector';
 import { EndStats } from './end-stats';
 import { audioSettings, channelVolume } from '../shared/audio-settings';
-import { BackgroundMusic } from '../shared/music';
+import { backgroundMusic } from '../shared/music';
 import { SettingsDialog } from '../shared/settings-dialog';
-import { Announcer, VoiceEvent } from '../shared/voice';
-import { effect as playEffect, EFFECTS } from '../shared/sounds';
+import { Announcer, preloadVoices, VoiceEvent } from '../shared/voice';
+import { effect as playEffect, EFFECTS, preloadEffects } from '../shared/sounds';
 import { voiceEvents } from './announcer';
 import { effectEvents } from './effects';
 import { DiceTray, ROLL_DURATION_MS } from './dice-tray';
@@ -398,8 +398,9 @@ export class GameView {
   protected readonly unreadChat = computed(() => Math.max(0, this.room.chat().length - this.chatSeen()));
   protected readonly settingsOpen = signal(false);
   protected readonly effectsOn = computed(() => audioSettings().effects.on);
-  private readonly player = new BackgroundMusic();
-  /** Berater und Erzfeind; die Musik wird leiser, solange einer spricht. */
+  /** Die Musik spielt die App (Startseite, Lobby, Spiel); hier wird sie nur leiser, solange jemand spricht. */
+  private readonly player = backgroundMusic;
+  /** Berater, Erzfeind und Herold; die Musik wird leiser, solange einer spricht. */
   private readonly announcer = new Announcer((seconds) => this.player.duck(seconds));
   /** Zug, in dem der Berater zuletzt ans Bauen erinnert hat, und in dem jede Ansage aus MIN_TURN_GAP zuletzt kam. */
   private buildHintTurn = -Infinity;
@@ -956,15 +957,7 @@ export class GameView {
     const clock = setInterval(() => this.now.set(Date.now()), 1000);
     inject(DestroyRef).onDestroy(() => {
       clearInterval(clock);
-      this.player.stop();
       this.announcer.stop();
-    });
-
-    effect(() => {
-      const music = audioSettings().music;
-      this.player.setLevel(music.volume);
-      if (music.on) this.player.start();
-      else this.player.stop();
     });
 
     effect(() => {
@@ -1035,13 +1028,17 @@ export class GameView {
     });
 
     // Spielbeginn: einmal, wenn eine frische Partie geladen wird (noch nichts gebaut). Vor dem Zug-Satz,
-    // deshalb vor dem Effekt für den Zugbeginn angelegt.
+    // deshalb vor dem Effekt für den Zugbeginn angelegt. Danach im Leerlauf alle Aufnahmen dieser Partie vorladen.
     let started = false;
     effect(() => {
       const g = this.g();
       if (started) return;
       started = true;
-      if (g.phase.kind === 'setup' && g.buildings.every((b) => !b)) untracked(() => this.announcer.say('gameStart'));
+      untracked(() => {
+        if (g.phase.kind === 'setup' && g.buildings.every((b) => !b)) this.announcer.say('gameStart');
+        preloadVoices(g);
+        preloadEffects();
+      });
     });
 
     let wasMyTurn = false;

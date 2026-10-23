@@ -1,8 +1,12 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { filter, map } from 'rxjs';
 import { accessPassword } from './net/access';
 import { RoomService } from './net/room.service';
 import { Gate } from './ui/gate/gate';
+import { audioSettings } from './ui/shared/audio-settings';
+import { backgroundMusic } from './ui/shared/music';
 
 @Component({
   selector: 'app-root',
@@ -40,7 +44,24 @@ export class App {
   /** Die Erklärbühne zeigt nur feste Spielstände ohne Verbindung, dafür braucht es kein Passwort. */
   protected readonly unlocked = computed(() => accessPassword() !== null || location.hash.startsWith('#/erklaer'));
 
+  private readonly url = toSignal(
+    inject(Router).events.pipe(
+      filter((e) => e instanceof NavigationEnd),
+      map((e) => e.urlAfterRedirects),
+    ),
+    { initialValue: '/' },
+  );
+
   constructor() {
+    // Musik von der Startseite über die Lobby bis ins Spiel, ohne Bruch. Die Klangprobe hat ihre eigene
+    // Musikprobe, dort schweigt sie; ebenso vor dem Passwort.
+    effect(() => {
+      const music = audioSettings().music;
+      backgroundMusic.setLevel(music.volume);
+      if (music.on && this.unlocked() && !this.url().startsWith('/klaenge')) backgroundMusic.start();
+      else backgroundMusic.stop();
+    });
+
     let timer: ReturnType<typeof setTimeout> | undefined;
     effect(() => {
       const notice = this.roomService.notice();

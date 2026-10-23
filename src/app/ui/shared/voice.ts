@@ -1,3 +1,5 @@
+import type { GameState } from '../../engine';
+import { cachedUrl, preload } from './audio-cache';
 import { audioSettings, channelVolume } from './audio-settings';
 
 /**
@@ -278,6 +280,27 @@ export const VOICE: Record<VoiceEvent, { when: string; clips: VoiceClip[] }> = {
 
 export const clipUrl = (c: VoiceClip) => `audio/${c.speaker}/${c.id}.${c.ext}`;
 
+/** Anlässe, die nur mit einer Erweiterung oder Hausregel vorkommen; alle anderen gibt es in jeder Partie. */
+const NEEDS: Partial<Record<VoiceEvent, (g: GameState) => boolean>> = {};
+const seafaring = (g: GameState) => !!g.ships;
+const fog = (g: GameState) => !!g.fog;
+const cityWatch = (g: GameState) => !!g.raiders;
+for (const e of ['islandAny', 'myIsland', 'enemyIsland', 'pirateMoved', 'enemyPirateNearMe', 'myShip', 'enemyShip', 'myGold', 'enemyGold'] as const) NEEDS[e] = seafaring;
+NEEDS.fogLifted = fog;
+for (const e of ['raidersNear', 'raidersAttack', 'raidersRepelled', 'myGuardsHeld', 'myCityRaided', 'raidGloat', 'myImprovement', 'metropolisAny', 'myMetropolis', 'enemyMetropolis'] as const) NEEDS[e] = cityWatch;
+for (const e of ['myFish', 'myAnchor', 'anchorFromEnemy'] as const) NEEDS[e] = (g) => !!g.fish;
+for (const e of ['bridgeBuilt', 'myCoinLead'] as const) NEEDS[e] = (g) => !!g.coins;
+for (const e of ['myHarborMaster', 'enemyHarborMaster'] as const) NEEDS[e] = (g) => g.harborMaster !== undefined;
+NEEDS.neutralBlocks = (g) => !!g.tokens;
+NEEDS.diceReshuffle = (g) => !!g.diceDeck;
+
+/** Lädt im Leerlauf alle Sätze vor, die in dieser Partie vorkommen können (nur bei eingeschalteten Sprechern). */
+export function preloadVoices(g: GameState): void {
+  if (!audioSettings().voice.on) return;
+  const events = (Object.keys(VOICE) as VoiceEvent[]).filter((e) => NEEDS[e]?.(g) ?? true);
+  preload([...new Set(events.flatMap((e) => VOICE[e].clips.map(clipUrl)))]);
+}
+
 /** Bei voll aufgedrehtem Regler; mal der Lautstärke des Kanals „Sprecher“. */
 const MAX_VOLUME = 0.95;
 /** Ansagen, die so lange warten mussten, kommen nicht mehr: Der Moment ist vorbei. Etwas länger als der längste Satz. */
@@ -334,7 +357,7 @@ export class Announcer {
       this.current = null;
       return;
     }
-    const audio = new Audio(clipUrl(item.clip));
+    const audio = new Audio(cachedUrl(clipUrl(item.clip)));
     audio.volume = MAX_VOLUME * item.volume;
     this.current = audio;
     const done = () => {
