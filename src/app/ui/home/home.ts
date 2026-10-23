@@ -25,6 +25,7 @@ import { recentRooms, RoomService } from '../../net/room.service';
 
         <div class="actions">
           <button class="primary big" [disabled]="!name().trim()" (click)="create()">Neues Spiel eröffnen</button>
+          <button class="big" [disabled]="!name().trim()" (click)="solo()" title="Eigener Raum mit drei Bots; in der Lobby lassen sich Bots dazu- oder wegnehmen">Allein gegen Bots</button>
         </div>
 
         <div class="divider"><span>oder beitreten</span></div>
@@ -88,6 +89,8 @@ import { recentRooms, RoomService } from '../../net/room.service';
     }
     .actions {
       margin-top: 12px;
+      display: grid;
+      gap: 8px;
     }
     .big {
       width: 100%;
@@ -153,6 +156,14 @@ export class Home {
   protected create(): void {
     if (!this.name().trim()) return;
     const code = this.room.create(this.name());
+    void this.router.navigate(['/', code]);
+  }
+
+  /** Einzelspiel: ein Raum wie sonst auch, mit drei Bots als Mitspielern. */
+  protected solo(): void {
+    if (!this.name().trim()) return;
+    const code = this.room.create(this.name());
+    for (let i = 0; i < 3; i++) this.room.addBot();
     void this.router.navigate(['/', code]);
   }
 

@@ -661,3 +661,87 @@ describe('Mehrspieler: Bot für getrennte Spieler', () => {
     expect(H.game.version).toBe(v);
   });
 });
+
+describe('Einzelspiel gegen Bots', () => {
+  function solo(bots = 3) {
+    const clock = new Clock();
+    const net = new Net(clock);
+    const H = new Sim('H', net);
+    const code = H.svc.create('H');
+    clock.advance(500);
+    for (let i = 0; i < bots; i++) H.svc.addBot();
+    clock.advance(200);
+    return { H, net, code, clock };
+  }
+
+  it('allein mit drei Bots: Start, die Bots spielen sofort, das Spiel läuft bis zum Sieg', { timeout: 120000 }, () => {
+    const { H, clock } = solo();
+    const room = H.svc.room()!;
+    expect(room.players.filter((p) => p.bot).map((p) => p.name)).toEqual(['Bot Anna', 'Bot Bruno', 'Bot Clara']);
+    expect(new Set(room.players.map((p) => p.color)).size).toBe(4);
+    H.svc.startGame();
+    clock.advance(500);
+    expect(H.game.players).toHaveLength(4);
+    const random = seeded(401);
+    for (let i = 0; i < 6000 && H.game.phase.kind !== 'ended'; i++) {
+      const g = H.game;
+      const step = botStep(g, random);
+      if (step && g.players[step.seat].id === H.svc.clientId) {
+        H.svc.act(step.action);
+        clock.advance(100);
+      } else {
+        clock.advance(1300);
+      }
+    }
+    expect(H.game.phase.kind).toBe('ended');
+    expect(isConsistent(H.game)).toBe(true);
+    expect(H.svc.notice()?.text ?? '').not.toMatch(/Teil der Spieler/);
+  });
+
+  it('Bots nehmen ein Angebot an, wenn es ihnen hilft, und lehnen sonst ab', { timeout: 60000 }, () => {
+    const { H, clock } = solo(2);
+    H.svc.startGame();
+    clock.advance(500);
+    // Bis H in der Hauptphase am Zug ist.
+    const random = seeded(402);
+    for (let i = 0; i < 3000; i++) {
+      const g = H.game;
+      if (g.phase.kind === 'main' && g.players[g.current].id === H.svc.clientId && g.turn > 3) break;
+      const step = botStep(g, random);
+      if (step && g.players[step.seat].id === H.svc.clientId) H.svc.act(step.action);
+      clock.advance(step && g.players[step.seat].id === H.svc.clientId ? 100 : 1300);
+    }
+    const g = H.game;
+    expect(g.phase.kind).toBe('main');
+    const me = g.players.findIndex((p) => p.id === H.svc.clientId);
+    // Hand und Lage festlegen: H bietet viel für wenig, das hilft jedem Bot.
+    const s = structuredClone(g);
+    s.players[me].resources = { wood: 3, brick: 3, sheep: 3, wheat: 3, ore: 3 };
+    s.players.forEach((p, i) => {
+      if (i !== me) p.resources = { wood: 0, brick: 0, sheep: 2, wheat: 0, ore: 0 };
+    });
+    s.version++;
+    H.svc.game.set(s);
+    H.svc.act({ type: 'offerTrade', give: { wood: 1, brick: 1, sheep: 0, wheat: 0, ore: 0 }, want: { wood: 0, brick: 0, sheep: 1, wheat: 0, ore: 0 } });
+    clock.advance(4000);
+    const offer = H.game.offers[0];
+    expect(offer.accepted.length + offer.declined.length).toBe(2);
+    expect(offer.accepted.length).toBeGreaterThan(0);
+  });
+
+  it('ein Mitspieler kann später den Platz eines Bots übernehmen', { timeout: 60000 }, () => {
+    const { H, net, code, clock } = solo(2);
+    H.svc.startGame();
+    clock.advance(500);
+    const X = new Sim('X', net);
+    X.svc.join(code, 'X');
+    clock.advance(1500);
+    expect(X.seat).toBe(-1);
+    const bot = H.svc.room()!.players.find((p) => p.bot)!;
+    const seat = H.game.players.findIndex((p) => p.id === bot.id);
+    X.svc.claimSeat(bot.id);
+    clock.advance(1000);
+    expect(X.seat).toBe(seat);
+    expect(H.svc.room()!.players.find((p) => p.id === X.svc.clientId)?.bot).toBe(false);
+  });
+});

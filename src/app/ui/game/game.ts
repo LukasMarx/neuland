@@ -213,7 +213,7 @@ export class GameView {
     if (!room || this.seat() < 0 || g.phase.kind === 'ended') return [];
     return actingSeats(g).flatMap((seat) => {
       const entry = room.players.find((p) => p.id === g.players[seat].id);
-      if (!entry || entry.peerId || seat === this.seat()) return [];
+      if (!entry || entry.peerId || entry.bot || seat === this.seat()) return [];
       // Nach BOT_TAKEOVER_MS spielt beim Host ein Bot für ihn weiter (siehe RoomService.runBot).
       const waited = this.now() - (entry.awaySince ?? this.now());
       return [{ seat, name: g.players[seat].name, color: g.players[seat].color, bot: waited >= BOT_TAKEOVER_MS, wait: Math.max(1, Math.ceil((BOT_TAKEOVER_MS - waited) / 1000)) }];
@@ -780,8 +780,10 @@ export class GameView {
       online: !!members.find((m) => m.id === p.id)?.peerId,
       bot: (() => {
         const m = members.find((x) => x.id === p.id);
-        return !!m && !m.peerId && this.now() - (m.awaySince ?? this.now()) >= BOT_TAKEOVER_MS && g.phase.kind !== 'ended';
+        return !!m && !m.peerId && (!!m.bot || this.now() - (m.awaySince ?? this.now()) >= BOT_TAKEOVER_MS) && g.phase.kind !== 'ended';
       })(),
+      // Bot aus der Lobby: ist nie verbunden, gilt aber nicht als „getrennt“.
+      lobbyBot: !!members.find((x) => x.id === p.id)?.bot,
       me: seat === this.seat(),
     }));
   });

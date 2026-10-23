@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { botAction } from './bot';
+import { botAction, botTradeResponse } from './bot';
 import { applyAction, createGame, legalCityVertices, victoryPoints } from './rules';
 import { isConsistent } from './secrets';
 import { GameState } from './types';
@@ -63,5 +63,25 @@ describe('Bot für getrennte Spieler', () => {
     const first = s.phase.kind === 'setup' ? s.phase.order[0] : 0;
     expect(botAction(s, (first + 1) % 3)).toBeNull();
     expect(botAction(s, first)).not.toBeNull();
+  });
+
+  it('Tauschangebote: hilft sich selbst, aber nicht dem Führenden kurz vor dem Sieg', () => {
+    let s = createGame(players(3), { victoryPoints: 10 }, 4);
+    while (s.phase.kind === 'setup') s = applyAction(s, s.phase.order[s.phase.index], botAction(s, s.phase.order[s.phase.index])!);
+    s = structuredClone(s);
+    s.phase = { kind: 'main' };
+    s.current = 0;
+    s.players[1].resources = { wood: 0, brick: 0, sheep: 2, wheat: 0, ore: 0 };
+    const offer = { id: 1, from: 0, give: { wood: 1, brick: 1, sheep: 0, wheat: 0, ore: 0 }, want: { wood: 0, brick: 0, sheep: 1, wheat: 0, ore: 0 }, counter: false, accepted: [], declined: [] };
+    expect(botTradeResponse(s, 1, offer)).toBe(true);
+    // Mehr verlangen, als er hat: ablehnen.
+    expect(botTradeResponse(s, 1, { ...offer, want: { wood: 0, brick: 0, sheep: 3, wheat: 0, ore: 0 } })).toBe(false);
+    // Der Anbietende steht kurz vor dem Sieg: ablehnen.
+    const leader = structuredClone(s);
+    leader.honors = undefined;
+    for (let i = 0; i < 8; i++) leader.buildings[leader.buildings.findIndex((b) => !b)] = { owner: 0, type: 'settlement' };
+    expect(botTradeResponse(leader, 1, offer)).toBe(false);
+    // Schon geantwortet: nichts mehr zu sagen.
+    expect(botTradeResponse(s, 1, { ...offer, declined: [1] })).toBeNull();
   });
 });

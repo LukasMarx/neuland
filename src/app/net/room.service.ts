@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, InjectionToken, isDevMode, signal } from '@angular/core';
 import * as engine from '../engine';
-import { Action, actingSeats, applyAction, autoAction, botAction, createGame, GameSettings, GameState, isView, mapById, rebuild, restoreDevCards, RuleError, Secret, secretOf, VARIANTS, viewFor } from '../engine';
+import { Action, actingSeats, applyAction, autoAction, botAction, botTradeResponse, createGame, GameSettings, GameState, isView, mapById, rebuild, restoreDevCards, RuleError, Secret, secretOf, VARIANTS, viewFor } from '../engine';
 import { LocalTransport } from './local-transport';
 import {
   compareRank,
@@ -81,6 +81,8 @@ export const AWAY_MS = 20000;
 export const BOT_TAKEOVER_MS = 30000;
 /** Pause zwischen zwei Bot-Zügen, damit die anderen mitlesen können. */
 const BOT_STEP_MS = 1200;
+/** Namen für Bots aus der Lobby. */
+const BOT_NAMES = ['Bot Anna', 'Bot Bruno', 'Bot Clara', 'Bot Dario', 'Bot Emma', 'Bot Finn', 'Bot Greta', 'Bot Hugo'];
 /** In diesem Fenster wird dieselbe Aktion auf denselben Stand nur einmal geschickt (Doppelklick). */
 const DUPLICATE_MS = 1500;
 /** Beim Host ändert sich der Stand sofort; ein Doppelklick ist dann nur noch an der Zeit zu erkennen. */
@@ -277,7 +279,7 @@ export class RoomService {
   startGame(): void {
     const room = this.room();
     if (!this.isHost() || !room) return;
-    const present = room.players.filter((p) => p.id === this.clientId || p.peerId);
+    const present = room.players.filter((p) => p.id === this.clientId || p.peerId || p.bot);
     if (present.length < 2) {
       this.showNotice('Es sind weniger als zwei Spieler verbunden.');
       return;
@@ -304,6 +306,17 @@ export class RoomService {
     this.room.set(nextRound({ ...room, players: present }));
     this.game.set({ ...createGame(players, room.settings, seed), id: this.env.randomId() });
     this.broadcast();
+  }
+
+  /** Lobby: einen Bot dazunehmen (Gastgeber, solange Platz ist). Er spielt beim Host. */
+  addBot(): void {
+    const room = this.room();
+    if (!this.isHost() || !room || this.game() || room.players.length >= MAX_PLAYERS) return;
+    const taken = new Set(room.players.map((p) => p.name));
+    const name = BOT_NAMES.find((n) => !taken.has(n)) ?? `Bot ${room.players.length + 1}`;
+    const color = PLAYER_COLORS.find((c) => !room.players.some((p) => p.color === c.hex))!.hex;
+    const bot: LobbyPlayer = { id: `bot-${this.env.randomId()}`, name, color, peerId: null, bot: true };
+    this.mutateRoom((r) => ({ ...r, players: [...r.players, bot] }));
   }
 
   /** Zurück in die Lobby, z. B. für eine neue Runde. */
@@ -517,8 +530,9 @@ export class RoomService {
   private hasQuorum(window = PRESENCE_MS): boolean {
     const game = this.game();
     if (!game) return true;
-    // Neutrale Mitspieler (Duell) zählen nicht mit, sie sind nie verbunden.
-    const ids = game.players.filter((p) => !p.neutral).map((p) => p.id);
+    // Neutrale Mitspieler (Duell) und Bots zählen nicht mit, sie sind nie verbunden.
+    const bots = new Set(this.room()?.players.filter((p) => p.bot).map((p) => p.id));
+    const ids = game.players.filter((p) => !p.neutral && !bots.has(p.id)).map((p) => p.id);
     const reachable = (id: string) => id === this.clientId || this.isConnectedId(id, window);
     const n = ids.filter(reachable).length;
     return 2 * n > ids.length || (2 * n === ids.length && reachable(ids[0]));
@@ -922,7 +936,7 @@ export class RoomService {
     this.mutateRoom((r) => ({
       ...r,
       players: r.players.map((p) =>
-        p.id === playerId ? { ...p, id: claimantId, peerId: claimant.peerId, awaySince: null } : p,
+        p.id === playerId ? { ...p, id: claimantId, peerId: claimant.peerId, awaySince: null, bot: false } : p,
       ),
       spectators: r.spectators.filter((p) => p.id !== claimantId),
     }));
@@ -1006,15 +1020,31 @@ export class RoomService {
     if (!this.isHost() || this.rebuilding || !game || !room || game.phase.kind === 'ended') return;
     const now = this.env.now();
     let wait: number | null = null;
+    if (!this.hasQuorum()) return;
+    // Bots antworten auf Tauschangebote des Spielers am Zug.
+    for (const offer of game.offers) {
+      for (const entry of room.players.filter((p) => p.bot)) {
+        const seat = game.players.findIndex((p) => p.id === entry.id);
+        const accept = seat >= 0 ? botTradeResponse(game, seat, offer) : null;
+        if (accept === null) continue;
+        try {
+          this.game.set(applyAction(game, seat, { type: 'respondTrade', offerId: offer.id, accept }));
+          this.broadcast();
+          return;
+        } catch {
+          // Angebot gerade nicht mehr gültig
+        }
+      }
+    }
     for (const seat of actingSeats(game)) {
       const entry = room.players.find((p) => p.id === game.players[seat].id);
       if (!entry || entry.peerId || entry.id === this.clientId) continue;
-      const away = now - (entry.awaySince ?? now);
+      // Bots aus der Lobby spielen sofort, für getrennte Spieler erst nach BOT_TAKEOVER_MS.
+      const away = entry.bot ? Infinity : now - (entry.awaySince ?? now);
       if (away < BOT_TAKEOVER_MS) {
         wait = Math.min(wait ?? Infinity, BOT_TAKEOVER_MS - away);
         continue;
       }
-      if (!this.hasQuorum()) return;
       const next = this.tryBotMove(game, seat);
       if (!next) continue;
       this.game.set(next);

@@ -13,7 +13,7 @@ import {
   tradeRate,
   victoryPoints,
 } from './rules';
-import { Action, Card, CARDS, COSTS, count, DevCard, emptyResources, GameState, hasResources, Resource, RESOURCES, ResourceCounts } from './types';
+import { Action, Card, CARDS, COSTS, count, DevCard, emptyResources, GameState, hasResources, Resource, RESOURCES, ResourceCounts, TradeOffer, totalResources } from './types';
 
 /**
  * Ein Bot, der für einen getrennten Spieler weiterspielt: baut, kauft, tauscht mit der Bank und setzt
@@ -247,4 +247,26 @@ function playUseful(s: GameState, seat: number, list: Goal[]): Action | null {
     return { type: 'playRoadBuilding' };
   }
   return null;
+}
+
+/**
+ * Antwort auf ein Tauschangebot des Spielers am Zug: annehmen, wenn der Bot dabei etwas bekommt, das
+ * seinem nächsten Ziel fehlt, nichts dafür hergibt, was er selbst dafür braucht, und nicht deutlich mehr
+ * abgibt, als er bekommt. Dem Führenden kurz vor dem Sieg hilft er nicht. null: nichts zu antworten.
+ */
+export function botTradeResponse(s: GameState, seat: number, offer: TradeOffer): boolean | null {
+  if (s.phase.kind !== 'main' || offer.counter || offer.from === seat) return null;
+  if (offer.accepted.includes(seat) || offer.declined.includes(seat)) return null;
+  const hand = s.players[seat].resources;
+  // Aus Sicht des Bots: Er gibt, was der andere will, und bekommt, was der andere gibt.
+  if (!hasResources(hand, offer.want)) return false;
+  if (victoryPoints(s, offer.from, false) >= s.settings.victoryPoints - 2) return false;
+  if (totalResources(offer.want) > totalResources(offer.give) + 1) return false;
+  // Hilft der Tausch einem der Ziele, ohne dass dafür eine Karte abgeht, die dieses Ziel selbst braucht?
+  return goals(s, seat, true).some((g) => {
+    const need = missing(hand, g.cost);
+    const useful = RESOURCES.some((r) => count(offer.give, r) > 0 && need.includes(r));
+    const keeps = CARDS.every((k) => !count(offer.want, k) || count(hand, k) - count(offer.want, k) >= count(g.cost, k));
+    return useful && keeps;
+  });
 }

@@ -8,13 +8,15 @@ export interface LobbyPlayer {
   peerId: string | null;
   /** Seit wann (Uhrzeit des Hosts) der Spieler nicht verbunden ist. */
   awaySince?: number | null;
+  /** Ein Bot, den der Host in der Lobby dazugenommen hat; er spielt beim Host, nie verbunden. */
+  bot?: boolean;
 }
 
 /**
  * Version des Protokolls. Peers mit anderer Version spielen nicht zusammen, weil sich
  * Spielstand oder Nachrichten unterscheiden können; sie bekommen einen Hinweis zum Neuladen.
  */
-export const PROTOCOL_VERSION = 16;
+export const PROTOCOL_VERSION = 17;
 
 export interface RoomInfo {
   code: string;

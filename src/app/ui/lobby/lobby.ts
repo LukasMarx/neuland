@@ -27,7 +27,7 @@ import { MapThumb } from './map-thumb';
             <h3>Spieler <span class="muted">{{ r.players.length }}/{{ maxPlayers }}</span></h3>
             <ul class="players">
               @for (p of r.players; track p.id) {
-                <li [class.offline]="!p.peerId">
+                <li [class.offline]="!p.peerId && !p.bot">
                   <span class="color-dot" [style.background]="p.color"></span>
                   <span class="name">{{ p.name }}</span>
                   @if (p.id === room.clientId) {
@@ -36,7 +36,12 @@ import { MapThumb } from './map-thumb';
                   @if (p.id === r.hostId) {
                     <span class="tag">Gastgeber</span>
                   }
-                  @if (!p.peerId) {
+                  @if (p.bot) {
+                    <span class="tag">🤖 Bot</span>
+                    @if (room.isHost()) {
+                      <button class="small" (click)="room.removePlayer(p.id)">Entfernen</button>
+                    }
+                  } @else if (!p.peerId) {
                     <span class="muted small">getrennt</span>
                     @if (room.isHost()) {
                       <button class="small" (click)="room.removePlayer(p.id)">Entfernen</button>
@@ -45,6 +50,9 @@ import { MapThumb } from './map-thumb';
                 </li>
               }
             </ul>
+            @if (room.isHost() && r.players.length < maxPlayers) {
+              <button class="small add-bot" (click)="room.addBot()" title="Ein Bot spielt mit, bis ein Mitspieler seinen Platz übernimmt">+ Bot hinzufügen</button>
+            }
             @if (r.spectators.length) {
               <p class="muted small">Zuschauer: {{ spectatorNames() }}</p>
             }
@@ -253,6 +261,9 @@ import { MapThumb } from './map-thumb';
     .small {
       font-size: 0.85em;
     }
+.add-bot {
+      margin-top: 10px;
+    }
     .swatches {
       display: flex;
       flex-wrap: wrap;
@@ -417,7 +428,7 @@ export class Lobby {
   protected readonly maps = MAPS;
   protected readonly map = computed(() => mapById(this.room.room()?.settings.map));
   /** Verbundene Spieler; mit ihnen wird gestartet. */
-  protected readonly present = computed(() => this.room.room()?.players.filter((p) => p.peerId).length ?? 0);
+  protected readonly present = computed(() => this.room.room()?.players.filter((p) => p.peerId || p.bot).length ?? 0);
   private readonly shape = computed(() => mapShape(this.map(), Math.max(2, this.present()), { rng: 7 }));
   protected readonly tiles = computed(() => {
     const land = this.shape().filter((c) => c.ch !== '~' && c.ch !== '?').length;

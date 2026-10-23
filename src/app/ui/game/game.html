@@ -23,7 +23,7 @@
           [attr.data-seat]="p.seat"
           [class.active]="p.active"
           [class.neutral]="p.neutral"
-          [class.offline]="!p.online && !p.neutral"
+          [class.offline]="!p.online && !p.neutral && !p.lobbyBot"
           [style.--c]="p.color"
           [title]="p.dev + ' Entwicklungskarten · ' + p.knights + ' Ritter · längste Straße ' + p.road"
         >
@@ -37,6 +37,8 @@
             <small>
               @if (p.neutral) {
                 neutral
+              } @else if (p.lobbyBot) {
+                🤖 {{ p.active ? 'am Zug' : p.cards + ' Karten' }}
               } @else if (p.bot) {
                 🤖 Bot spielt
               } @else if (!p.online) {
