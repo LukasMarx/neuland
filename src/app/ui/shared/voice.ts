@@ -1,14 +1,20 @@
 import { audioSettings, channelVolume } from './audio-settings';
 
 /**
- * Sprecher: Der Berater (Ritter) kommentiert, was mir gelingt, der Erzfeind, was die Gegner tun.
+ * Sprecher: Der Berater (Ritter) kommentiert, was mir gelingt, der Erzfeind, was die Gegner tun, und der Herold
+ * ruft aus, was alle angeht.
  * Jeder hört die Ansagen auf seinem Gerät aus seiner Sicht. Aufnahmen: ElevenLabs, public/audio/.
  */
 
-export type Speaker = 'friend' | 'enemy';
+export type Speaker = 'friend' | 'enemy' | 'herald';
 
 export type VoiceEvent =
   | 'gameStart'
+  | 'setupDone'
+  | 'specialBuildStart'
+  | 'bankEmpty'
+  | 'diceReshuffle'
+  | 'anyWin'
   | 'myTurn'
   | 'mySetupTurn'
   | 'canBuild'
@@ -55,15 +61,39 @@ const first = (speaker: Speaker, id: string, text: string) => clip(speaker, id, 
 
 const SIRE = first('friend', 'zug-sire', 'Nun ist es an Euch, Sire.');
 const WOHLAN = first('friend', 'zug-wohlan', 'Wohlan, Ihr seid am Zug.');
+/** Zugbeginn ohne Würfel: passen auch in der Aufbauphase. */
+const TURN_ANYTIME = [
+  SIRE,
+  WOHLAN,
+  clip('friend', 'zug-volk', 'Euer Volk erwartet Eure Befehle.'),
+  clip('friend', 'zug-reich', 'Das Reich wartet auf Euch, Mylord.'),
+  clip('friend', 'zug-stunde', 'Eure Stunde ist gekommen.'),
+  clip('friend', 'zug-wort', 'Ihr habt das Wort, Mylord.'),
+  clip('friend', 'zug-glueck', 'Möge das Glück Euch hold sein.'),
+  clip('friend', 'zug-herrscht', 'Zeigt ihnen, wer hier herrscht.'),
+];
 const KEIN_WEG = first('friend', 'handelsstrasse-weiter', 'Kein Handelsweg reicht weiter.');
 
 export const VOICE: Record<VoiceEvent, { when: string; clips: VoiceClip[] }> = {
-  gameStart: { when: 'Das Spiel beginnt', clips: [clip('friend', 'reich-gedeihen', 'Möge Euer Reich gedeihen.')] },
+  gameStart: { when: 'Das Spiel beginnt', clips: [clip('herald', 'spiel-beginnt', 'Hört, hört! Das Land ist verteilt. Das Spiel beginnt!')] },
+  setupDone: { when: 'Die Aufbauphase ist vorbei', clips: [clip('herald', 'wuerfel-sprechen', 'Die Siedlungen stehen. Nun sprechen die Würfel!')] },
+  specialBuildStart: { when: 'Eine Sonderbaurunde beginnt', clips: [clip('herald', 'sonderbaurunde', 'Die Sonderbaurunde ist eröffnet!')] },
+  bankEmpty: { when: 'Ein Rohstoff ist in der Bank ausgegangen', clips: [clip('herald', 'bank-leer', 'Die Speicher der Bank sind leer!')] },
+  diceReshuffle: { when: 'Würfelstapel: Die Karten werden neu gemischt', clips: [clip('herald', 'neu-gemischt', 'Die Karten werden neu gemischt!')] },
+  anyWin: { when: 'Jemand gewinnt (vor Berater oder Erzfeind)', clips: [clip('herald', 'neuer-herrscher', 'Hört, hört! Das Land hat einen neuen Herrscher!')] },
   myTurn: {
     when: 'Du bist dran',
-    clips: [SIRE, WOHLAN, first('friend', 'zug-wuerfel', 'Die Würfel warten auf Euch, Mylord.')],
+    clips: [
+      ...TURN_ANYTIME,
+      first('friend', 'zug-wuerfel', 'Die Würfel warten auf Euch, Mylord.'),
+      clip('friend', 'zug-wuerfel-glueck', 'Nehmt die Würfel, Sire. Das Glück ist mit Euch.'),
+      clip('friend', 'zug-neues', 'Auf ein Neues, Mylord.'),
+    ],
   },
-  mySetupTurn: { when: 'Du bist dran in der Aufbauphase', clips: [SIRE, WOHLAN] },
+  mySetupTurn: {
+    when: 'Du bist dran in der Aufbauphase',
+    clips: [...TURN_ANYTIME, clip('friend', 'reich-gedeihen', 'Möge Euer Reich gedeihen.')],
+  },
   canBuild: {
     when: 'Nach deinem Wurf, wenn du eine Siedlung oder Stadt bauen kannst (höchstens jeden dritten Zug)',
     clips: [first('friend', 'bauen-befehl', 'Die Bauleute warten auf Euren Befehl.'), clip('friend', 'bauen-vorraete', 'Eure Vorräte reichen für ein neues Bauwerk.')],
@@ -111,8 +141,8 @@ export const VOICE: Record<VoiceEvent, { when: string; clips: VoiceClip[] }> = {
     when: 'Du gewinnst',
     clips: [clip('friend', 'sieg-koenig', 'Lang lebe der König!'), clip('friend', 'sieg-reich', 'Der Sieg ist Euer, Mylord. Das Reich gehört Euch.')],
   },
-  playerLeft: { when: 'Ein Mitspieler verliert die Verbindung', clips: [first('friend', 'spieler-verlassen', 'Ein Spieler hat das Spiel verlassen.')] },
-  playerBack: { when: 'Ein Mitspieler ist wieder da', clips: [first('friend', 'spieler-zurueck', 'Ein Spieler ist zurückgekehrt.')] },
+  playerLeft: { when: 'Ein Mitspieler verliert die Verbindung', clips: [clip('herald', 'spieler-verlassen', 'Hört, hört! Ein Spieler hat die Tafel verlassen.')] },
+  playerBack: { when: 'Ein Mitspieler ist wieder da', clips: [clip('herald', 'spieler-zurueck', 'Ein Spieler ist an die Tafel zurückgekehrt!')] },
   robbedMe: {
     when: 'Ein Gegner raubt dich aus',
     clips: [
@@ -167,8 +197,8 @@ export const clipUrl = (c: VoiceClip) => `audio/${c.speaker}/${c.id}.${c.ext}`;
 
 /** Bei voll aufgedrehtem Regler; mal der Lautstärke des Kanals „Sprecher“. */
 const MAX_VOLUME = 0.95;
-/** Ansagen, die so lange warten mussten, kommen nicht mehr: Der Moment ist vorbei. */
-const STALE_MS = 4000;
+/** Ansagen, die so lange warten mussten, kommen nicht mehr: Der Moment ist vorbei. Etwas länger als der längste Satz. */
+const STALE_MS = 6500;
 /** Grobe Länge, bis die Datei ihre echte Dauer kennt. */
 const GUESS_SECONDS = 3;
 
@@ -176,20 +206,23 @@ const GUESS_SECONDS = 3;
 export class Announcer {
   private current: HTMLAudioElement | null = null;
   private queue: { clip: VoiceClip; at: number; volume: number }[] = [];
-  private readonly last = new Map<VoiceEvent, string>();
+  /** Zuletzt gespielte Fassungen je Ereignis, neueste zuerst. */
+  private readonly recent = new Map<VoiceEvent, string[]>();
 
   constructor(private readonly onSpeak: (seconds: number) => void = () => undefined) {}
 
   /**
    * Eine Ansage zu einem Ereignis, nach `delayMs`, mit der Lautstärke des Kanals „Sprecher“ (aus: still).
-   * Bei mehreren Fassungen nie zweimal dieselbe hintereinander.
+   * Eine Fassung kommt erst wieder, wenn mindestens die Hälfte der anderen gelaufen ist.
    */
   say(event: VoiceEvent, delayMs = 0): void {
     if (channelVolume('voice') <= 0) return;
     const clips = VOICE[event].clips;
-    const options = clips.length > 1 ? clips.filter((c) => c.id !== this.last.get(event)) : clips;
+    const recent = this.recent.get(event) ?? [];
+    const blocked = new Set(recent.slice(0, Math.max(1, Math.floor(clips.length / 2))));
+    const options = clips.length > 1 ? clips.filter((c) => !blocked.has(c.id)) : clips;
     const chosen = options[Math.floor(Math.random() * options.length)];
-    this.last.set(event, chosen.id);
+    this.recent.set(event, [chosen.id, ...recent.filter((id) => id !== chosen.id)].slice(0, clips.length));
     setTimeout(() => this.enqueue(chosen, channelVolume('voice')), delayMs);
   }
 

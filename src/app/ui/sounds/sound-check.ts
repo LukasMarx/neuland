@@ -7,6 +7,7 @@ import { Announcer, Speaker, VOICE, VoiceClip } from '../shared/voice';
 const SPEAKERS: { id: Speaker; name: string; role: string }[] = [
   { id: 'friend', name: 'Berater', role: 'kommentiert, was dir gelingt' },
   { id: 'enemy', name: 'Erzfeind', role: 'kommentiert, was deine Gegner tun' },
+  { id: 'herald', name: 'Herold', role: 'ruft aus, was alle angeht' },
 ];
 
 /** Jeder Satz einmal, mit allen Anlässen, zu denen er kommt. */

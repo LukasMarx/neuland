@@ -6,7 +6,7 @@ import { Announcer, VOICE } from './voice';
 const CHANNELS: { id: AudioChannel; name: string; hint: string }[] = [
   { id: 'music', name: 'Musik', hint: 'Mittelalterliche Hintergrundmusik' },
   { id: 'effects', name: 'Effekte', hint: 'Würfelklappern' },
-  { id: 'voice', name: 'Sprecher', hint: 'Berater und Erzfeind kommentieren das Spiel' },
+  { id: 'voice', name: 'Sprecher', hint: 'Berater, Erzfeind und Herold kommentieren das Spiel' },
 ];
 
 /** Einstellungen mit Reitern; vorerst nur „Audio“. Alles wird sofort übernommen und gespeichert. */

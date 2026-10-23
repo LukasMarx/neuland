@@ -1,4 +1,4 @@
-import { GameState, getTopology, victoryPoints, victoryTarget } from '../../engine';
+import { GameState, getTopology, RESOURCES, victoryPoints, victoryTarget } from '../../engine';
 import { VoiceEvent } from '../shared/voice';
 
 /** Ab so vielen Rohstoffen aus einem Wurf freut sich der Berater über die Ernte. */
@@ -14,14 +14,21 @@ export function voiceEvents(prev: GameState, next: GameState, seat: number): Voi
   if (seat < 0 || next.version <= prev.version) return [];
   const isEnemy = (s: number | null) => s !== null && s !== seat && !next.players[s]?.neutral;
 
-  // Der Sieg übertönt alles andere.
+  // Der Sieg übertönt alles andere: erst der Herold, dann Berater oder Erzfeind.
   if (next.phase.kind === 'ended' && prev.phase.kind !== 'ended') {
-    if (next.winner === seat) return ['myWin'];
-    return isEnemy(next.winner) ? ['enemyWin'] : [];
+    if (next.winner === seat) return ['anyWin', 'myWin'];
+    return isEnemy(next.winner) ? ['anyWin', 'enemyWin'] : ['anyWin'];
   }
 
   const events: VoiceEvent[] = [];
   const setup = next.phase.kind === 'setup';
+
+  // Herold: Ende der Aufbauphase, Beginn einer Sonderbaurunde, leere Bank, neu gemischter Würfelstapel.
+  if (prev.phase.kind === 'setup' && !setup) events.push('setupDone');
+  if (next.phase.kind === 'specialBuild' && prev.phase.kind !== 'specialBuild') events.push('specialBuildStart');
+  if (RESOURCES.some((r) => prev.bank[r] > 0 && next.bank[r] === 0)) events.push('bankEmpty');
+  const deckSize = (s: GameState) => Object.values(s.diceDeck ?? {}).reduce((a, n) => a + n, 0);
+  if (prev.diceDeck && next.diceDeck && deckSize(next) > deckSize(prev)) events.push('diceReshuffle');
   const fromPlayer = (t: GameState['transfers'][number], a: (s: number) => boolean, b: (s: number) => boolean) =>
     t.from.kind === 'player' && t.to.kind === 'player' && a(t.from.seat) && b(t.to.seat);
   const me = (s: number) => s === seat;

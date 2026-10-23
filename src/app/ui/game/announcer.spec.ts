@@ -65,11 +65,11 @@ describe('Sprecher: Ereignisse aus meiner Sicht', () => {
     expect(voiceEvents(prev, other, 0)).toEqual([]);
   });
 
-  it('meine Sonderbaurunde beginnt', () => {
+  it('Sonderbaurunde: der Herold eröffnet, der Berater meldet meine', () => {
     const prev = game();
     const special = step(prev, (s) => (s.phase = { kind: 'specialBuild', queue: [2, 0] }));
-    expect(voiceEvents(prev, special, 2)).toEqual(['mySpecialBuild']);
-    expect(voiceEvents(prev, special, 0)).toEqual([]);
+    expect(voiceEvents(prev, special, 2)).toEqual(['specialBuildStart', 'mySpecialBuild']);
+    expect(voiceEvents(prev, special, 0)).toEqual(['specialBuildStart']);
     const next = step(special, (s) => (s.phase = { kind: 'specialBuild', queue: [0] }));
     expect(voiceEvents(special, next, 0)).toEqual(['mySpecialBuild']);
   });
@@ -97,8 +97,8 @@ describe('Sprecher: Ereignisse aus meiner Sicht', () => {
       s.winner = 1;
       s.longestRoad = 1;
     });
-    expect(voiceEvents(prev, won, 1)).toEqual(['myWin']);
-    expect(voiceEvents(prev, won, 0)).toEqual(['enemyWin']);
+    expect(voiceEvents(prev, won, 1)).toEqual(['anyWin', 'myWin']);
+    expect(voiceEvents(prev, won, 0)).toEqual(['anyWin', 'enemyWin']);
   });
 
   it('Handelsstraße verloren: erst der Berater, dann spottet der Erzfeind', () => {
@@ -164,6 +164,19 @@ describe('Sprecher: Ereignisse aus meiner Sicht', () => {
     expect(voiceEvents(prev, close, 0)).toEqual(['myMatchPoint']);
     // Verdeckte Siegpunktkarten eines Gegners sieht niemand.
     expect(voiceEvents(prev, close, 1)).toEqual([]);
+  });
+
+  it('Herold: Ende der Aufbauphase, leere Bank, neu gemischter Würfelstapel', () => {
+    const setup = { ...game(), phase: { kind: 'setup' as const, order: [0, 1, 2], index: 5, step: 'road' as const, settlement: null } };
+    expect(voiceEvents(setup, step(setup, (s) => (s.phase = { kind: 'roll' })), 0)).toEqual(['setupDone']);
+
+    const prev = game();
+    expect(voiceEvents(prev, step(prev, (s) => (s.bank = { ...s.bank, ore: 0 })), 0)).toEqual(['bankEmpty']);
+
+    const deck = { ...prev, diceDeck: { 2: 0, 3: 1, 4: 0, 5: 0, 6: 0, 7: 1, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0 } };
+    const reshuffled = step(deck, (s) => (s.diceDeck = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1 }));
+    expect(voiceEvents(deck, reshuffled, 0)).toEqual(['diceReshuffle']);
+    expect(voiceEvents(deck, step(deck, (s) => (s.diceDeck = { ...deck.diceDeck!, 7: 0 })), 0)).toEqual([]);
   });
 
   it('nichts bei altem Stand oder als Zuschauer', () => {
