@@ -23,7 +23,10 @@ COLORS = {
     "white": ("Weiß", "#f4f1e8", True),
     "orange": ("Orange", "#ee8a1c", True),
     "green": ("Grün", "#2f9a48", True),
-    "brown": ("Braun", "#7b4a2a", True),
+    # Seit 23.10.2026 statt Braun und Goldgelb in der Lobby; die alten bleiben für gespeicherte Spiele.
+    "black": ("Schwarz", "#2e2b2f", True),
+    "pink": ("Pink", "#e0569f", False),
+    "brown": ("Braun", "#7b4a2a", False),
     "grey-light": ("Hellgrau", "#9aa1a8", False),
     "grey-dark": ("Dunkelgrau", "#5d646c", False),
 }

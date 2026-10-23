@@ -1,5 +1,6 @@
 import { afterRenderEffect, Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { RoomService } from '../../net/room.service';
+import { uiColor } from './player-color';
 
 @Component({
   selector: 'app-chat-box',
@@ -72,8 +73,8 @@ export class ChatBox {
 
   protected colorOf(id: string): string {
     const color = this.room.room()?.players.find((p) => p.id === id)?.color;
-    // Weiß ist auf hellem Grund unlesbar.
-    return !color || color === '#f4f1e8' ? 'var(--text)' : color;
+    // Weiß sähe aus wie eine Hervorhebung, Schwarz verschwindet auf dem dunklen Grund.
+    return !color || color === '#f4f1e8' ? 'var(--text)' : uiColor(color);
   }
 
   protected send(event: Event): void {

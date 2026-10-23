@@ -31,7 +31,7 @@ describe('Papierfiguren auf dem Brett', () => {
 
   it('zeigt Stadt, Siedlung und Straßen für alle acht Lobbyfarben', () => {
     const { element, game } = render();
-    for (const color of ['red', 'blue', 'white', 'orange', 'green', 'brown', 'gold', 'purple']) {
+    for (const color of ['red', 'blue', 'white', 'orange', 'green', 'black', 'pink', 'purple']) {
       expect(element.querySelectorAll(`.building image[href$="city-${color}.png"]`)).toHaveLength(1);
       expect(element.querySelectorAll(`.building image[href$="settlement-${color}.png"]`)).toHaveLength(1);
       expect(element.querySelector(`.road image[href$="road-${color}.png"]`)).not.toBeNull();

@@ -62,9 +62,11 @@ export const PLAYER_COLORS = [
   { hex: '#f4f1e8', name: 'Weiß' },
   { hex: '#ee8a1c', name: 'Orange' },
   { hex: '#2f9a48', name: 'Grün' },
-  { hex: '#7b4a2a', name: 'Braun' },
+  // Schwarz und Pink statt Braun und Gold (23.10.2026): Braun verschwand auf Lehm und neben Rot,
+  // Gold lag zu nah an Orange. Figuren in den alten Farben gibt es weiter für gespeicherte Spiele.
+  { hex: '#2e2b2f', name: 'Schwarz' },
   // Für 7–8 Spieler.
-  { hex: '#d5a824', name: 'Gold' },
+  { hex: '#e0569f', name: 'Pink' },
   { hex: '#8152b3', name: 'Violett' },
 ];
 

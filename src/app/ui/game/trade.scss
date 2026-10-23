@@ -196,6 +196,7 @@
   height: 12px;
   border-radius: 50%;
   background: var(--c);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.3);
 }
 
 .hint {
@@ -318,6 +319,7 @@
     height: 9px;
     border-radius: 50%;
     background: var(--c);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.3);
   }
 
   .ok {

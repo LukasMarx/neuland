@@ -55,7 +55,7 @@
   table { border-collapse: separate; border-spacing: 3px; }
   th { font-size: 11px; font-weight: 700; color: var(--muted); text-align: left; padding: 0 4px; white-space: nowrap; }
   td { padding: 0; }
-  .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: 0; border: 1px solid #0006; }
+  .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: 0; border: 1px solid #fff5; }
   .map { filter: saturate(var(--sat, 0.8)); }
   input[type='range'] { width: 110px; accent-color: var(--accent); }
   output { font-size: 13px; font-variant-numeric: tabular-nums; min-width: 2.6em; }
@@ -80,11 +80,15 @@
     <div class="group" id="zoom"><span>Lupe</span></div>
     <label><input type="checkbox" id="haloA" checked /> Rand bei A</label>
     <label><input type="checkbox" id="haloB" /> Rand bei B</label>
+  </div>
+  <div class="controls" style="position: static; border-bottom: 0; margin-top: 0; padding-top: 0">
+    <div class="group" id="palette"><span>Farben</span></div>
+    <div class="group" id="vision"><span>Farbsehen</span></div>
     <label>Sättigung Karte <input type="range" id="sat" min="0.4" max="1" step="0.05" value="0.8" /> <output id="satValue">80 %</output></label>
   </div>
 
   <h2>Am Brett</h2>
-  <p>Acht Spieler auf sieben Feldern, dazu je eine Straße. Wer gehört wem? Reihenfolge rundherum ab oben: Rot, Blau, Weiß, Orange, Grün, Braun, Gold, Violett.</p>
+  <p>Acht Spieler auf sieben Feldern, dazu je eine Straße. Wer gehört wem? Reihenfolge rundherum ab oben: <span id="order"></span>.</p>
   <div class="variants" id="scenes"></div>
 
   <h2>Jede Farbe auf jedem Gelände</h2>
@@ -95,6 +99,8 @@
   <h2>Beobachtungen</h2>
   <p class="note"><b>A</b> wird nur durch den Rand eindeutig, im Inneren bleibt ein beiges Dorf. Ohne Rand verschwimmen Weiß, Gold, Braun und Orange.</p>
   <p class="note"><b>B</b> ist kleiner als A und auf Acker und Wüste bei Weiß, Gold und Braun schwach; die Stadt hilft nicht, weil sie wieder nur kleine Dächer hat.</p>
+  <p class="note"><b>Farben.</b> Braun und Gold sind die Problemfarben: Braun verschwindet auf Lehm und neben Rot, Gold liegt zu nah an Orange und auf Acker und Wüste. <b>Schwarz + Pink</b> ersetzt beide durch Farben, die sich in Helligkeit (Schwarz) oder Farbton (Pink) von allem anderen abheben. <b>Türkis + Pink</b> ist bunter, Türkis liegt aber zwischen Blau und Grün.</p>
+  <p class="note"><b>Farbsehen.</b> Bei Rot-Grün-Schwäche (Deuteranopie, Protanopie) fallen Rot, Grün, Orange (und in der aktuellen Palette Braun und Gold) zu ähnlichen Oliv- und Gelbtönen zusammen, Blau und Violett ebenso. Schwarz + Pink löst davon Braun und Gold; bei Protanopie rückt Pink allerdings an Blau und Violett heran und bleibt nur durch die Helligkeit getrennt. Rot/Grün/Orange und Blau/Violett lassen sich mit keiner Palette trennen, die die klassischen Farben behält. Dafür bräuchte es ein zweites Merkmal (Form oder Symbol).</p>
   <p class="note"><b>C</b> ist auf jedem Gelände in jeder Farbe eindeutig, auch bei 7–8 Spielern. Am knappsten sind Orange und Gold. Der Stilbruch zu den gemalten Feldern ist sichtbar, wirkt aber wie Holzfiguren auf einem gedruckten Brett.</p>
 </main>
 
@@ -103,16 +109,34 @@ const WEB = '/public/web/';
 const S = 60;
 const SQ3 = Math.sqrt(3);
 
-const COLORS = [
-  { hex: '#d23c3c', name: 'Rot', file: 'red' },
-  { hex: '#2f64d6', name: 'Blau', file: 'blue' },
-  { hex: '#f4f1e8', name: 'Weiß', file: 'white' },
-  { hex: '#ee8a1c', name: 'Orange', file: 'orange' },
-  { hex: '#2f9a48', name: 'Grün', file: 'green' },
-  { hex: '#7b4a2a', name: 'Braun', file: 'brown' },
-  { hex: '#d5a824', name: 'Gold', file: 'gold' },
-  { hex: '#8152b3', name: 'Violett', file: 'purple' },
-];
+// `file`: vorhandene Grafikvariante in public/web/pieces; ohne färbt die Seite Grundbild und Maske selbst um.
+const C = {
+  red: { id: 'red', hex: '#d23c3c', name: 'Rot', file: 'red' },
+  blue: { id: 'blue', hex: '#2f64d6', name: 'Blau', file: 'blue' },
+  white: { id: 'white', hex: '#f4f1e8', name: 'Weiß', file: 'white' },
+  orange: { id: 'orange', hex: '#ee8a1c', name: 'Orange', file: 'orange' },
+  green: { id: 'green', hex: '#2f9a48', name: 'Grün', file: 'green' },
+  brown: { id: 'brown', hex: '#7b4a2a', name: 'Braun', file: 'brown' },
+  gold: { id: 'gold', hex: '#d5a824', name: 'Gold', file: 'gold' },
+  purple: { id: 'purple', hex: '#8152b3', name: 'Violett', file: 'purple' },
+  black: { id: 'black', hex: '#2e2b2f', name: 'Schwarz' },
+  pink: { id: 'pink', hex: '#e0569f', name: 'Pink' },
+  teal: { id: 'teal', hex: '#14a0a6', name: 'Türkis' },
+};
+const PALETTES = {
+  current: { label: 'Bis 23.10.', colors: [C.red, C.blue, C.white, C.orange, C.green, C.brown, C.gold, C.purple] },
+  black: { label: 'Schwarz + Pink (im Spiel)', colors: [C.red, C.blue, C.white, C.orange, C.green, C.black, C.pink, C.purple] },
+  teal: { label: 'Türkis + Pink', colors: [C.red, C.blue, C.white, C.orange, C.green, C.teal, C.pink, C.purple] },
+};
+const colors = () => PALETTES[state.palette].colors;
+
+// Farbsehschwächen nach Machado et al. (2009), volle Ausprägung, in linearem RGB.
+const VISIONS = {
+  normal: { label: 'Normal' },
+  deut: { label: 'Deuteranopie', m: [0.367322, 0.860646, -0.227968, 0.280085, 0.672501, 0.047413, -0.01182, 0.04294, 0.968881] },
+  prot: { label: 'Protanopie', m: [0.152286, 1.052583, -0.204868, 0.114503, 0.786281, 0.099216, -0.003882, -0.048116, 1.051998] },
+  trit: { label: 'Tritanopie', m: [1.255528, -0.076749, -0.178779, -0.078411, 0.930809, 0.147602, 0.004733, 0.691367, 0.3039] },
+};
 
 const TERRAINS = [
   { id: 'wood', name: 'Wald' },
@@ -131,7 +155,7 @@ const SCALES = {
 };
 const ZOOMS = { 1: '1×', 2: '2×' };
 
-const state = { scale: 'p6', zoom: 1, haloA: true, haloB: false, piece: 'settlement' };
+const state = { scale: 'p6', zoom: 1, haloA: true, haloB: false, piece: 'settlement', palette: 'current', vision: 'normal' };
 
 const VARIANTS = [
   {
@@ -167,8 +191,12 @@ function renderDefs() {
     <feGaussianBlur in="${src}" stdDeviation="1.5" />
     <feOffset dy="2" />
     <feComponentTransfer result="shadow"><feFuncA type="linear" slope="0.5" /></feComponentTransfer>`;
-  const halos = COLORS.map((c) => `
-    <filter id="halo-${c.file}" x="-30%" y="-60%" width="160%" height="220%" color-interpolation-filters="sRGB">
+  const cvd = Object.entries(VISIONS).filter(([, v]) => v.m).map(([id, { m }]) => `
+    <filter id="cvd-${id}" color-interpolation-filters="linearRGB">
+      <feColorMatrix type="matrix" values="${m.slice(0, 3).join(' ')} 0 0  ${m.slice(3, 6).join(' ')} 0 0  ${m.slice(6).join(' ')} 0 0  0 0 0 1 0" />
+    </filter>`).join('');
+  const halos = Object.values(C).map((c) => `
+    <filter id="halo-${c.id}" x="-30%" y="-60%" width="160%" height="220%" color-interpolation-filters="sRGB">
       <feMorphology in="SourceAlpha" operator="dilate" radius="${3 * k}" result="ring" />
       <feMorphology in="SourceAlpha" operator="dilate" radius="${4 * k}" result="rim" />
       ${shadow('rim')}
@@ -179,7 +207,7 @@ function renderDefs() {
       <feMerge><feMergeNode in="shadow" /><feMergeNode in="rim-fill" /><feMergeNode in="ring-fill" /><feMergeNode in="SourceGraphic" /></feMerge>
     </filter>`).join('');
   document.getElementById('defs').innerHTML = `
-    ${halos}
+    ${cvd}${halos}
     <!-- Bisheriger dünner dunkler Rand (.piece-art). -->
     <filter id="thin" x="-30%" y="-60%" width="160%" height="220%" color-interpolation-filters="sRGB">
       <feMorphology in="SourceAlpha" operator="dilate" radius="0.6" result="rim" />
@@ -245,7 +273,7 @@ const FLAT_SCALE = { settlement: 1.35, city: 1.5 };
 function pieceFilter(variant, color) {
   if (variant === 'C') return 'url(#paper)';
   const halo = variant === 'A' ? state.haloA : state.haloB;
-  return halo ? `url(#halo-${color.file})` : 'url(#thin)';
+  return halo ? `url(#halo-${color.id})` : 'url(#thin)';
 }
 
 function building(variant, kind, color, x, y) {
@@ -256,9 +284,8 @@ function building(variant, kind, color, x, y) {
     const shape = kind === 'city' ? flatCity(color.hex) : flatSettlement(color.hex);
     return `<g filter="${filter}"><g transform="translate(${x},${y}) scale(${s})">${shape}</g></g>`;
   }
-  const set = variant === 'A' ? 'papiercollage-organic-v2' : 'papiercollage';
   const size = BUILDING_SIZE[kind] * k;
-  return `<image href="${WEB}pieces/${set}/${kind}-${color.file}.png" filter="${filter}"
+  return `<image href="${art(variant === 'A' ? 'organic' : 'paper', kind, color)}" filter="${filter}"
     x="${x - size / 2}" y="${y - size / 2}" width="${size}" height="${size}" />`;
 }
 
@@ -269,8 +296,100 @@ function road(variant, color, a, b) {
   const filter = pieceFilter(variant, color);
   const body = variant === 'C'
     ? flatRoad(color.hex, length)
-    : `<image href="${WEB}pieces/papiercollage/road-${color.file}.png" x="${-length / 2}" y="${-length / 8}" width="${length}" height="${length / 4}" />`;
+    : `<image href="${art('paper', 'road', color)}" x="${-length / 2}" y="${-length / 8}" width="${length}" height="${length / 4}" />`;
   return `<g filter="${filter}"><g transform="${transform}">${body}</g></g>`;
+}
+
+// ---------- Umfärben wie scripts/build-piece-assets.py (tint), für Farben ohne Grafikdatei ----------
+const SOURCES = {
+  organic: { dir: '/output/designs/organic-pieces-2026-10-22', web: 'papiercollage-organic-v2' },
+  paper: { dir: '/output/designs/pieces-2026-10-21', web: 'papiercollage' },
+};
+const generated = new Map();
+
+function art(set, kind, color) {
+  if (color.file) return `${WEB}pieces/${SOURCES[set].web}/${kind}-${color.file}.png`;
+  return generated.get(`${set}/${kind}/${color.id}`) ?? '';
+}
+
+async function pixels(url) {
+  const img = new Image();
+  img.src = url;
+  await img.decode();
+  const canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  return ctx.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+function rgbToHls(r, g, b) {
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+  if (max === min) return [0, l, 0];
+  const d = max - min;
+  const s = l <= 0.5 ? d / (max + min) : d / (2 - max - min);
+  const rc = (max - r) / d, gc = (max - g) / d, bc = (max - b) / d;
+  const h = r === max ? bc - gc : g === max ? 2 + rc - bc : 4 + gc - rc;
+  return [(((h / 6) % 1) + 1) % 1, l, s];
+}
+
+function tint(base, mask, hex) {
+  const px = base.data, w = mask.data, n = px.length / 4;
+  const light = new Float32Array(n);
+  const active = [];
+  for (let i = 0; i < n; i++) {
+    const r = px[i * 4] / 255, g = px[i * 4 + 1] / 255, b = px[i * 4 + 2] / 255;
+    light[i] = (Math.max(r, g, b) + Math.min(r, g, b)) / 2;
+    if (w[i * 4] / 255 > 0.95 && px[i * 4 + 3] > 240) active.push(light[i]);
+  }
+  active.sort((a, b) => a - b);
+  const middle = active[Math.floor(active.length / 2)];
+  const [hue, l, sat] = rgbToHls(...hex.match(/\w\w/g).map((v) => parseInt(v, 16) / 255));
+  const target = Math.min(l, 0.83);
+  const sector = Math.floor(hue * 6) % 6;
+  const out = new ImageData(new Uint8ClampedArray(px), base.width, base.height);
+  for (let i = 0; i < n; i++) {
+    const weight = w[i * 4] / 255;
+    if (!weight) continue;
+    const L = light[i];
+    const mapped = L <= middle ? (L / Math.max(middle, 0.001)) * target : target + ((L - middle) / Math.max(1 - middle, 0.001)) * (1 - target);
+    const chroma = (1 - Math.abs(2 * mapped - 1)) * sat;
+    const x = chroma * (1 - Math.abs(((hue * 6) % 2) - 1));
+    const rgb = [[chroma, x, 0], [x, chroma, 0], [0, chroma, x], [0, x, chroma], [x, 0, chroma], [chroma, 0, x]][sector];
+    for (let c = 0; c < 3; c++) {
+      const colored = rgb[c] + (mapped - chroma / 2);
+      out.data[i * 4 + c] = Math.round(Math.min(1, Math.max(0, (px[i * 4 + c] / 255) * (1 - weight) + colored * weight)) * 255);
+    }
+  }
+  return out;
+}
+
+async function prepareArt() {
+  const jobs = [];
+  for (const color of colors().filter((c) => !c.file)) {
+    for (const [set, kind] of [['organic', 'settlement'], ['organic', 'city'], ['paper', 'settlement'], ['paper', 'city'], ['paper', 'road']]) {
+      const key = `${set}/${kind}/${color.id}`;
+      if (generated.has(key)) continue;
+      jobs.push((async () => {
+        const dir = SOURCES[set].dir;
+        const [base, mask] = await Promise.all([pixels(`${dir}/sources/${kind}-base.png`), pixels(`${dir}/masks/${kind}.png`)]);
+        const full = document.createElement('canvas');
+        full.width = base.width;
+        full.height = base.height;
+        full.getContext('2d').putImageData(tint(base, mask, color.hex), 0, 0);
+        // Wie die Web-Fassungen: 160 px breit.
+        const small = document.createElement('canvas');
+        small.width = 160;
+        small.height = Math.round((160 * base.height) / base.width);
+        const ctx = small.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(full, 0, 0, small.width, small.height);
+        generated.set(key, small.toDataURL('image/png'));
+      })());
+    }
+  }
+  await Promise.all(jobs);
 }
 
 // ---------- Gelände ----------
@@ -289,11 +408,12 @@ function tile(terrain, cx, cy) {
 function token(cx, cy, n) {
   const k = SCALES[state.scale].k;
   const red = n === 6 || n === 8;
-  return `<g transform="translate(${cx},${cy + S * 0.05}) scale(${k})">
-    <circle r="15" cy="1.5" fill="rgb(0 0 0 / 0.28)" />
-    <circle r="15" fill="#f3ead6" stroke="#8a7550" stroke-width="1.2" />
-    <circle r="12" fill="none" stroke="#c9b385" stroke-width="1" />
-    <text y="5.5" text-anchor="middle" font-size="15" font-weight="900" fill="${red ? '#b3261e' : '#2b2216'}" font-family="Nunito Sans, sans-serif">${n}</text>
+  // Wie im Spiel: Marken 0,75 × Figurenmaßstab, Scheibe 0,3 Feldradien.
+  return `<g transform="translate(${cx},${cy + S * 0.05}) scale(${k * 0.75})">
+    <circle r="18" cy="1.5" fill="rgb(0 0 0 / 0.28)" />
+    <circle r="18" fill="#f3ead6" stroke="#8a7550" stroke-width="1.2" />
+    <circle r="15" fill="none" stroke="#c9b385" stroke-width="0.8" />
+    <text y="6.5" text-anchor="middle" font-size="19" font-weight="900" fill="${red ? '#b3261e' : '#2b2216'}" font-family="Nunito Sans, sans-serif">${n}</text>
   </g>`;
 }
 
@@ -349,8 +469,8 @@ function sceneSvg(variant) {
   const px = ppu * state.zoom;
   const tiles = scene.hexes.map((hx) => tile(hx.t, hx.x, hx.y)).join('');
   const tokens = scene.hexes.filter((hx) => hx.n).map((hx) => token(hx.x, hx.y, hx.n)).join('');
-  const roads = scene.roads.map(([a, b], i) => road(variant, COLORS[i], a, b)).join('');
-  const buildings = scene.spots.map((p, i) => building(variant, CITY_SEATS.has(i) ? 'city' : 'settlement', COLORS[i], p.x, p.y)).join('');
+  const roads = scene.roads.map(([a, b], i) => road(variant, colors()[i], a, b)).join('');
+  const buildings = scene.spots.map((p, i) => building(variant, CITY_SEATS.has(i) ? 'city' : 'settlement', colors()[i], p.x, p.y)).join('');
   return `<svg viewBox="${minX} ${minY} ${w} ${h}" width="${w * px}" height="${h * px}" role="img" aria-label="Brettausschnitt ${variant}">
     <image class="map" href="${WEB}tiles/papiercollage/ocean.jpg" x="${minX}" y="${minY}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" />
     ${tiles}${tokens}${roads}${buildings}
@@ -374,7 +494,7 @@ function cellSvg(variant, terrain, color) {
 
 function gridHtml(variant) {
   const head = `<tr><th></th>${TERRAINS.map((t) => `<th>${t.name}</th>`).join('')}</tr>`;
-  const rows = COLORS.map((c) => `<tr><th><span class="swatch" style="background:${c.hex}"></span>${c.name}</th>${
+  const rows = colors().map((c) => `<tr><th><span class="swatch" style="background:${c.hex}"></span>${c.name}</th>${
     TERRAINS.map((t) => `<td>${cellSvg(variant, t, c)}</td>`).join('')}</tr>`).join('');
   return `<table>${head}${rows}</table>`;
 }
@@ -386,9 +506,12 @@ function card(v, body) {
 
 function render() {
   renderDefs();
+  document.getElementById('order').textContent = colors().map((c) => c.name).join(', ');
+  const vision = state.vision === 'normal' ? '' : `url(#cvd-${state.vision})`;
+  for (const id of ['scenes', 'grids']) document.getElementById(id).style.filter = vision;
   document.getElementById('scenes').innerHTML = VARIANTS.map((v) => card(v, sceneSvg(v.id))).join('');
   document.getElementById('grids').innerHTML = VARIANTS.map((v) => card(v, gridHtml(v.id))).join('');
-  for (const [id, value] of [['scale', state.scale], ['zoom', String(state.zoom)], ['piece', state.piece]]) {
+  for (const [id, value] of [['scale', state.scale], ['zoom', String(state.zoom)], ['piece', state.piece], ['palette', state.palette], ['vision', state.vision]]) {
     document.querySelectorAll(`#${id} button`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === value)));
   }
 }
@@ -408,13 +531,22 @@ function buttons(id, options, apply) {
 buttons('scale', Object.fromEntries(Object.entries(SCALES).map(([k, v]) => [k, v.label])), (v) => (state.scale = v));
 buttons('zoom', ZOOMS, (v) => (state.zoom = Number(v)));
 buttons('piece', { settlement: 'Siedlung', city: 'Stadt' }, (v) => (state.piece = v));
+buttons('vision', Object.fromEntries(Object.entries(VISIONS).map(([k, v]) => [k, v.label])), (v) => (state.vision = v));
+for (const [value, p] of Object.entries(PALETTES)) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.dataset.value = value;
+  b.textContent = p.label;
+  b.addEventListener('click', async () => { state.palette = value; await prepareArt(); render(); });
+  document.getElementById('palette').append(b);
+}
 document.getElementById('haloA').addEventListener('change', (e) => { state.haloA = e.target.checked; render(); });
 document.getElementById('haloB').addEventListener('change', (e) => { state.haloB = e.target.checked; render(); });
 document.getElementById('sat').addEventListener('input', (e) => {
   document.body.style.setProperty('--sat', e.target.value);
   document.getElementById('satValue').textContent = `${Math.round(e.target.value * 100)} %`;
 });
-render();
+prepareArt().then(render);
 </script>
 </body>
 </html>

@@ -247,7 +247,7 @@ function scene(id: SceneId): Omit<SceneModel, 'viewBox'> & { viewBox?: string } 
       };
     }
     case 'specialBuild': {
-      const colors = ['red', 'blue', 'green', 'gold'];
+      const colors = ['red', 'blue', 'green', 'pink'];
       const sprites = colors.map((color, i) => ({
         x: i * 110,
         y: 0,

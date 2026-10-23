@@ -1,5 +1,6 @@
 import { Component, computed, input, signal } from '@angular/core';
 import { GameState, victoryPoints } from '../../engine';
+import { uiColor } from '../shared/player-color';
 
 /** Wahrscheinlichkeit jeder Augensumme mit zwei Würfeln, in Sechsunddreißigsteln. */
 const WAYS = [0, 0, 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1];
@@ -214,6 +215,7 @@ interface Row {
       margin-right: 5px;
       border-radius: 50%;
       vertical-align: 1px;
+      box-shadow: 0 0 0 1px rgb(255 255 255 / 0.3);
     }
     .bar-key {
       border-radius: 2px;
@@ -425,7 +427,7 @@ export class EndStats {
           const y = this.vpY(e.points[r.seat]).toFixed(1);
           d += i === 0 ? `M${x},${y}` : `H${x}V${y}`;
         });
-        return { seat: r.seat, color: r.color, d };
+        return { seat: r.seat, color: uiColor(r.color), d };
       })
       .sort((a, b) => Number(a.seat === winner) - Number(b.seat === winner));
   });
@@ -438,7 +440,7 @@ export class EndStats {
     if (!entries.length) return;
     const e = entries.reduce((best, cur) => (Math.abs(this.vpX(cur.turn) - x) < Math.abs(this.vpX(best.turn) - x) ? cur : best));
     const points = this.rows()
-      .map((r) => ({ seat: r.seat, name: r.name, color: r.color, vp: e.points[r.seat] }))
+      .map((r) => ({ seat: r.seat, name: r.name, color: uiColor(r.color), vp: e.points[r.seat] }))
       .sort((a, b) => b.vp - a.vp);
     this.vpHover.set({ x: this.vpX(e.turn), turn: e.turn, points });
   }

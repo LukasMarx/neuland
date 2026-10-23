@@ -303,7 +303,8 @@ import { SettingsDialog } from '../shared/settings-dialog';
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      border: 2px solid rgb(0 0 0 / 0.3);
+      // Hell, damit Schwarz auf dem dunklen Grund einen Umriss hat.
+      border: 2px solid rgb(255 255 255 / 0.25);
       padding: 0;
       &.selected {
         outline: 3px solid var(--text);

@@ -131,7 +131,8 @@ textarea {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  border: 1.5px solid rgb(0 0 0 / 0.5);
+  // Hell, damit auch Schwarz auf dem dunklen Grund einen Umriss hat.
+  border: 1.5px solid rgb(255 255 255 / 0.3);
   vertical-align: -2px;
   flex: none;
 }

@@ -8,9 +8,12 @@ const PIECE_COLORS: Readonly<Record<string, string>> = {
   '#ffffff': 'white',
   '#ee8a1c': 'orange',
   '#2f9a48': 'green',
+  '#2e2b2f': 'black',
+  '#e0569f': 'pink',
+  '#8152b3': 'purple',
+  // Frühere Lobbyfarben, für gespeicherte Spiele.
   '#7b4a2a': 'brown',
   '#d5a824': 'gold',
-  '#8152b3': 'purple',
   // Neutrale Mitspieler im Duell
   '#9aa1a8': 'grey-light',
   '#5d646c': 'grey-dark',

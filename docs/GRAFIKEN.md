@@ -121,9 +121,22 @@ Gelände ohne Eintrag zeigen weiter die eingebaute SVG-Grafik.
 
 Städte, Siedlungen und Straßen verwenden transparente PNGs aus
 `public/pieces/papiercollage/`. `src/app/ui/shared/piece-art.ts` ordnet die
-Spielerfarbe der passenden Datei zu. Die acht Farbvarianten entstehen aus je
+Spielerfarbe der passenden Datei zu. Die Farbvarianten entstehen aus je
 einem Grundbild und einer gespeicherten Maske; Export und Anleitung liegen in
 `scripts/build-piece-assets.py` und `output/designs/pieces-2026-10-21/README.md`.
+
+Die Lobby bietet Rot, Blau, Weiß, Orange, Grün, Schwarz, Pink und Violett
+(`PLAYER_COLORS` in `src/app/net/protocol.ts`). Schwarz und Pink ersetzen seit dem
+23.10.2026 Braun und Gold: Braun verschwand auf Lehm und neben Rot, Gold lag zu nah
+an Orange (Vergleich mit Farbsehschwäche-Simulation in
+`output/designs/figuren-lesbarkeit-2026-10-23/`). Die Figuren in Braun und Gold
+bleiben für gespeicherte Spiele erhalten. Für Schrift, Linien und Punkte auf der
+dunklen Oberfläche hellt `uiColor` (`src/app/ui/shared/player-color.ts`) Schwarz auf.
+
+Neue Farbe: in `COLORS` von `scripts/build-piece-assets.py` eintragen, beide
+Figurenskripte ausführen (das zweite ist `scripts/build-organic-piece-assets.py`
+für Siedlung, Stadt und Prachtstadt), dann `node scripts/optimize-images.mjs` für
+die Web-Fassungen der übrigen Figuren und die Farbe in `piece-art.ts` zuordnen.
 
 Gebäude sitzen mittig auf ihren Kreuzungen (Siedlung 32, Stadt 46 Brett-Einheiten, `BUILDING_SIZE` in `board.ts`; auf dem großen Brett mal `PIECE_SCALE` 1,2).
 Straßen werden um den Kantenmittelpunkt gedreht und vor den Gebäuden gezeichnet.
@@ -132,8 +145,9 @@ lesbar bleiben, bekommen sie einen dünnen, leicht transparenten dunklen Rand
 (Variante E1, Vergleich in `output/designs/board-kontrast-2026-10-21/`).
 Figuren von Spielern tragen zusätzlich einen Rand in der Spielerfarbe mit dunkler
 Außenkante (SVG-Filter je Farbe, `HALO` in `board.ts`): Die Gebäude zeigen die
-Farbe sonst nur auf den Dächern, und ab fünf Spielern wären Braun, Weiß, Gold und
-Orange auf dem kleineren Brett kaum zu unterscheiden.
+Farbe sonst nur auf den Dächern, und ab fünf Spielern waren Braun, Weiß, Gold und
+Orange auf dem kleineren Brett kaum zu unterscheiden. Gelände und Meer laufen mit
+80 % Sättigung (`--map-saturation` in `board.scss`), damit die Figuren hervortreten.
 Bauvorschau und Bauknöpfe verwenden dieselben PNGs. Die Rittergrafik erscheint
 in der Spielerübersicht bei der Anzahl gespielter Ritter. Die Ritterkarte und
 die Spielregeln ändern sich dadurch nicht. Für unbekannte Farben alter
