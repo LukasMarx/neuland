@@ -90,7 +90,7 @@ Zuschauer hören keine Sprecher.
 
 Sobald eine Partie geladen ist, holt `audio-cache.ts` im Leerlauf alle Aufnahmen, die in dieser Partie vorkommen können,
 und hält sie als Blob-URL. Gespielt wird danach ohne Netz. Welche Anlässe eine Erweiterung brauchen, steht in `NEEDS`
-(`voice.ts`); in einem Grundspiel sind das 68 Sätze und 12 Geräusche. Bei „Datensparen“ des Browsers wird nichts vorgeladen,
+(`voice.ts`); in einem Grundspiel sind das 173 Sätze (gut 8 MB) und 12 Geräusche. Bei „Datensparen“ des Browsers wird nichts vorgeladen,
 bei ausgeschaltetem Kanal auch nicht.
 
 ## 5. Einen neuen Satz aufnehmen
