@@ -85,8 +85,9 @@ text {
 // ---------------------------------------------------------------------------
 // Bewegung: langsam und leise, damit sie nicht vom Spiel ablenkt. Ohne Bewegung (Systemeinstellung) steht
 // alles still. Animationen im SVG kann der Browser nicht der Grafikkarte überlassen: Jedes Bild zeichnet er die
-// bewegte Fläche neu. Wasser und Schaum ziehen deshalb in rund vier Schritten je Sekunde weiter statt in 60;
-// bei so langsamer Bewegung sieht man den Unterschied nicht, das Handy wird aber nicht mehr warm.
+// bewegte Fläche neu. Wasser, Schaum, Nebel, Seen und Flüsse ziehen deshalb in rund vier bis fünf Schritten je
+// Sekunde weiter statt in 60; bei so langsamer Bewegung sieht man den Unterschied kaum, das Handy wird aber nicht
+// mehr warm.
 
 .water-motion {
   pointer-events: none;
@@ -142,7 +143,7 @@ text {
 }
 
 .mist-drift {
-  animation: mist 14s ease-in-out infinite alternate;
+  animation: mist 14s steps(56) infinite alternate;
 }
 
 @keyframes mist {
@@ -183,7 +184,7 @@ text {
   stroke-width: 1.4;
   transform-box: fill-box;
   transform-origin: center;
-  animation: ripple 4.8s ease-out infinite;
+  animation: ripple 4.8s steps(20) infinite;
 
   &.late {
     animation-name: ripple-late;
@@ -221,6 +222,12 @@ text {
   transform-box: fill-box;
   transform-origin: center;
   animation: bob 3.8s ease-in-out infinite;
+
+  // Touch-Geräte: Schaukeln in Stufen wie Wasser und Nebel wirkt ruckelig, und der Figurenrand (SVG-Filter)
+  // müsste bei jedem Bild neu berechnet werden. Ein neues Schiff schaukelt deshalb zweimal und liegt dann still.
+  @media (pointer: coarse) {
+    animation-iteration-count: 2;
+  }
 }
 
 .pirate {
@@ -436,7 +443,7 @@ text {
     stroke-dasharray: 5 11;
     opacity: 0.75;
     // Die Glanzstriche laufen von der Quelle zur Mündung.
-    animation: river-flow 1.6s linear infinite;
+    animation: river-flow 1.6s steps(8) infinite;
   }
 }
 
