@@ -731,6 +731,61 @@ describe('Einzelspiel gegen Bots', () => {
     expect(offer.accepted.length).toBeGreaterThan(0);
   });
 
+  it('Bots antworten zügig: alle im selben Takt, und eine Zusage zu ihrem Angebot kommt gleich an', { timeout: 60000 }, () => {
+    const { H, clock } = solo(3);
+    H.svc.startGame();
+    clock.advance(500);
+    const random = seeded(402);
+    const me = () => H.game.players.findIndex((p) => p.id === H.svc.clientId);
+    const step = () => {
+      const g = H.game;
+      const s = botStep(g, random);
+      if (s && g.players[s.seat].id === H.svc.clientId) H.svc.act(s.action);
+      clock.advance(100);
+    };
+
+    // Mein Angebot: Nach einem Takt haben alle drei Bots geantwortet.
+    for (let i = 0; i < 4000 && !(H.game.phase.kind === 'main' && H.game.current === me() && H.game.turn > 3 && !H.game.offers.length); i++) step();
+    const s = structuredClone(H.game);
+    s.players[me()].resources = { wood: 3, brick: 3, sheep: 3, wheat: 3, ore: 3 };
+    s.players.forEach((p, i) => {
+      if (i !== me()) p.resources = { wood: 0, brick: 0, sheep: 2, wheat: 1, ore: 1 };
+    });
+    s.version++;
+    H.svc.game.set(s);
+    H.svc.act({ type: 'offerTrade', give: { wood: 1, brick: 1, sheep: 0, wheat: 0, ore: 0 }, want: { wood: 0, brick: 0, sheep: 1, wheat: 0, ore: 0 } });
+    clock.advance(1500);
+    const mine = H.game.offers.find((o) => o.from === me())!;
+    expect(mine.accepted.length + mine.declined.length).toBe(3);
+    H.svc.act({ type: 'withdrawOffers' });
+    H.svc.act({ type: 'endTurn' });
+
+    // Angebot eines Bots: Ich überlege 5 s und nehme an; der Bot schließt im nächsten Takt ab, nicht erst nach
+    // Ablauf seiner Wartezeit.
+    let checked = 0;
+    for (let i = 0; i < 6000 && checked < 2; i++) {
+      const g = H.game;
+      const o = g.offers.find((x) => !x.counter && x.from !== me() && g.current !== me() && !x.accepted.includes(me()) && !x.declined.includes(me()));
+      if (o) {
+        const enough = (Object.keys(o.want) as Resource[]).every((r) => g.players[me()].resources[r] >= o.want[r]);
+        if (!enough) {
+          H.svc.act({ type: 'respondTrade', offerId: o.id, accept: false });
+        } else {
+          clock.advance(5000);
+          if (H.game.offers.some((x) => x.id === o.id)) {
+            H.svc.act({ type: 'respondTrade', offerId: o.id, accept: true });
+            clock.advance(1500);
+            expect(H.game.offers.some((x) => x.id === o.id)).toBe(false);
+            expect(H.game.log.slice(-4).some((l) => /handeln:/.test(l.text))).toBe(true);
+            checked++;
+          }
+        }
+      }
+      step();
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
   it('ein Mitspieler kann später den Platz eines Bots übernehmen', { timeout: 60000 }, () => {
     const { H, net, code, clock } = solo(2);
     H.svc.startGame();

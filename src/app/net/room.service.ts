@@ -159,6 +159,8 @@ export class RoomService {
   /** Peers mit anderer Protokollversion: deren Nachrichten werden nicht verarbeitet. */
   private readonly mismatched = new Set<string>();
   private botTimer: unknown = null;
+  /** Wann der eingeplante Bot-Durchlauf fällig ist (Uhrzeit des Hosts). */
+  private botDue = 0;
   /** Eigene Tauschangebote des Spielers am Zug in diesem Zug, und seit wann sein offenes Angebot steht. */
   private readonly botOffers = { gameId: '', turn: -1, made: 0, openId: -1, since: 0 };
   /** Spieler, die gerade ins laufende Spiel zurückgekommen sind, und bis wann sie ihre Karten melden dürfen. */
@@ -1013,7 +1015,14 @@ export class RoomService {
 
   /** Nach jeder Änderung beim Host: Ist ein getrennter Spieler dran, spielt bald der Bot für ihn. */
   private scheduleBot(ms = BOT_STEP_MS): void {
-    if (this.botTimer !== null) return;
+    // Ein früherer Termin ersetzt einen späteren: Wartet ein Bot bis zu 12 s auf Antworten zu seinem Angebot
+    // (oder 30 s auf einen Getrennten), soll eine Zusage trotzdem gleich im nächsten Takt ankommen.
+    const due = this.env.now() + ms;
+    if (this.botTimer !== null) {
+      if (due >= this.botDue) return;
+      this.env.clearTimeout(this.botTimer);
+    }
+    this.botDue = due;
     this.botTimer = this.env.setTimeout(() => {
       this.botTimer = null;
       this.runBot();
@@ -1031,20 +1040,18 @@ export class RoomService {
     const now = this.env.now();
     let wait: number | null = null;
     if (!this.hasQuorum()) return;
-    // Bots antworten auf Tauschangebote des Spielers am Zug, manchmal mit einem Gegenangebot.
-    for (const offer of game.offers) {
-      for (const entry of room.players.filter((p) => p.bot)) {
-        const seat = game.players.findIndex((p) => p.id === entry.id);
-        const action = seat >= 0 ? botAnswer(game, seat, offer, { level: entry.level }) : null;
-        if (!action) continue;
-        try {
-          this.game.set(applyAction(game, seat, action));
-          this.broadcast();
-          return;
-        } catch {
-          // Angebot gerade nicht mehr gültig
-        }
-      }
+    // Bots antworten auf Tauschangebote des Spielers am Zug, manchmal mit einem Gegenangebot. Alle im selben
+    // Takt, wie Menschen, die gleichzeitig überlegen; ein Gegenangebot und die Ablehnung danach eingeschlossen.
+    let answered = game;
+    for (let i = 0; i < 4 * room.players.length; i++) {
+      const next = this.botAnswerStep(answered, room);
+      if (!next) break;
+      answered = next;
+    }
+    if (answered !== game) {
+      this.game.set(answered);
+      this.broadcast();
+      return;
     }
     for (const seat of actingSeats(game)) {
       const entry = room.players.find((p) => p.id === game.players[seat].id);
@@ -1094,6 +1101,24 @@ export class RoomService {
       const entry = room.players.find((x) => x.id === p.id);
       return !!entry && !entry.bot && (!!entry.peerId || entry.id === this.clientId);
     });
+  }
+
+  /** Die nächste Antwort eines Bots auf ein offenes Angebot, schon angewendet; null, wenn keiner mehr etwas sagt. */
+  private botAnswerStep(game: GameState, room: RoomInfo): GameState | null {
+    for (const offer of game.offers) {
+      for (const entry of room.players.filter((p) => p.bot)) {
+        const seat = game.players.findIndex((p) => p.id === entry.id);
+        const action = seat >= 0 ? botAnswer(game, seat, offer, { level: entry.level }) : null;
+        if (!action) continue;
+        try {
+          const next = applyAction(game, seat, action);
+          if (next !== game) return next;
+        } catch {
+          // Angebot gerade nicht mehr gültig
+        }
+      }
+    }
+    return null;
   }
 
   /** Erst der Zug des Bots, notfalls der zurückhaltende aus auto.ts. Ein Zug, der nichts ändert, zählt nicht. */
