@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { botAction, botAnswer, botAwaitsAnswers, botPlan, BOT_PROFILES, botTradeResponse } from './bot';
-import { applyAction, createGame, legalCityVertices, legalSettlementVertices, victoryPoints } from './rules';
+import { getTopology } from './board';
+import { applyAction, createGame, legalCityVertices, legalSettlementVertices, victoryPoints, vulnerableCities } from './rules';
 import { isConsistent } from './secrets';
-import { GameState } from './types';
+import { GameSettings, GameState, RESOURCES } from './types';
 
 function players(n: number) {
   return Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: `S${i}`, color: `c${i}` }));
@@ -87,8 +88,8 @@ describe('Bot für getrennte Spieler', () => {
 });
 
 /** Nach der Aufstellung, in der Hauptphase, Sitz 0 am Zug. */
-function afterSetup(n: number, seed: number): GameState {
-  let s = createGame(players(n), { victoryPoints: 10 }, seed);
+function afterSetup(n: number, seed: number, settings: GameSettings = { victoryPoints: 10 }): GameState {
+  let s = createGame(players(n), settings, seed);
   while (s.phase.kind === 'setup') s = applyAction(s, s.phase.order[s.phase.index], botAction(s, s.phase.order[s.phase.index])!);
   s = structuredClone(s);
   s.phase = { kind: 'main' };
@@ -228,5 +229,60 @@ describe('Handel des Bots', () => {
       want: hand(0, 0, 1, 0, 0),
     });
     expect(botAction(s, 0)).toEqual({ type: 'confirmTrade', offerId: s.offers[0].id, partner: 1 });
+  });
+});
+
+describe('Bot auf den Erweiterungen', () => {
+  it('Gold: nimmt, was dem Ziel fehlt', () => {
+    const s = afterSetup(4, 3, { victoryPoints: 12, map: 'inselquartett' });
+    s.players[0].resources = hand(0, 0, 0, 2, 2);
+    s.phase = { kind: 'gold', pending: [1, 0, 0, 0] };
+    const plan = botPlan(s, 0);
+    const action = botAction(s, 0);
+    expect(action?.type).toBe('chooseGold');
+    const picked = RESOURCES.find((r) => action?.type === 'chooseGold' && action.resources[r] > 0)!;
+    expect(plan.need[picked]).toBeGreaterThan(0);
+  });
+
+  it('Stadtwacht: gibt bei einem verlorenen Angriff die schwächste Stadt ab', () => {
+    const s = afterSetup(3, 5, { victoryPoints: 13, variants: ['stadtwacht'] });
+    for (const v of s.buildings.flatMap((b, i) => (b?.owner === 0 ? [i] : []))) s.buildings[v] = { owner: 0, type: 'city' };
+    const cities = vulnerableCities(s, 0);
+    expect(cities.length).toBe(2);
+    s.phase = { kind: 'raid', pending: [1, 0, 0], sum: 8 };
+    const topo = getTopology(s.board);
+    const pips = (v: number) => topo.vertices[v].hexes.reduce((n, h) => n + (s.board.hexes[h].number ? 6 - Math.abs(7 - s.board.hexes[h].number!) : 0), 0);
+    const action = botAction(s, 0);
+    expect(action).toEqual({ type: 'loseCity', vertex: pips(cities[0]) <= pips(cities[1]) ? cities[0] : cities[1] });
+  });
+
+  it('Stadtwacht: spielt das Losbuch statt zu würfeln und wählt nie die 7', () => {
+    const s = afterSetup(3, 5, { victoryPoints: 13, variants: ['stadtwacht'] });
+    s.phase = { kind: 'roll' };
+    s.progress![0] = ['fortune'];
+    const action = botAction(s, 0);
+    expect(action).toMatchObject({ type: 'playProgress', progress: 'fortune' });
+    const dice = action?.type === 'playProgress' ? action.dice! : [0, 0];
+    expect(dice[0] + dice[1]).not.toBe(7);
+    expect(dice.every((d) => d >= 1 && d <= 6)).toBe(true);
+    expect(() => applyAction(s, 0, action!)).not.toThrow();
+  });
+
+  it('Stadtwacht: holt mit dem Überläufer einen fremden Wächter', () => {
+    let s = afterSetup(3, 5, { victoryPoints: 13, variants: ['stadtwacht'] });
+    s.players[1].resources = hand(0, 0, 1, 0, 1);
+    s.current = 1;
+    // Sitz 1 stellt einen Wächter auf, Sitz 0 hat den Überläufer.
+    const vertex = getTopology(s.board).vertices.find((v) => !s.buildings[v.id] && v.edges.some((e) => s.roads[e] === 1) && v.neighbors.every((w) => !s.guards?.[w]))!.id;
+    s = applyAction(s, 1, { type: 'buildGuard', vertex });
+    s.current = 0;
+    s.progress![0] = ['turncoat'];
+    s.players[0].resources = hand(0, 0, 0, 0, 0);
+    const action = botAction(s, 0);
+    expect(action).toMatchObject({ type: 'playProgress', progress: 'turncoat' });
+    expect(action?.type === 'playProgress' && action.vertices?.[0]).toBe(vertex);
+    const next = applyAction(s, 0, action!);
+    expect(next.guards![vertex]).toBeNull();
+    expect(next.guards!.some((g) => g?.owner === 0)).toBe(true);
   });
 });

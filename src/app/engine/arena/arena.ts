@@ -40,7 +40,8 @@ export interface MatchResult {
 export function playMatch(lineup: Contender[], seed: number, settings: GameSettings, maxSteps = 8000): MatchResult {
   const players = lineup.map((_, i) => ({ id: `p${i}`, name: `S${i}`, color: `c${i}` }));
   let s = createGame(players, settings, seed);
-  const bySeat = s.players.map((p) => lineup[Number(p.id.slice(1))]);
+  // Neutrale Mitspieler (Duell) sind nie am Zug; ihre Teile setzen die anderen.
+  const bySeat = s.players.map((p) => (p.neutral ? NEUTRAL : lineup[Number(p.id.slice(1))]));
   const fallbacks = bySeat.map(() => 0);
   let steps = 0;
   let stuck = false;
@@ -76,6 +77,8 @@ export function playMatch(lineup: Contender[], seed: number, settings: GameSetti
     trades,
   };
 }
+
+const NEUTRAL: Contender = { name: 'neutral', act: () => null };
 
 function tryMove(s: GameState, seat: number, bot: Contender | null, offersMade: number): { state: GameState; action: Action; fallback: boolean } | null {
   const action = bot ? bot.act(s, seat, offersMade) : autoAction(s, seat, () => 0.5);
@@ -171,10 +174,14 @@ export function tournament(contenders: Contender[], options: TournamentOptions):
       turns += m.turns;
       trades += m.trades;
       if (m.winner === null) unfinished++;
-      const entry = (name: string) => tally.find((t) => t.name === name)!;
-      for (const name of new Set(m.seats)) entry(name).games++;
+      const entry = (name: string) => tally.find((t) => t.name === name);
+      for (const name of new Set(m.seats)) {
+        const t = entry(name);
+        if (t) t.games++;
+      }
       m.seats.forEach((name, seat) => {
         const t = entry(name);
+        if (!t) return;
         t.seats++;
         t.points += m.points[seat];
         t.fallbacks += m.fallbacks[seat];

@@ -126,8 +126,9 @@ Erfahrungen:
 
 - **iPhone und iPad:** Safari auf iOS ignoriert die Lautstärke eines Audio-Elements. Regler und Leiserwerden wirken dort nicht,
   die Musik spielt laut. Abhilfe wäre, alles über Web Audio mit eigener Lautstärke zu leiten.
-- **Ungeprüft in echten Partien:** Schiffe, Inseln, Nebel, Brücken, Stadtausbau, Prachtstadt und Kaperschiff. Die Bots nutzen
-  sie nicht, die Erkennung ist nur mit gebauten Spielständen getestet.
+- **Ungeprüft in echten Partien:** Schiffe, Inseln, Nebel, Brücken, Stadtausbau, Prachtstadt und Kaperschiff. Seit dem
+  24.10.2026 nutzen die Bots alles davon; gehört hat die Ansagen dazu aber noch niemand, die Erkennung ist nur mit gebauten
+  Spielständen getestet.
 - **Dichte bei 8 Spielern** nicht gehört. Falls zu viel: ein Gesamtlimit je fremdem Zug.
 - **Fehlende Geräusche:** Stein für die Stadt, Raub, Abwerfen, Angriff der Plünderer.
 - **Fehlende Sätze**, vor allem Stadtwacht: Einflusskarten, Händler, Wächter, Palisaden, verlorene Prachtstadt, verlorener
