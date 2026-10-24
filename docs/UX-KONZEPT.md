@@ -58,7 +58,7 @@ Umgesetzt nach Entwurf **02b · Nachtbühne, ruhig** (`output/designs/ui-2026-10
 
 - **Kopfleiste:** Spieler nebeneinander mit Ritter-Avatar in Spielerfarbe, Name, Kartenzahl bzw. „am Zug“ und Siegpunkten. Der aktive Spieler hat eine Fläche und eine goldene Linie.
 - **Brett:** Status oben, Bank links mit den Rohstoff-Icons.
-- **Seitenleiste:** Verlauf und Chat als Tabs, offene Handelsangebote darunter. Mit » oder der Taste V lässt sie sich zu einer schmalen Leiste einklappen, dann bekommt das Brett die Breite; neue Chatnachrichten zählt die Leiste mit. Der Zustand wird gemerkt.
+- **Seitenleiste:** Verlauf und Chat als Tabs, offene Handelsangebote darunter. Mit » oder der Taste V lässt sie sich zu einer schmalen Leiste einklappen, dann bekommt das Brett die Breite; neue Chatnachrichten zählt die Leiste mit. Anfangs ist sie eingeklappt; wer sie aufklappt, behält das (gemerkt im Browser).
 - **Einstellungen:** Knopf in der Kopfzeile (auf dem Handy nur ⚙), auch in Lobby und auf der Startseite. Reiter „Audio“ mit Musik, Effekten und Sprechern, je An/Aus und Lautstärke.
 - **Dock:** Karten, Bauraster mit Figur und Kosten, die 3D-Würfel und der Hauptknopf.
 - Unter 1280 px rückt das Bauraster unter die Hand.

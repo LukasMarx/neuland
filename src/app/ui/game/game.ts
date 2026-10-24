@@ -397,7 +397,8 @@ export class GameView {
   protected readonly info = signal<{ seat: number; left: number; top: number } | null>(null);
   protected readonly sideTab = signal<'log' | 'chat'>('log');
   /** Verlauf und Chat aufgeklappt; zugeklappt bekommt das Brett die Breite. */
-  protected readonly sideOpen = signal(localStorage.getItem('neuland:side') !== 'closed');
+  /** Verlauf und Chat: eingeklappt, bis man sie selbst aufklappt (das merkt sich der Browser). */
+  protected readonly sideOpen = signal(localStorage.getItem('neuland:side') === 'open');
 
   /**
    * Einspaltige Anordnung (Handy): welches Fach über der Bedienleiste offen ist. Karten und Bauen sind Hand und
