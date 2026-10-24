@@ -1028,7 +1028,8 @@ export class GameView {
     // Brett und Fächer richten sich nach ihrer gemessenen Höhe (--bar-h, siehe game-mobile.scss); gemessen wird
     // nach jedem neuen Stand und wenn sich das Fenster ändert (Drehen).
     const measureBar = () => {
-      const bar = host.querySelector<HTMLElement>('.turn');
+      // Nicht nur „.turn“: Der Banner „Du bist dran“ trägt dieselbe Klasse.
+      const bar = host.querySelector<HTMLElement>('.dock > .turn');
       const layout = host.querySelector<HTMLElement>('.layout');
       if (!bar || !layout) return;
       if (getComputedStyle(bar).position === 'fixed') layout.style.setProperty('--bar-h', `${bar.offsetHeight}px`);
@@ -1040,7 +1041,7 @@ export class GameView {
     let observedBar: HTMLElement | null = null;
     afterRenderEffect(() => {
       this.g();
-      const bar = host.querySelector<HTMLElement>('.turn');
+      const bar = host.querySelector<HTMLElement>('.dock > .turn');
       if (bar && bar !== observedBar) {
         barObserver.disconnect();
         barObserver.observe(bar);
