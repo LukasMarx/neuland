@@ -507,7 +507,7 @@ const GUESS_SECONDS = 3;
 /** Spielt Ansagen nacheinander, nie zwei Stimmen gleichzeitig; `onSpeak` bekommt die Dauer (Musik leiser). */
 export class Announcer {
   private current: HTMLAudioElement | null = null;
-  private queue: { clip: VoiceClip; at: number; volume: number }[] = [];
+  private queue: { clip: VoiceClip; at: number; volume: number; valid?: () => boolean }[] = [];
   /** Zuletzt gespielte Fassungen je Ereignis, neueste zuerst. */
   private readonly recent = new Map<VoiceEvent, string[]>();
 
@@ -515,9 +515,10 @@ export class Announcer {
 
   /**
    * Eine Ansage zu einem Ereignis, nach `delayMs`, mit der Lautstärke des Kanals „Sprecher“ (aus: still).
-   * Eine Fassung kommt erst wieder, wenn mindestens die Hälfte der anderen gelaufen ist.
+   * Eine Fassung kommt erst wieder, wenn mindestens die Hälfte der anderen gelaufen ist. `valid` wird kurz vor
+   * dem Sprechen geprüft: Ist der Anlass bis dahin erledigt (ein Angebot schon abgelehnt), entfällt die Ansage.
    */
-  say(event: VoiceEvent, delayMs = 0): void {
+  say(event: VoiceEvent, delayMs = 0, valid?: () => boolean): void {
     if (channelVolume('voice') <= 0) return;
     const clips = VOICE[event].clips;
     const recent = this.recent.get(event) ?? [];
@@ -525,7 +526,7 @@ export class Announcer {
     const options = clips.length > 1 ? clips.filter((c) => !blocked.has(c.id)) : clips;
     const chosen = options[Math.floor(Math.random() * options.length)];
     this.recent.set(event, [chosen.id, ...recent.filter((id) => id !== chosen.id)].slice(0, clips.length));
-    setTimeout(() => this.enqueue(chosen, channelVolume('voice')), delayMs);
+    setTimeout(() => this.enqueue(chosen, channelVolume('voice'), valid), delayMs);
   }
 
   /** Probehören: mit der eingestellten Lautstärke, auch wenn der Kanal aus ist. */
@@ -539,16 +540,16 @@ export class Announcer {
     this.current = null;
   }
 
-  private enqueue(clip: VoiceClip, volume: number): void {
+  private enqueue(clip: VoiceClip, volume: number, valid?: () => boolean): void {
     // Mehr als zwei Ansagen auf Vorrat wären nur noch Geschnatter.
-    if (this.queue.length >= 2 || volume <= 0) return;
-    this.queue.push({ clip, at: Date.now(), volume });
+    if (this.queue.length >= 2 || volume <= 0 || (valid && !valid())) return;
+    this.queue.push({ clip, at: Date.now(), volume, valid });
     if (!this.current) this.next();
   }
 
   private next(): void {
     let item = this.queue.shift();
-    while (item && Date.now() - item.at > STALE_MS) item = this.queue.shift();
+    while (item && (Date.now() - item.at > STALE_MS || (item.valid && !item.valid()))) item = this.queue.shift();
     if (!item) {
       this.current = null;
       return;

@@ -55,6 +55,7 @@ import {
   TRACKS,
   legalBridgeEdges,
   TokenEffect,
+  TradeOffer,
   tokenCost,
   totalResources,
   victoryPoints,
@@ -403,6 +404,14 @@ export class GameView {
    * Bauraster aus dem Dock, Verlauf ist die Seitenleiste; Handeln öffnet den Tauschtisch wie am Desktop.
    */
   protected readonly sheet = signal<'hand' | 'build' | 'log' | null>(null);
+
+  /** Das Angebot des Spielers am Zug, auf das ich noch nicht geantwortet habe (weder angenommen, abgelehnt noch gekontert). */
+  private offerAwaitingMe(g: GameState): TradeOffer | null {
+    const seat = this.seat();
+    const offer = offerFor(g, seat);
+    const countered = g.offers.some((o) => o.counter && o.from === seat);
+    return offer && !offer.accepted.includes(seat) && !countered ? offer : null;
+  }
 
   protected toggleSheet(sheet: 'hand' | 'build' | 'log'): void {
     // Die Seitenleiste zeigt ihren Inhalt nur aufgeklappt; das Fach klappt sie auf, ohne die Desktop-Wahl zu ändern.
@@ -1199,20 +1208,22 @@ export class GameView {
       });
     });
 
-    // Ein neues Tauschangebot an mich meldet sich wie „Du bist dran“, im Tab-Titel und mit Ton.
+    // Ein neues Tauschangebot an mich meldet sich wie „Du bist dran“, im Tab-Titel und mit Ton. Hat man schon
+    // geantwortet, bevor der Sprecher dazu kommt (er spricht vielleicht noch etwas anderes), entfällt die Ansage.
     let lastOfferId: number | null = null;
     effect(() => {
       const g = this.g();
-      const offer = offerFor(g, this.seat());
-      const countered = g.offers.some((o) => o.counter && o.from === this.seat());
-      const pending = offer && !offer.accepted.includes(this.seat()) && !countered ? offer : null;
+      const pending = this.offerAwaitingMe(g);
       const mine = this.myTurn() && g.phase.kind !== 'ended';
       document.title = mine
         ? '● Du bist dran – Neuland'
         : pending
           ? `● Tauschangebot von ${g.players[g.current].name} – Neuland`
           : 'Neuland';
-      if (pending && pending.id !== lastOfferId) untracked(() => this.announcer.say('tradeOffer'));
+      if (pending && pending.id !== lastOfferId) {
+        const id = pending.id;
+        untracked(() => this.announcer.say('tradeOffer', 0, () => this.offerAwaitingMe(this.g())?.id === id));
+      }
       lastOfferId = pending?.id ?? lastOfferId;
     });
 
