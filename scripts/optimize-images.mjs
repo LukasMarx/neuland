@@ -26,6 +26,9 @@ const GROUPS = [
   { dir: 'cards/symbolstark', size: 384, format: 'jpeg' },
   { dir: 'cards/symbolstark', out: 'cards-large/symbolstark', size: 900, format: 'jpeg' },
   { dir: 'tiles/papiercollage', size: 384, format: 'png', except: { 'ocean.png': { size: 1024, format: 'jpeg' } } },
+  // Das Brett schneidet die Felder auf das Sechseck zu, die transparenten Ecken sieht man dort nie. Als JPEG sind
+  // sie ein Fünftel so groß; Regelbuch und Erklärbühne nutzen weiter die PNG-Fassungen.
+  { dir: 'tiles/papiercollage', size: 384, format: 'jpeg', only: ['wood.png', 'brick.png', 'sheep.png', 'wheat.png', 'ore.png', 'desert.png', 'gold.png', 'lake.png'] },
   { dir: 'icons/resources', size: 96, format: 'png' },
   { dir: 'icons/seewege', size: 96, format: 'png' },
   { dir: 'icons/fishing', size: 96, format: 'png' },
@@ -48,6 +51,7 @@ for (const group of GROUPS) {
   mkdirSync(outDir, { recursive: true });
   for (const file of readdirSync(join(pub, group.dir)).filter((f) => f.endsWith('.png'))) {
     if (selected.size && !selected.has(group.dir + '/' + file)) continue;
+    if (group.only && !group.only.includes(file)) continue;
     const { size, format } = group.except?.[file] ?? group;
     const src = join(pub, group.dir, file);
     const out = join(outDir, basename(file, extname(file)) + (format === 'jpeg' ? '.jpg' : '.png'));

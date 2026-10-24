@@ -12,7 +12,7 @@ sind groß (zusammen rund 74 MB) und werden **nicht** ausgeliefert (`ignore` in
 | Gruppe | Längste Kante | Format |
 |---|---|---|
 | Karten | 384 px | JPEG |
-| Gelände | 384 px | PNG mit Transparenz |
+| Gelände | 384 px | PNG mit Transparenz; fürs Brett zusätzlich JPEG (das Brett schneidet aufs Sechseck zu, ein Fünftel der Größe) |
 | Wasser | 1024 px | JPEG |
 | Rohstoff-Icons | 96 px | PNG mit Transparenz |
 | Spielfiguren | 160 px | PNG mit Transparenz |

@@ -87,6 +87,7 @@ import { RESOURCE_ART } from '../shared/resource-art';
 import { DEV_CARD_HELP } from '../shared/labels';
 import { ResourcePicker } from '../shared/resource-picker';
 import { CardInspector } from './card-inspector';
+import { buzz, BUZZ, keepAwake } from '../shared/device';
 import { EndStats } from './end-stats';
 import { audioSettings, channelVolume } from '../shared/audio-settings';
 import { backgroundMusic } from '../shared/music';
@@ -174,7 +175,7 @@ const AUTO_ROLL_MS = 5000;
   selector: 'app-game',
   imports: [Board, CardFace, CardInspector, ChatBox, CityPanel, DiceTray, EndStats, EventBanner, FlyLayer, OfferPanel, ResourcePicker, Rulebook, SettingsDialog, TradeTable],
   templateUrl: './game.html',
-  styleUrl: './game.scss',
+  styleUrls: ['./game.scss', './game-mobile.scss'],
   host: { '(document:keydown)': 'onKey($event)' },
 })
 export class GameView {
@@ -396,6 +397,24 @@ export class GameView {
   protected readonly sideTab = signal<'log' | 'chat'>('log');
   /** Verlauf und Chat aufgeklappt; zugeklappt bekommt das Brett die Breite. */
   protected readonly sideOpen = signal(localStorage.getItem('neuland:side') !== 'closed');
+
+  /**
+   * Einspaltige Anordnung (Handy): welches Fach über der Bedienleiste offen ist. Karten und Bauen sind Hand und
+   * Bauraster aus dem Dock, Verlauf ist die Seitenleiste; Handeln öffnet den Tauschtisch wie am Desktop.
+   */
+  protected readonly sheet = signal<'hand' | 'build' | 'log' | null>(null);
+
+  protected toggleSheet(sheet: 'hand' | 'build' | 'log'): void {
+    // Die Seitenleiste zeigt ihren Inhalt nur aufgeklappt; das Fach klappt sie auf, ohne die Desktop-Wahl zu ändern.
+    if (sheet === 'log') this.sideOpen.set(true);
+    this.sheet.update((s) => (s === sheet ? null : sheet));
+  }
+
+  protected tradeTab(): void {
+    this.sheet.set(null);
+    if (this.tradeOpen()) this.closeTrade();
+    else this.openTrade();
+  }
   /** Chatnachrichten, die ich schon gesehen habe (Chat-Reiter offen); der Zähler zeigt nur neue. */
   private readonly chatSeen = signal(0);
   protected readonly unreadChat = computed(() => Math.max(0, this.room.chat().length - this.chatSeen()));
@@ -963,6 +982,27 @@ export class GameView {
   }));
 
   constructor() {
+    // Bildschirm wach halten, solange die Partie läuft; am Handy geht er sonst beim Warten auf andere aus.
+    const running = computed(() => this.g().phase.kind !== 'ended');
+    effect((onCleanup) => {
+      if (running()) onCleanup(keepAwake());
+    });
+    // Kurz vibrieren, wenn ein eigenes Teil steht (nur wo das Gerät es kann; „Du bist dran“ siehe unten).
+    const myPieces = computed(() => {
+      const s = this.g();
+      const seat = this.seat();
+      return s.buildings.filter((b) => b?.owner === seat).length + s.roads.filter((r) => r === seat).length + (s.ships ?? []).filter((r) => r === seat).length;
+    });
+    let pieces = -1;
+    effect(() => {
+      const n = myPieces();
+      if (pieces >= 0 && n > pieces && untracked(() => this.effectsOn())) buzz(BUZZ.build);
+      pieces = n;
+    });
+    // Ein Fach schließt sich, sobald gebaut, gehandelt oder ein Dialog beantwortet wird: Dann zählt das Brett.
+    effect(() => {
+      if (this.buildMode() || this.dialog() || this.tradeOpen()) untracked(() => this.sheet.set(null));
+    });
     // Handy: Brett und Bedienung passen nicht zusammen auf den Schirm. Gibt es auf dem Brett etwas zu wählen
     // (Bauplatz, Räuber), holt die Seite das Brett ins Bild.
     let hadTargets = false;
@@ -974,6 +1014,35 @@ export class GameView {
     });
     // Schmale Kopfzeile scrollt seitlich: Der Spieler am Zug soll darin sichtbar sein.
     const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    // Handy: Die feste Bedienleiste ist je nach Inhalt (Ereigniswürfel, Würfelstapel, Umbruch) verschieden hoch.
+    // Brett und Fächer richten sich nach ihrer gemessenen Höhe (--bar-h, siehe game-mobile.scss); gemessen wird
+    // nach jedem neuen Stand und wenn sich das Fenster ändert (Drehen).
+    const measureBar = () => {
+      const bar = host.querySelector<HTMLElement>('.turn');
+      const layout = host.querySelector<HTMLElement>('.layout');
+      if (!bar || !layout) return;
+      if (getComputedStyle(bar).position === 'fixed') layout.style.setProperty('--bar-h', `${bar.offsetHeight}px`);
+      else layout.style.removeProperty('--bar-h');
+    };
+    // Der Beobachter meldet auch, wenn die Leiste erst nach dem ersten Zeichnen fest wird; er hängt immer an der
+    // aktuellen Leiste.
+    const barObserver = new ResizeObserver(measureBar);
+    let observedBar: HTMLElement | null = null;
+    afterRenderEffect(() => {
+      this.g();
+      const bar = host.querySelector<HTMLElement>('.turn');
+      if (bar && bar !== observedBar) {
+        barObserver.disconnect();
+        barObserver.observe(bar);
+        observedBar = bar;
+      }
+      measureBar();
+    });
+    window.addEventListener('resize', measureBar);
+    inject(DestroyRef).onDestroy(() => {
+      barObserver.disconnect();
+      window.removeEventListener('resize', measureBar);
+    });
     // Nur beim Wechsel am Zug, nicht nach jeder Aktion: Wer selbst in der Leiste scrollt, soll dort bleiben.
     const current = computed(() => this.g().current);
     afterRenderEffect(() => {
@@ -1076,6 +1145,7 @@ export class GameView {
       const mine = this.myTurn() && this.g().phase.kind !== 'ended';
       if (mine && !wasMyTurn) {
         untracked(() => {
+          if (this.effectsOn()) buzz(BUZZ.turn);
           // Nur wenn mein Zug wirklich beginnt, nicht beim Abwerfen oder in der Sonderbaurunde.
           // In der Aufbauphase wird nicht gewürfelt, da fällt der Satz mit den Würfeln weg.
           const g = this.g();
@@ -1204,6 +1274,8 @@ export class GameView {
       this.logEntries();
       this.sideTab();
       this.sideOpen();
+      // Handy: Das Verlaufsfach war ausgeblendet und hat seine Scrollposition dabei verloren.
+      this.sheet();
       const el = this.logList()?.nativeElement;
       if (el) el.scrollTop = el.scrollHeight;
     });
@@ -1334,6 +1406,8 @@ export class GameView {
   }
 
   protected onLanded(sum: number): void {
+    // Nur der eigene Wurf; bei jedem Wurf der anderen zu vibrieren wäre lästig.
+    if (this.effectsOn() && this.isCurrent()) buzz(BUZZ.dice);
     if (sum === 7) return;
     this.highlightNumber.set(sum);
     setTimeout(() => this.highlightNumber.update((n) => (n === sum ? null : n)), HIGHLIGHT_MS);

@@ -1,4 +1,4 @@
-import { afterNextRender, Component, computed, DestroyRef, effect, ElementRef, inject, input, linkedSignal, output, signal } from '@angular/core';
+import { afterNextRender, Component, computed, DestroyRef, effect, ElementRef, inject, input, linkedSignal, output, signal, untracked } from '@angular/core';
 import { GameState, getTopology, LAKE_NUMBERS, mapById, NEIGHBOR_STEPS, RESOURCE_NAMES, Terrain, Topology, TRACK_NAMES, TRACKS } from '../../engine';
 import { harborLabel } from '../shared/labels';
 import { RESOURCE_ART } from '../shared/resource-art';
@@ -119,12 +119,18 @@ export class Board {
       destroy.onDestroy(() => observer.disconnect());
     });
     destroy.onDestroy(() => this.host.removeEventListener('click', swallow, true));
-    // Neue Ziele (anderer Bauschritt, anderer Spieler am Zug): eine alte Auswahl gilt nicht mehr.
+    // Neue Ziele (anderer Bauschritt, anderer Spieler am Zug): eine alte Auswahl gilt nicht mehr. Mit dem
+    // Finger holt das Brett die Ziele heran, wenn sie nah beieinander liegen.
     effect(() => {
-      this.vertexTargets();
-      this.edgeTargets();
-      this.hexTargets();
-      this.armed.set(null);
+      const points = [
+        ...this.vertexSpots().map((v) => ({ x: v.x, y: v.y })),
+        ...this.edgeSpots().map((e) => ({ x: (e.x1 + e.x2) / 2, y: (e.y1 + e.y2) / 2 })),
+        ...this.hexSpots().map((h) => ({ x: h.x, y: h.y })),
+      ];
+      untracked(() => {
+        this.armed.set(null);
+        if (this.coarse) this.focusOn(points);
+      });
     });
     destroy.onDestroy(() => clearTimeout(this.noticeTimer));
   }
@@ -515,6 +521,40 @@ export class Board {
     this.noticeTimer = setTimeout(() => this.robberNotice.set(false), 2400);
   }
 
+  /** Hat das Brett selbst hineingezoomt (siehe focusOn)? Dann zoomt es auch selbst wieder heraus. */
+  private autoZoomed = false;
+
+  /**
+   * Handy: Liegen die erlaubten Plätze nah beieinander (eine Straße, eine Siedlung am eigenen Netz), zoomt das
+   * Brett auf diese Gegend. Über das ganze Brett verteilte Ziele (Aufstellung, Räuber) bleiben in der Übersicht.
+   * Hat der Spieler selbst gezoomt, bleibt sein Ausschnitt.
+   */
+  private focusOn(points: { x: number; y: number }[]): void {
+    if (!points.length) {
+      if (this.autoZoomed) this.resetZoom();
+      this.autoZoomed = false;
+      return;
+    }
+    if (this.zoom() > 1 && !this.autoZoomed) return;
+    const { w, h } = this.size();
+    const b = this.bounds();
+    if (!w || !h) return;
+    const pad = S * 1.3;
+    const xs = points.map((p) => p.x);
+    const ys = points.map((p) => p.y);
+    const box = { x: Math.min(...xs) - pad, y: Math.min(...ys) - pad, w: Math.max(...xs) - Math.min(...xs) + 2 * pad, h: Math.max(...ys) - Math.min(...ys) + 2 * pad };
+    const base = Math.min(w / b.w, h / b.h);
+    const zoom = Math.min(MAX_ZOOM, Math.min(w / box.w, h / box.h) / base);
+    if (zoom < 1.3) {
+      if (this.autoZoomed) this.resetZoom();
+      this.autoZoomed = false;
+      return;
+    }
+    this.zoom.set(zoom);
+    this.center.set({ x: box.x + box.w / 2, y: box.y + box.h / 2 });
+    this.autoZoomed = true;
+  }
+
   zoomBy(factor: number, at?: { x: number; y: number }): void {
     const before = this.view();
     const zoom = Math.min(MAX_ZOOM, Math.max(1, this.zoom() * factor));
@@ -526,6 +566,7 @@ export class Board {
     const ux = before.x + fx * before.w;
     const uy = before.y + fy * before.h;
     this.zoom.set(zoom);
+    this.autoZoomed = false;
     const after = this.view();
     this.center.set(this.clampCenter({ x: ux - (fx - 0.5) * after.w, y: uy - (fy - 0.5) * after.h }, after.w, after.h));
   }
@@ -533,6 +574,7 @@ export class Board {
   resetZoom(): void {
     this.zoom.set(1);
     this.center.set(null);
+    this.autoZoomed = false;
   }
 
   protected onWheel(event: WheelEvent): void {
@@ -551,6 +593,27 @@ export class Board {
     }
     this.armed.set(null);
     (kind === 'v' ? this.vertexPick : kind === 'e' ? this.edgePick : this.hexPick).emit(id);
+  }
+
+  /** Doppeltipp neben die Ziele: hinein- oder wieder herauszoomen. */
+  private lastTap: { at: number; x: number; y: number } | null = null;
+
+  private doubleTap(event: PointerEvent): void {
+    if (event.pointerType !== 'touch' || this.panning() || this.pointers.size) return;
+    if ((event.target as Element | null)?.closest?.('.vertex-target, .edge-target, .hex-target, .zoom')) {
+      this.lastTap = null;
+      return;
+    }
+    const at = this.local(event);
+    const now = event.timeStamp || Date.now();
+    const last = this.lastTap;
+    if (last && now - last.at < 320 && Math.hypot(at.x - last.x, at.y - last.y) < 30) {
+      this.lastTap = null;
+      if (this.zoom() > 1) this.resetZoom();
+      else this.zoomBy(2, at);
+      return;
+    }
+    this.lastTap = { at: now, x: at.x, y: at.y };
   }
 
   protected onPointerDown(event: PointerEvent): void {
@@ -586,9 +649,11 @@ export class Board {
   }
 
   protected onPointerUp(event: PointerEvent): void {
+    const wasPanning = this.panning();
     this.pointers.delete(event.pointerId);
     this.pinchDistance = 0;
     if (this.pointers.size) return;
+    if (!wasPanning) this.doubleTap(event);
     this.dragStart = null;
     if (this.panning()) {
       this.panning.set(false);

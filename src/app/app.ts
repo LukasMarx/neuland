@@ -7,6 +7,7 @@ import { RoomService } from './net/room.service';
 import { Gate } from './ui/gate/gate';
 import { audioSettings } from './ui/shared/audio-settings';
 import { backgroundMusic } from './ui/shared/music';
+import { installTouchHints } from './ui/shared/touch-hints';
 
 @Component({
   selector: 'app-root',
@@ -53,6 +54,7 @@ export class App {
   );
 
   constructor() {
+    installTouchHints();
     // Musik von der Startseite über die Lobby bis ins Spiel, ohne Bruch. Die Klangprobe hat ihre eigene
     // Musikprobe, dort schweigt sie; ebenso vor dem Passwort.
     effect(() => {

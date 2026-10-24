@@ -13,9 +13,18 @@ export type AudioSettings = Record<AudioChannel, ChannelSettings>;
 
 const KEY = 'neuland:audio';
 
-/** Alles an; die Musik setzt mit dem ersten Klick ein, vorher lässt der Browser keinen Ton zu. */
+/**
+ * Alles an; die Musik setzt mit dem ersten Klick ein, vorher lässt der Browser keinen Ton zu. Unterwegs
+ * (Mobilfunk oder „Datensparen“) bleibt die Musik zunächst aus: Sie lädt rund 3 MB nach.
+ */
 function defaults(): AudioSettings {
-  return { music: { on: true, volume: 0.6 }, effects: { on: true, volume: 0.8 }, voice: { on: true, volume: 1 } };
+  return { music: { on: !meteredConnection(), volume: 0.6 }, effects: { on: true, volume: 0.8 }, voice: { on: true, volume: 1 } };
+}
+
+/** Verbindung mit begrenztem Datenvolumen? Nur Chrome unter Android meldet die Art; sonst gilt: nein. */
+function meteredConnection(): boolean {
+  const connection = (globalThis.navigator as (Navigator & { connection?: { saveData?: boolean; type?: string } }) | undefined)?.connection;
+  return !!connection && (connection.saveData === true || connection.type === 'cellular');
 }
 
 function load(): AudioSettings {

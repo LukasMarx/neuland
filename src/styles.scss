@@ -159,9 +159,81 @@ textarea {
   overflow: auto;
 }
 
+// Handy: Dialoge gehen als Fach von unten auf, über die volle Breite und in Daumenreichweite.
+@media (max-width: 600px) {
+  .modal-backdrop {
+    place-items: end stretch;
+    padding: 0;
+  }
+
+  .modal {
+    position: relative;
+    width: 100%;
+    max-height: 88vh;
+    max-height: 88dvh;
+    padding: 26px 16px calc(18px + env(safe-area-inset-bottom));
+    border-width: 1px 0 0;
+    border-radius: 18px 18px 0 0;
+    animation: modal-up 0.2s ease-out;
+
+    // Griffleiste wie bei einem Fach.
+    &::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      width: 40px;
+      height: 4px;
+      translate: -50% 0;
+      border-radius: 2px;
+      background: var(--line-strong);
+    }
+  }
+}
+
+@keyframes modal-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+
 // Ohne Maus und Tastatur (Handy, Tablet) helfen Tastenkürzel nicht; sie kosten nur Platz auf den Knöpfen.
 @media (hover: none) {
   kbd {
     display: none !important;
   }
 }
+
+// Langer Druck zeigt den Tooltip (siehe touch-hints.ts).
+.touch-hint {
+  position: fixed;
+  z-index: 200;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  pointer-events: none;
+}
+
+@media (pointer: coarse) {
+  // Unter 16 px zoomt Safari beim Antippen eines Eingabefelds die ganze Seite heran.
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+
+  // Langes Drücken ist für Erklärungen da, nicht für das Kontextmenü oder Textauswahl.
+  button,
+  [title] {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}
+

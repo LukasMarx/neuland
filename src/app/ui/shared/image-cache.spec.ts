@@ -6,7 +6,7 @@ describe('Grafiken für den Spielstart', () => {
 
   it('Grundspiel: Felder, Meer, Räuber, Karten und Figuren in den Farben im Raum', () => {
     const urls = gameStartImages({ victoryPoints: 10, map: 'klassisch' }, colors);
-    expect(urls).toContain('web/tiles/papiercollage/wood.png');
+    expect(urls).toContain('web/tiles/papiercollage/wood.jpg');
     expect(urls).toContain('web/tiles/papiercollage/ocean.jpg');
     expect(urls).toContain('web/pieces/papiercollage/robber.png');
     expect(urls).toContain('web/cards/symbolstark/ore.jpg');
@@ -24,7 +24,7 @@ describe('Grafiken für den Spielstart', () => {
     const sea = gameStartImages({ victoryPoints: 13, map: 'erste-ueberfahrt' }, colors);
     expect(sea).toContain('web/pieces/papiercollage/ship-red.png');
     expect(sea).toContain('web/pieces/papiercollage/pirate.png');
-    expect(sea).toContain('web/tiles/papiercollage/gold.png');
+    expect(sea).toContain('web/tiles/papiercollage/gold.jpg');
     expect(sea).not.toContain('web/tiles/papiercollage/fog.png');
     expect(gameStartImages({ victoryPoints: 13, map: 'im-dunst' }, colors)).toContain('web/tiles/papiercollage/fog.png');
   });

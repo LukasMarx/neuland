@@ -1,5 +1,5 @@
 @let game = g();
-<div class="layout" [class.side-closed]="!sideOpen()">
+<div class="layout" [class.side-closed]="!sideOpen()" [attr.data-sheet]="sheet()">
   <header class="topbar">
     <div class="brand" [title]="'Raum ' + room.code() + ' · ' + mapName() + ' · bis ' + game.settings.victoryPoints + (variantNames().length ? ' · ' + variantNames().join(', ') : '')">
       <b>Neuland</b>
@@ -84,11 +84,15 @@
     </div>
 
     <div class="tools">
-      <button class="tool" (click)="rulesOpen.set(true)" title="Regelbuch öffnen">Regeln</button>
+      <button class="tool" (click)="rulesOpen.set(true)" title="Regelbuch öffnen" aria-label="Regeln">
+        <span class="label">Regeln</span><span class="icon" aria-hidden="true">?</span>
+      </button>
       <button class="tool" (click)="settingsOpen.set(true)" title="Musik, Effekte und Sprecher einstellen" aria-label="Einstellungen">
         <span class="label">Einstellungen</span><span class="icon" aria-hidden="true">⚙</span>
       </button>
-      <button class="tool" (click)="leave.emit()">Verlassen</button>
+      <button class="tool" (click)="leave.emit()" title="Spiel verlassen" aria-label="Verlassen">
+        <span class="label">Verlassen</span><span class="icon" aria-hidden="true">✕</span>
+      </button>
     </div>
   </header>
 
@@ -491,8 +495,34 @@
           <kbd>Leertaste</kbd>
         }
       </button>
+      <!-- Nur in der einspaltigen Anordnung: Fächer, die über der Leiste aufgehen (siehe game.scss). -->
+      <nav class="sheet-tabs" aria-label="Fächer">
+        <button [class.on]="sheet() === 'hand'" [attr.aria-pressed]="sheet() === 'hand'" (click)="toggleSheet('hand')">
+          <img [src]="cardArt.back" alt="" />Karten
+        </button>
+        <button [class.on]="sheet() === 'build'" [attr.aria-pressed]="sheet() === 'build'" [disabled]="seat() < 0" (click)="toggleSheet('build')">
+          @if (pieceImage('settlement', myColor()); as image) {
+            <img [src]="image" alt="" />
+          }
+          Bauen
+        </button>
+        <button [class.on]="showTable()" [attr.aria-pressed]="showTable()" [disabled]="!canTrade()" [title]="canTrade() ? 'Handeln' : 'Gehandelt wird nach dem Würfeln'" (click)="tradeTab()">
+          <img src="web/icons/ui/trade.png" alt="" />Handeln
+        </button>
+        <button [class.on]="sheet() === 'log'" [attr.aria-pressed]="sheet() === 'log'" (click)="toggleSheet('log')">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h8" /></svg>
+          Verlauf
+          @if (unreadChat()) {
+            <span class="count">{{ unreadChat() }}</span>
+          }
+        </button>
+      </nav>
     </div>
   </section>
+
+  @if (sheet()) {
+    <div class="sheet-backdrop" (click)="sheet.set(null)"></div>
+  }
 </div>
 
 <app-fly-layer />
