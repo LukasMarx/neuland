@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, InjectionToken, isDevMode, signal } from '@angular/core';
 import * as engine from '../engine';
-import { Action, actingSeats, applyAction, autoAction, botAction, botTradeResponse, createGame, GameSettings, GameState, isView, mapById, rebuild, restoreDevCards, RuleError, Secret, secretOf, VARIANTS, viewFor } from '../engine';
+import { Action, actingSeats, applyAction, autoAction, botAction, botAnswer, botAwaitsAnswers, BotLevel, BotOptions, createGame, GameSettings, GameState, isView, mapById, rebuild, restoreDevCards, RuleError, Secret, secretOf, VARIANTS, viewFor } from '../engine';
 import { LocalTransport } from './local-transport';
 import {
   compareRank,
@@ -81,6 +81,8 @@ export const AWAY_MS = 20000;
 export const BOT_TAKEOVER_MS = 30000;
 /** Pause zwischen zwei Bot-Zügen, damit die anderen mitlesen können. */
 const BOT_STEP_MS = 1200;
+/** So lange wartet ein Bot auf Antworten zu seinem Tauschangebot, bevor er es zurückzieht. */
+const BOT_OFFER_WAIT_MS = 12000;
 /** Namen für Bots aus der Lobby. */
 const BOT_NAMES = ['Bot Anna', 'Bot Bruno', 'Bot Clara', 'Bot Dario', 'Bot Emma', 'Bot Finn', 'Bot Greta', 'Bot Hugo'];
 /** In diesem Fenster wird dieselbe Aktion auf denselben Stand nur einmal geschickt (Doppelklick). */
@@ -157,6 +159,8 @@ export class RoomService {
   /** Peers mit anderer Protokollversion: deren Nachrichten werden nicht verarbeitet. */
   private readonly mismatched = new Set<string>();
   private botTimer: unknown = null;
+  /** Eigene Tauschangebote des Spielers am Zug in diesem Zug, und seit wann sein offenes Angebot steht. */
+  private readonly botOffers = { gameId: '', turn: -1, made: 0, openId: -1, since: 0 };
   /** Spieler, die gerade ins laufende Spiel zurückgekommen sind, und bis wann sie ihre Karten melden dürfen. */
   private readonly secretWindow = new Map<string, number>();
   /** Wem die anderen gerade folgen; verhindert, dass bei einem einseitigen Abbruch ein zweiter Host entsteht. */
@@ -309,14 +313,20 @@ export class RoomService {
   }
 
   /** Lobby: einen Bot dazunehmen (Gastgeber, solange Platz ist). Er spielt beim Host. */
-  addBot(): void {
+  addBot(level: BotLevel = 'normal'): void {
     const room = this.room();
     if (!this.isHost() || !room || this.game() || room.players.length >= MAX_PLAYERS) return;
     const taken = new Set(room.players.map((p) => p.name));
     const name = BOT_NAMES.find((n) => !taken.has(n)) ?? `Bot ${room.players.length + 1}`;
     const color = PLAYER_COLORS.find((c) => !room.players.some((p) => p.color === c.hex))!.hex;
-    const bot: LobbyPlayer = { id: `bot-${this.env.randomId()}`, name, color, peerId: null, bot: true };
+    const bot: LobbyPlayer = { id: `bot-${this.env.randomId()}`, name, color, peerId: null, bot: true, level };
     this.mutateRoom((r) => ({ ...r, players: [...r.players, bot] }));
+  }
+
+  /** Lobby: die Schwierigkeitsstufe eines Bots ändern (Gastgeber). */
+  setBotLevel(id: string, level: BotLevel): void {
+    if (!this.isHost() || this.game()) return;
+    this.mutateRoom((r) => ({ ...r, players: r.players.map((p) => (p.id === id && p.bot ? { ...p, level } : p)) }));
   }
 
   /** Zurück in die Lobby, z. B. für eine neue Runde. */
@@ -1021,14 +1031,14 @@ export class RoomService {
     const now = this.env.now();
     let wait: number | null = null;
     if (!this.hasQuorum()) return;
-    // Bots antworten auf Tauschangebote des Spielers am Zug.
+    // Bots antworten auf Tauschangebote des Spielers am Zug, manchmal mit einem Gegenangebot.
     for (const offer of game.offers) {
       for (const entry of room.players.filter((p) => p.bot)) {
         const seat = game.players.findIndex((p) => p.id === entry.id);
-        const accept = seat >= 0 ? botTradeResponse(game, seat, offer) : null;
-        if (accept === null) continue;
+        const action = seat >= 0 ? botAnswer(game, seat, offer, { level: entry.level }) : null;
+        if (!action) continue;
         try {
-          this.game.set(applyAction(game, seat, { type: 'respondTrade', offerId: offer.id, accept }));
+          this.game.set(applyAction(game, seat, action));
           this.broadcast();
           return;
         } catch {
@@ -1045,7 +1055,16 @@ export class RoomService {
         wait = Math.min(wait ?? Infinity, BOT_TAKEOVER_MS - away);
         continue;
       }
-      const next = this.tryBotMove(game, seat);
+      // Auf Antworten zum eigenen Angebot warten, solange noch jemand Verbundenes antworten kann.
+      const offers = this.countBotOffers(game);
+      const waited = now - offers.since;
+      if (botAwaitsAnswers(game, seat) && this.mayStillAnswer(game, room) && waited < BOT_OFFER_WAIT_MS) {
+        wait = Math.min(wait ?? Infinity, BOT_OFFER_WAIT_MS - waited);
+        continue;
+      }
+      // Ein Bot aus der Lobby handelt auch selbst; wer nur für einen Getrennten einspringt, bietet nichts an.
+      const options: BotOptions = entry.bot ? { level: entry.level, offersMade: offers.made } : {};
+      const next = this.tryBotMove(game, seat, options);
       if (!next) continue;
       this.game.set(next);
       this.broadcast();
@@ -1054,12 +1073,36 @@ export class RoomService {
     if (wait !== null) this.scheduleBot(wait + 50);
   }
 
-  /** Erst der Zug des Bots, notfalls der zurückhaltende aus auto.ts. */
-  private tryBotMove(game: GameState, seat: number): GameState | null {
-    for (const action of [botAction(game, seat), autoAction(game, seat)]) {
+  /**
+   * Zählt die Tauschangebote des Spielers am Zug in diesem Zug mit und merkt sich, seit wann sein Angebot
+   * offen ist. Der Stand selbst kennt keine Uhrzeit; das weiß nur der Host.
+   */
+  private countBotOffers(game: GameState): { made: number; since: number } {
+    const o = this.botOffers;
+    if (o.gameId !== (game.id ?? '') || o.turn !== game.turn) Object.assign(o, { gameId: game.id ?? '', turn: game.turn, made: 0, openId: -1 });
+    const open = game.offers.find((x) => x.from === game.current && !x.counter);
+    if (open && open.id !== o.openId) Object.assign(o, { made: o.made + 1, openId: open.id, since: this.env.now() });
+    return o;
+  }
+
+  /** Hat jemand, der verbunden ist, auf das Angebot des Spielers am Zug noch nicht geantwortet? Bots antworten vorher. */
+  private mayStillAnswer(game: GameState, room: RoomInfo): boolean {
+    const offer = game.offers.find((o) => o.from === game.current && !o.counter);
+    if (!offer) return false;
+    return game.players.some((p, i) => {
+      if (i === game.current || offer.accepted.includes(i) || offer.declined.includes(i)) return false;
+      const entry = room.players.find((x) => x.id === p.id);
+      return !!entry && !entry.bot && (!!entry.peerId || entry.id === this.clientId);
+    });
+  }
+
+  /** Erst der Zug des Bots, notfalls der zurückhaltende aus auto.ts. Ein Zug, der nichts ändert, zählt nicht. */
+  private tryBotMove(game: GameState, seat: number, options: BotOptions): GameState | null {
+    for (const action of [botAction(game, seat, options), autoAction(game, seat)]) {
       if (!action) continue;
       try {
-        return applyAction(this.withFreshRandomness(game), seat, action);
+        const next = applyAction(this.withFreshRandomness(game), seat, action);
+        if (next.version !== game.version) return next;
       } catch {
         // nächster Versuch
       }

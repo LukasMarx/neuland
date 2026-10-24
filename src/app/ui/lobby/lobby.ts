@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, output, signal } from '@angular/core';
-import { MapDef, mapById, mapFits, MAPS, mapShape, VariantDef, VARIANTS } from '../../engine';
+import { BOT_LEVEL_NAMES, BOT_LEVELS, BotLevel, MapDef, mapById, mapFits, MAPS, mapShape, VariantDef, VARIANTS } from '../../engine';
 import { MAX_PLAYERS, PLAYER_COLORS } from '../../net/protocol';
 import { LOCAL_MODE, RoomService } from '../../net/room.service';
 import { ChatBox } from '../shared/chat-box';
@@ -49,9 +49,17 @@ import { SettingsDialog } from '../shared/settings-dialog';
                     <span class="tag">Gastgeber</span>
                   }
                   @if (p.bot) {
-                    <span class="tag">🤖 Bot</span>
+                    <!-- Beim Gastgeber zeigt die Stufenwahl, dass es ein Bot ist; für den Hinweis wäre kein Platz. -->
                     @if (room.isHost()) {
+                      <select class="small level" (change)="setLevel(p.id, $any($event.target).value)" [attr.aria-label]="'Stärke von ' + p.name">
+                        @for (l of levels; track l) {
+                          <option [value]="l" [selected]="l === (p.level ?? 'normal')">{{ levelNames[l] }}</option>
+                        }
+                      </select>
                       <button class="small" (click)="room.removePlayer(p.id)">Entfernen</button>
+                    } @else {
+                      <span class="tag">🤖 Bot</span>
+                      <span class="muted small">{{ levelNames[p.level ?? 'normal'] }}</span>
                     }
                   } @else if (!p.peerId) {
                     <span class="muted small">getrennt</span>
@@ -294,6 +302,9 @@ import { SettingsDialog } from '../shared/settings-dialog';
 .add-bot {
       margin-top: 10px;
     }
+    .level {
+      padding: 2px 6px;
+    }
     .swatches {
       display: flex;
       flex-wrap: wrap;
@@ -468,6 +479,8 @@ export class Lobby {
   protected readonly takenColors = computed(() => new Set(this.room.room()?.players.map((p) => p.color)));
   protected readonly spectatorNames = computed(() => this.room.room()?.spectators.map((p) => p.name).join(', '));
   protected readonly maps = MAPS;
+  protected readonly levels = BOT_LEVELS;
+  protected readonly levelNames = BOT_LEVEL_NAMES;
   protected readonly map = computed(() => mapById(this.room.room()?.settings.map));
   /** Verbundene Spieler; mit ihnen wird gestartet. */
   protected readonly present = computed(() => this.room.room()?.players.filter((p) => p.peerId || p.bot).length ?? 0);
@@ -572,6 +585,10 @@ export class Lobby {
     const variants = (settings.variants ?? []).filter((id) => id !== v.id).concat(on ? [v.id] : []);
     const victoryPoints = settings.victoryPoints + (on ? 1 : -1) * (v.victoryPoints ?? 0);
     this.room.updateSettings({ ...settings, variants, victoryPoints });
+  }
+
+  protected setLevel(id: string, level: BotLevel): void {
+    this.room.setBotLevel(id, level);
   }
 
   protected setVp(value: string): void {

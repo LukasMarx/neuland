@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { botAction, botTradeResponse } from './bot';
-import { applyAction, createGame, legalCityVertices, victoryPoints } from './rules';
+import { botAction, botAnswer, botAwaitsAnswers, botPlan, BOT_PROFILES, botTradeResponse } from './bot';
+import { applyAction, createGame, legalCityVertices, legalSettlementVertices, victoryPoints } from './rules';
 import { isConsistent } from './secrets';
 import { GameState } from './types';
 
@@ -83,5 +83,150 @@ describe('Bot für getrennte Spieler', () => {
     expect(botTradeResponse(leader, 1, offer)).toBe(false);
     // Schon geantwortet: nichts mehr zu sagen.
     expect(botTradeResponse(s, 1, { ...offer, declined: [1] })).toBeNull();
+  });
+});
+
+/** Nach der Aufstellung, in der Hauptphase, Sitz 0 am Zug. */
+function afterSetup(n: number, seed: number): GameState {
+  let s = createGame(players(n), { victoryPoints: 10 }, seed);
+  while (s.phase.kind === 'setup') s = applyAction(s, s.phase.order[s.phase.index], botAction(s, s.phase.order[s.phase.index])!);
+  s = structuredClone(s);
+  s.phase = { kind: 'main' };
+  s.current = 0;
+  return s;
+}
+
+const hand = (wood: number, brick: number, sheep: number, wheat: number, ore: number) => ({
+  wood,
+  brick,
+  sheep,
+  wheat,
+  ore,
+});
+
+describe('Plan des Bots', () => {
+  it('kennt Strategie, Ziel und Bedarf: was dem Ziel fehlt und was übrig ist', () => {
+    const s = afterSetup(3, 4);
+    s.players[0].resources = hand(0, 0, 3, 1, 1);
+    const plan = botPlan(s, 0);
+    expect(['cities', 'expansion', 'balanced']).toContain(plan.strategy);
+    expect(plan.goal).not.toBeNull();
+    for (const r of ['wood', 'brick', 'sheep', 'wheat', 'ore'] as const) {
+      expect(plan.need[r] - plan.spare[r]).toBe(plan.goal!.cost[r] - s.players[0].resources[r]);
+    }
+    // Die Ziele sind nach Gewinn je Runde sortiert.
+    const scores = plan.goals.map((g) => g.score);
+    expect(scores).toEqual([...scores].sort((a, b) => b - a));
+  });
+
+  it('plant Straßen zu einem Bauplatz, der noch nicht erreichbar ist', () => {
+    const s = afterSetup(3, 4);
+    expect(legalSettlementVertices(s, 0)).toEqual([]);
+    s.players[0].resources = hand(3, 3, 1, 1, 0);
+    const plan = botPlan(s, 0);
+    const settlement = plan.goals.find((g) => g.kind === 'settlement')!;
+    expect(settlement.step.type).toBe('buildRoad');
+    expect(settlement.cost.wood).toBeGreaterThan(1);
+    expect(botAction(s, 0)).toMatchObject({ type: 'buildRoad' });
+  });
+
+  it('wählt auf leicht manchmal nicht den besten Bauplatz', () => {
+    const picks = [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => {
+      const s = createGame(players(4), { victoryPoints: 10 }, seed);
+      const seat = s.phase.kind === 'setup' ? s.phase.order[0] : 0;
+      return [botAction(s, seat, { level: 'normal' }), botAction(s, seat, { level: 'easy' })];
+    });
+    expect(picks.some(([n, e]) => JSON.stringify(n) !== JSON.stringify(e))).toBe(true);
+    expect(BOT_PROFILES.easy.offers).toBe(0);
+  });
+});
+
+describe('Handel des Bots', () => {
+  it('bietet am Zug Überschuss gegen eine fehlende Karte an, aber nur, wenn er darf', () => {
+    const s = afterSetup(3, 4);
+    s.players[0].resources = hand(0, 0, 1, 1, 5);
+    s.players[1].resources = hand(2, 2, 2, 2, 2);
+    s.players[2].resources = hand(2, 2, 2, 2, 2);
+    // Ohne Zählung (Bot springt nur ein) kein Angebot, sondern Bank.
+    expect(botAction(s, 0)?.type).not.toBe('offerTrade');
+    const offer = botAction(s, 0, { offersMade: 0 });
+    expect(offer).toMatchObject({ type: 'offerTrade' });
+    expect(botAction(s, 0, { offersMade: 1 })?.type).not.toBe('offerTrade');
+  });
+
+  it('wartet auf Antworten, schließt mit einem Partner ab oder zieht zurück', () => {
+    let s = afterSetup(3, 4);
+    s.players[0].resources = hand(0, 0, 1, 2, 5);
+    s.players[1].resources = hand(2, 2, 2, 2, 2);
+    s = applyAction(s, 0, {
+      type: 'offerTrade',
+      give: hand(0, 0, 0, 0, 1),
+      want: hand(1, 0, 0, 0, 0),
+    });
+    expect(botAwaitsAnswers(s, 0)).toBe(true);
+    const accepted = applyAction(s, 1, {
+      type: 'respondTrade',
+      offerId: s.offers[0].id,
+      accept: true,
+    });
+    expect(botAwaitsAnswers(accepted, 0)).toBe(false);
+    expect(botAction(accepted, 0, { offersMade: 1 })).toEqual({
+      type: 'confirmTrade',
+      offerId: s.offers[0].id,
+      partner: 1,
+    });
+    let declined = applyAction(s, 1, {
+      type: 'respondTrade',
+      offerId: s.offers[0].id,
+      accept: false,
+    });
+    declined = applyAction(declined, 2, {
+      type: 'respondTrade',
+      offerId: s.offers[0].id,
+      accept: false,
+    });
+    expect(botAwaitsAnswers(declined, 0)).toBe(false);
+    expect(botAction(declined, 0, { offersMade: 1 })).toEqual({ type: 'withdrawOffers' });
+  });
+
+  it('macht ein Gegenangebot, wenn ihm das Angebot so nicht passt, und lehnt danach ab', () => {
+    let s = afterSetup(3, 4);
+    s.players[0].resources = hand(0, 0, 0, 3, 0);
+    s.players[1].resources = hand(0, 0, 2, 1, 3);
+    // Sitz 0 will Erz für Getreide. Sitz 1 fehlt Getreide für eine Stadt, das Erz braucht er aber selbst:
+    // Er bietet stattdessen ein Schaf an, das er übrig hat.
+    s = applyAction(s, 0, {
+      type: 'offerTrade',
+      give: hand(0, 0, 0, 1, 0),
+      want: hand(0, 0, 0, 0, 1),
+    });
+    const offer = s.offers[0];
+    expect(botPlan(s, 1).goal?.kind).toBe('city');
+    expect(botTradeResponse(s, 1, offer)).toBe(false);
+    const answer = botAnswer(s, 1, offer);
+    expect(answer).toEqual({
+      type: 'offerTrade',
+      give: hand(0, 0, 1, 0, 0),
+      want: hand(0, 0, 0, 1, 0),
+    });
+    s = applyAction(s, 1, answer!);
+    expect(s.offers.find((o) => o.from === 1)?.counter).toBe(true);
+    expect(botAnswer(s, 1, offer)).toEqual({
+      type: 'respondTrade',
+      offerId: offer.id,
+      accept: false,
+    });
+  });
+
+  it('nimmt ein lohnendes Gegenangebot an', () => {
+    let s = afterSetup(3, 4);
+    s.players[0].resources = hand(0, 0, 3, 2, 2);
+    s.players[1].resources = hand(0, 0, 0, 0, 2);
+    s = applyAction(s, 1, {
+      type: 'offerTrade',
+      give: hand(0, 0, 0, 0, 1),
+      want: hand(0, 0, 1, 0, 0),
+    });
+    expect(botAction(s, 0)).toEqual({ type: 'confirmTrade', offerId: s.offers[0].id, partner: 1 });
   });
 });

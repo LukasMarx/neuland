@@ -516,6 +516,8 @@ describe('Mehrspieler: Rückkehr mit 6 Spielern (Prüfung vom 22.10.2026)', () =
   });
 
   it('ein Host, der die Seite neu lädt, bekommt seine Entwicklungskarten zurück', { timeout: 60000 }, () => {
+    // Eigener Zufall: Sonst hängt das Brett davon ab, wie viel Zufall die Tests davor verbraucht haben.
+    resetNet(518);
     const { sims, code, clock } = start(six);
     const [H] = sims;
     const random = seeded(77);

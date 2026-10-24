@@ -1,4 +1,4 @@
-import { Action, GameSettings, GameState, Secret } from '../engine';
+import { Action, BotLevel, GameSettings, GameState, Secret } from '../engine';
 
 export interface LobbyPlayer {
   id: string;
@@ -10,6 +10,8 @@ export interface LobbyPlayer {
   awaySince?: number | null;
   /** Ein Bot, den der Host in der Lobby dazugenommen hat; er spielt beim Host, nie verbunden. */
   bot?: boolean;
+  /** Schwierigkeitsstufe des Bots, Vorgabe mittel. */
+  level?: BotLevel;
 }
 
 /**
