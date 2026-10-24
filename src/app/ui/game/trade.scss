@@ -395,18 +395,55 @@
     }
   }
 
-  // Das Feld scrollt auf dem Handy; die Knöpfe bleiben unten im Bild.
+  // Das Feld scrollt auf dem Handy; die Knöpfe bleiben unten im Bild. Reicht eine Zeile nicht, bricht ein
+  // ganzer Knopf um, nicht sein Text.
   .buttons {
     position: sticky;
     bottom: -1px;
     z-index: 2;
+    gap: 6px;
     padding: 10px 0 2px;
     background: var(--panel);
 
     button {
-      flex: 1;
-      padding: 0 12px;
+      flex: 1 1 auto;
+      height: 42px;
+      padding: 0 8px;
+      font-size: 13px;
+      white-space: nowrap;
     }
+  }
+
+  // Kompakter, damit der Tauschtisch auch auf kleinen Handys ohne Scrollen passt: gedrungenere Karten, keine
+  // Unterzeilen in den Überschriften, kleinerer Hinweis.
+  .rows {
+    gap: 8px;
+  }
+
+  .slot app-card-face {
+    aspect-ratio: 3 / 4;
+  }
+
+  .trow > b small {
+    display: none;
+  }
+
+  .hint {
+    min-height: 0;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  // „Mit der Bank tauschen“ wird „Bank tauschen“, damit alle drei Knöpfe in eine Zeile passen.
+  .extra {
+    display: none;
+  }
+
+  .close {
+    top: 4px;
+    right: 4px;
+    width: 32px;
+    height: 32px;
   }
 
   .trow {

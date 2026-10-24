@@ -115,12 +115,14 @@
     }
   }
 
+  // Zwischen Kopfzeile (rund 62 px) und Leiste, mit etwas Luft zu beiden.
   .dock-panel {
     left: 50%;
     bottom: 8px;
     width: calc(100% - 16px);
-    max-height: calc(100vh - var(--bar-h) - 64px);
-    max-height: calc(100dvh - var(--bar-h) - 64px);
+    max-height: calc(100vh - var(--bar-h) - 80px);
+    max-height: calc(100dvh - var(--bar-h) - 80px);
+    padding: 8px 10px;
   }
 
   .layout[data-sheet='hand'] .dock > .hand {
