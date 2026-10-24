@@ -40,6 +40,10 @@ interface Box {
   h: number;
 }
 
+function boxString(v: Box): string {
+  return `${v.x} ${v.y} ${v.w} ${v.h}`;
+}
+
 @Component({
   selector: 'app-board',
   imports: [TerrainDefs],
@@ -197,10 +201,14 @@ export class Board {
     return { x: c.x - vw / 2, y: c.y - vh / 2, w: vw, h: vh };
   });
 
-  protected readonly viewBox = computed(() => {
-    const v = this.view();
-    return `${v.x} ${v.y} ${v.w} ${v.h}`;
-  });
+  /**
+   * Während einer Geste (Verschieben, Pinch) bleibt die viewBox stehen; das Brett folgt dem Finger per
+   * CSS-Transform, das die Grafikkarte übernimmt, ohne das SVG neu zu zeichnen (siehe followGesture).
+   * Beim Loslassen übernimmt die viewBox den neuen Ausschnitt in voller Schärfe.
+   */
+  private readonly frozenView = signal<Box | null>(null);
+
+  protected readonly viewBox = computed(() => boxString(this.frozenView() ?? this.view()));
 
   /**
    * Meer: Beim klassischen Brett ein großes Sechseck wie gewohnt. Bei anderen Karten folgt es der Form
@@ -632,9 +640,11 @@ export class Board {
 
     if (this.pointers.size === 2) {
       const distance = this.pointerDistance();
+      this.freezeView();
       if (this.pinchDistance) this.zoomBy(distance / this.pinchDistance, this.pointerMidpoint());
       this.pinchDistance = distance;
       this.startPanning(event);
+      this.followGesture();
       return;
     }
     if (!this.panning()) {
@@ -642,10 +652,58 @@ export class Board {
       if (this.zoom() === 1 || !start || Math.hypot(at.x - start.x, at.y - start.y) < DRAG_THRESHOLD) return;
       this.startPanning(event);
     }
+    this.freezeView();
     const v = this.view();
     const unit = v.w / this.size().w;
     const c = { x: v.x + v.w / 2 - (at.x - prev.x) * unit, y: v.y + v.h / 2 - (at.y - prev.y) * unit };
     this.center.set(this.clampCenter(c, v.w, v.h));
+    this.followGesture();
+  }
+
+  private svgElement(): SVGSVGElement | null {
+    return this.host.querySelector<SVGSVGElement>(':scope > svg');
+  }
+
+  private freezeView(): void {
+    if (this.frozenView()) return;
+    this.frozenView.set(this.view());
+    const svg = this.svgElement();
+    if (svg) svg.style.willChange = 'transform';
+  }
+
+  /**
+   * Bildet den eingefrorenen Ausschnitt per CSS-Transform auf den aktuellen ab. Die viewBox passt mit
+   * „meet“ ein: Maßstab k = min(Breite / w, Höhe / h), Rest mittig. Ein Brettpunkt liegt dann bei
+   * (u − v.x) · k + Rand; daraus folgen Maßstab und Verschiebung zwischen beiden Ausschnitten.
+   */
+  private followGesture(): void {
+    const from = this.frozenView();
+    const svg = this.svgElement();
+    const { w, h } = this.size();
+    if (!from || !svg || !w || !h) return;
+    const to = this.view();
+    const fit = (v: Box) => {
+      const k = Math.min(w / v.w, h / v.h);
+      return { k, ox: (w - v.w * k) / 2, oy: (h - v.h * k) / 2 };
+    };
+    const a = fit(from);
+    const b = fit(to);
+    const r = b.k / a.k;
+    const tx = (from.x - to.x) * b.k - a.ox * r + b.ox;
+    const ty = (from.y - to.y) * b.k - a.oy * r + b.oy;
+    svg.style.transform = `translate(${tx}px, ${ty}px) scale(${r})`;
+  }
+
+  /** Geste zu Ende: neue viewBox und kein Transform mehr, im selben Schritt, damit nichts zurückspringt. */
+  private thawView(): void {
+    if (!this.frozenView()) return;
+    const svg = this.svgElement();
+    if (svg) {
+      svg.setAttribute('viewBox', boxString(this.view()));
+      svg.style.transform = '';
+      svg.style.willChange = '';
+    }
+    this.frozenView.set(null);
   }
 
   protected onPointerUp(event: PointerEvent): void {
@@ -653,6 +711,7 @@ export class Board {
     this.pointers.delete(event.pointerId);
     this.pinchDistance = 0;
     if (this.pointers.size) return;
+    this.thawView();
     if (!wasPanning) this.doubleTap(event);
     this.dragStart = null;
     if (this.panning()) {

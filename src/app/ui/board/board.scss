@@ -52,6 +52,14 @@ svg {
   height: 100%;
   display: block;
   user-select: none;
+  // Gesten verschieben und skalieren das ganze Brett per Transform (siehe Board.followGesture).
+  transform-origin: 0 0;
+}
+
+// Während einer Geste stehen Wasser, Schaum, Nebel und Flüsse still: Jede laufende Animation zwänge den
+// Browser, das ganze Brett bei jedem Bild neu zu zeichnen.
+:host(.panning) * {
+  animation-play-state: paused !important;
 }
 
 text {
@@ -73,8 +81,10 @@ text {
 }
 
 // ---------------------------------------------------------------------------
-// Bewegung: langsam und leise, damit sie nicht vom Spiel ablenkt. Nur Transform und Deckkraft,
-// das bleibt auch auf großen Karten und Handys günstig. Ohne Bewegung (Systemeinstellung) steht alles still.
+// Bewegung: langsam und leise, damit sie nicht vom Spiel ablenkt. Ohne Bewegung (Systemeinstellung) steht
+// alles still. Animationen im SVG kann der Browser nicht der Grafikkarte überlassen: Jedes Bild zeichnet er die
+// bewegte Fläche neu. Wasser und Schaum ziehen deshalb in rund vier Schritten je Sekunde weiter statt in 60;
+// bei so langsamer Bewegung sieht man den Unterschied nicht, das Handy wird aber nicht mehr warm.
 
 .water-motion {
   pointer-events: none;
@@ -85,7 +95,14 @@ text {
   mix-blend-mode: soft-light;
   transform-box: fill-box;
   transform-origin: center;
-  animation: water-drift 38s ease-in-out infinite alternate;
+  animation: water-drift 38s steps(150) infinite alternate;
+
+  // Touch-Geräte: Der Mischmodus müsste in jedem Schritt mit allem darunter verrechnet werden; ohne ihn wirkt
+  // dieselbe Lage kräftiger, deshalb weniger deckend.
+  @media (pointer: coarse) {
+    mix-blend-mode: normal;
+    opacity: 0.12;
+  }
 }
 
 @keyframes water-drift {
@@ -103,7 +120,7 @@ text {
   stroke-width: 7;
   stroke-linejoin: round;
   pointer-events: none;
-  animation: foam 5.5s ease-in-out infinite;
+  animation: foam 5.5s steps(22) infinite;
 }
 
 @keyframes foam {
@@ -522,7 +539,8 @@ text {
     stroke: #fff;
     stroke-width: 3;
     stroke-dasharray: 6 5;
-    animation: pulse 1.2s ease-in-out infinite;
+    // Ein paar Mal pulsieren, dann markiert stehen bleiben (siehe Bewegung oben).
+    animation: pulse 1.2s ease-in-out 4;
   }
 
   .ghost-robber {
@@ -653,7 +671,7 @@ text {
     stroke-linecap: round;
     stroke-dasharray: 4 5;
     opacity: 0.9;
-    animation: pulse 1.2s ease-in-out infinite;
+    animation: pulse 1.2s ease-in-out 4;
   }
 
   @media (hover: hover) {
@@ -675,7 +693,7 @@ text {
     fill: rgb(255 255 255 / 0.85);
     stroke: #2b2418;
     stroke-width: 2;
-    animation: pulse 1.2s ease-in-out infinite;
+    animation: pulse 1.2s ease-in-out 4;
   }
 
   @media (hover: hover) {

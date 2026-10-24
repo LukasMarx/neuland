@@ -180,5 +180,34 @@ describe('Papierfiguren auf dem Brett', () => {
     press(target(6), 'mouse');
     expect(picked).toEqual([4, 6]);
   });
+
+  it('Pinch: Während der Geste bleibt die viewBox stehen und ein Transform folgt dem Finger, danach umgekehrt', () => {
+    const { fixture, element } = render();
+    // In jsdom misst niemand die Größe; das Brett braucht sie für Zoom und Transform.
+    (fixture.componentInstance as unknown as { size: { set(v: { w: number; h: number }): void } }).size.set({ w: 300, h: 300 });
+    fixture.detectChanges();
+    const svg = element.querySelector('svg')!;
+    const before = svg.getAttribute('viewBox');
+    const pointer = (type: string, id: number, x: number) => {
+      const event = new Event(type, { bubbles: true });
+      Object.assign(event, { pointerId: id, pointerType: 'touch', clientX: x, clientY: 150, button: 0 });
+      element.dispatchEvent(event);
+    };
+    pointer('pointerdown', 1, 140);
+    pointer('pointerdown', 2, 160);
+    for (let i = 1; i <= 5; i++) {
+      pointer('pointermove', 1, 140 - i * 10);
+      pointer('pointermove', 2, 160 + i * 10);
+    }
+    fixture.detectChanges();
+    expect(svg.getAttribute('viewBox')).toBe(before);
+    expect(svg.style.transform).toContain('scale(');
+
+    pointer('pointerup', 2, 210);
+    pointer('pointerup', 1, 90);
+    fixture.detectChanges();
+    expect(svg.getAttribute('viewBox')).not.toBe(before);
+    expect(svg.style.transform).toBe('');
+  });
 });
 
