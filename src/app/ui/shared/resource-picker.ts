@@ -2,7 +2,10 @@ import { Component, input, model } from '@angular/core';
 import { Card, CARD_NAMES, count, RESOURCES, ResourceCounts } from '../../engine';
 import { CardFace } from './card-face';
 
-/** Mengenauswahl je Rohstoff mit −/+. `max` begrenzt pro Rohstoff, `total` die Summe. */
+/**
+ * Mengenauswahl je Rohstoff mit −/+. `max` begrenzt pro Rohstoff, `total` die Summe. `have` zeigt die eigene
+ * Hand dazu, wenn aus der Bank gewählt wird: Auf dem Handy deckt der Dialog die Kartenleiste zu.
+ */
 @Component({
   selector: 'app-resource-picker',
   imports: [CardFace],
@@ -17,6 +20,9 @@ import { CardFace } from './card-face';
         </div>
         @if (max(); as m) {
           <span class="muted have">von {{ n(m, r) }}</span>
+        }
+        @if (have(); as h) {
+          <span class="have own" [class.none]="!n(h, r)">Hand {{ n(h, r) }}</span>
         }
       </div>
     }
@@ -61,6 +67,13 @@ import { CardFace } from './card-face';
     .have {
       font-size: 0.75em;
     }
+    .own {
+      margin-top: -4px;
+      font-weight: 700;
+    }
+    .own.none {
+      opacity: 0.45;
+    }
     @media (max-width: 360px) {
       :host {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -73,6 +86,7 @@ export class ResourcePicker {
   readonly value = model.required<ResourceCounts>();
   readonly max = input<ResourceCounts | null>(null);
   readonly total = input<number | null>(null);
+  readonly have = input<ResourceCounts | null>(null);
 
   /** Welche Karten zur Wahl stehen: Rohstoffe, beim Abwerfen mit Stadtwacht auch Güter. */
   readonly cards = input<readonly Card[]>(RESOURCES);

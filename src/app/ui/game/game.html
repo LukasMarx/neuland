@@ -651,7 +651,7 @@
       <p class="muted">
         {{ cityWatch() ? 'Goldfeld oder Gelehrte (ab Stufe 3, wenn du sonst nichts bekommst): ' : '' }}Rohstoffe nach Wahl aus der Bank.
       </p>
-      <app-resource-picker [(value)]="goldPick" [max]="game.bank" [total]="goldDue()" />
+      <app-resource-picker [(value)]="goldPick" [max]="game.bank" [total]="goldDue()" [have]="me()?.resources ?? null" />
       <div class="row end mt">
         <span class="muted">{{ total(goldPick()) }} / {{ goldDue() }}</span>
         <button class="primary" [disabled]="total(goldPick()) !== goldDue()" (click)="chooseGold()">Nehmen</button>
@@ -796,7 +796,7 @@
     <div class="modal-backdrop" (click)="dialog.set(null)">
       <div class="modal" (click)="$event.stopPropagation()">
         <h3>Erfindung: Wähle 2 Rohstoffe</h3>
-        <app-resource-picker [(value)]="plentyPick" [max]="game.bank" [total]="2" />
+        <app-resource-picker [(value)]="plentyPick" [max]="game.bank" [total]="2" [have]="me()?.resources ?? null" />
         <div class="row end mt">
           <button (click)="dialog.set(null)">Abbrechen</button>
           <button class="primary" [disabled]="total(plentyPick()) !== 2" (click)="confirmPlenty()">Nehmen</button>
