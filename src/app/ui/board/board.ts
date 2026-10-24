@@ -1,4 +1,4 @@
-import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, input, linkedSignal, output, signal } from '@angular/core';
+import { afterNextRender, Component, computed, DestroyRef, effect, ElementRef, inject, input, linkedSignal, output, signal } from '@angular/core';
 import { GameState, getTopology, LAKE_NUMBERS, mapById, NEIGHBOR_STEPS, RESOURCE_NAMES, Terrain, Topology, TRACK_NAMES, TRACKS } from '../../engine';
 import { harborLabel } from '../shared/labels';
 import { RESOURCE_ART } from '../shared/resource-art';
@@ -96,6 +96,16 @@ export class Board {
   private pinchDistance = 0;
   private suppressClick = false;
 
+  /**
+   * Bedienung mit dem Finger: Ein Tipp auf einen Platz wählt ihn nur aus und zeigt die Vorschau, die
+   * am Desktop beim Überfahren erscheint; erst ein zweiter Tipp auf dieselbe Stelle baut. Ein Fehltipp
+   * zwischen dicht liegenden Plätzen kostet so nichts. Schlüssel: 'v' Ecke, 'e' Kante, 'h' Feld plus Nummer.
+   */
+  protected readonly armed = signal<string | null>(null);
+  private pointerType = 'mouse';
+  /** Grobe Zeiger (Finger) bekommen größere Trefferflächen. */
+  protected readonly coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+
   constructor() {
     const destroy = inject(DestroyRef);
     // Vor den Klick-Handlern der Bauplätze, damit Verschieben nichts baut.
@@ -109,6 +119,13 @@ export class Board {
       destroy.onDestroy(() => observer.disconnect());
     });
     destroy.onDestroy(() => this.host.removeEventListener('click', swallow, true));
+    // Neue Ziele (anderer Bauschritt, anderer Spieler am Zug): eine alte Auswahl gilt nicht mehr.
+    effect(() => {
+      this.vertexTargets();
+      this.edgeTargets();
+      this.hexTargets();
+      this.armed.set(null);
+    });
     destroy.onDestroy(() => clearTimeout(this.noticeTimer));
   }
   protected readonly ghostBuildingImage = computed(() => {
@@ -525,7 +542,19 @@ export class Board {
     this.zoomBy(Math.exp(-event.deltaY * speed), this.local(event));
   }
 
+  /** Ein Ziel wurde angeklickt oder angetippt; mit dem Finger erst beim zweiten Tipp. */
+  protected pick(kind: 'v' | 'e' | 'h', id: number): void {
+    const key = kind + id;
+    if (this.pointerType !== 'mouse' && this.armed() !== key) {
+      this.armed.set(key);
+      return;
+    }
+    this.armed.set(null);
+    (kind === 'v' ? this.vertexPick : kind === 'e' ? this.edgePick : this.hexPick).emit(id);
+  }
+
   protected onPointerDown(event: PointerEvent): void {
+    this.pointerType = event.pointerType || 'mouse';
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     this.pointers.set(event.pointerId, this.local(event));
     if (this.pointers.size === 1) this.dragStart = this.local(event);
@@ -570,9 +599,13 @@ export class Board {
   }
 
   private onClickCapture(event: MouseEvent): void {
-    if (!this.suppressClick) return;
-    event.stopPropagation();
-    this.suppressClick = false;
+    if (this.suppressClick) {
+      event.stopPropagation();
+      this.suppressClick = false;
+      return;
+    }
+    // Ein Tipp daneben hebt die Auswahl auf.
+    if (!(event.target as Element).closest?.('.vertex-target, .edge-target, .hex-target')) this.armed.set(null);
   }
 
   private startPanning(event: PointerEvent): void {

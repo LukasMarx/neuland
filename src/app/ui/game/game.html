@@ -452,6 +452,16 @@
     }
 
     <div class="turn">
+      @if (me(); as self) {
+        <!-- Nur in der einspaltigen Anordnung: die eigenen Karten in der festen Leiste, ohne zur Hand zu scrollen. -->
+        <div class="mini-hand" aria-label="Deine Karten">
+          @for (r of handCards(); track r) {
+            <span class="mstack" [class.zero]="!n(shownHand() ?? self.resources, r)" [title]="resourceNames[r]">
+              <img [src]="resourceArt[r]" alt="" /><b>{{ n(shownHand() ?? self.resources, r) }}</b>
+            </span>
+          }
+        </div>
+      }
       <app-dice-tray
         [dice]="game.dice"
         [rollKey]="rollKey()"

@@ -89,11 +89,14 @@ import { SettingsDialog } from '../shared/settings-dialog';
         color: var(--text);
       }
     }
+    // minmax(0, …): Sonst wächst die Spalte auf die Breite der längsten Namensliste unter „Zuletzt gespielt“,
+    // und auf dem Handy zoomt der Browser die ganze Seite heraus.
     main {
       max-width: 460px;
       margin: 0 auto;
       padding: 48px 16px;
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
       gap: 16px;
     }
     header {
@@ -153,6 +156,7 @@ import { SettingsDialog } from '../shared/settings-dialog';
     }
     .recent {
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
       gap: 6px;
     }
     .recent-item {

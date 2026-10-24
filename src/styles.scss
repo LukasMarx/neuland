@@ -155,5 +155,13 @@ textarea {
   padding: 20px 22px;
   width: min(440px, 100%);
   max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
   overflow: auto;
+}
+
+// Ohne Maus und Tastatur (Handy, Tablet) helfen Tastenkürzel nicht; sie kosten nur Platz auf den Knöpfen.
+@media (hover: none) {
+  kbd {
+    display: none !important;
+  }
 }

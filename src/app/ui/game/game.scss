@@ -10,6 +10,7 @@
     'board side'
     'dock dock';
   height: 100vh;
+  height: 100dvh;
 
   // Verlauf und Chat zugeklappt: nur eine schmale Leiste, das Brett bekommt die Breite.
   &.side-closed {
@@ -559,6 +560,7 @@ kbd {
   z-index: 7;
   width: min(1100px, calc(100% - 320px - 32px));
   max-height: calc(100vh - 230px);
+  max-height: calc(100dvh - 230px);
   overflow: auto;
   translate: -50% 0;
   padding: 12px 16px;
@@ -788,6 +790,11 @@ kbd {
   app-dice-tray {
     --size: 46px;
   }
+}
+
+// Die eigenen Karten in der festen Bedienleiste; nur in der einspaltigen Anordnung (siehe unten).
+.mini-hand {
+  display: none;
 }
 
 .event-die {
@@ -1247,9 +1254,12 @@ kbd {
   }
 
   // minmax(0, …): Sonst wächst die Spalte auf die Mindestbreite ihres Inhalts und die Seite wird breiter als der Bildschirm.
+  // Das Brett füllt den Schirm zwischen Kopfzeile (119 px) und Bedienleiste; darunter Hand und Verlauf.
   .layout {
+    --bar-h: 110px;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto 62vh auto auto;
+    grid-template-rows: auto max(320px, calc(100dvh - 119px - var(--bar-h))) auto auto;
+    padding-bottom: var(--bar-h);
     grid-template-areas:
       'top'
       'board'
@@ -1325,9 +1335,53 @@ kbd {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  // Bedienleiste fest am unteren Rand: Würfel, Hauptknopf und die eigenen Karten bleiben im Bild, während
+  // man zum Brett oder zur Hand scrollt.
   .turn {
-    flex-direction: row;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -8px 20px rgb(0 0 0 / 0.35);
+
+    app-dice-tray {
+      --size: 38px;
+    }
+
+    .go {
+      flex: 1;
+      min-height: 44px;
+    }
+  }
+
+  .mini-hand {
+    display: flex;
+    flex-basis: 100%;
     justify-content: space-between;
+    gap: 4px;
+  }
+
+  .mstack {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
+
+    img {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+    }
+
+    &.zero {
+      opacity: 0.4;
+    }
   }
 
   .side {
@@ -1357,6 +1411,93 @@ kbd {
   .chat {
     flex: none;
     max-height: 260px;
+  }
+}
+
+// Handy quer: zu niedrig für Brett über Bedienung. Brett links über die volle Höhe, rechts eine Spalte mit
+// Würfeln, Hauptknopf, Hand, Bauen und Verlauf, die für sich scrollt. Überschreibt die einspaltige Anordnung.
+@media (max-width: 960px) and (orientation: landscape) and (max-height: 520px) {
+  .layout,
+  .layout.side-closed {
+    --bar-h: 0px;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 40%);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'top top'
+      'board dock'
+      'board side';
+    height: 100vh;
+    height: 100dvh;
+    padding-bottom: 0;
+  }
+
+  // Kopfzeile in einer Zeile: Spieler links, Werkzeuge rechts, ohne Namenszug.
+  .topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'players tools';
+    min-height: 0;
+    padding: 4px 10px;
+  }
+
+  .brand {
+    display: none;
+  }
+
+  .board-area {
+    padding: 40px 8px 6px 64px;
+  }
+
+  .status {
+    top: 4px;
+  }
+
+  // Bank wieder senkrecht am linken Rand.
+  .bank {
+    top: 50%;
+    left: 6px;
+    transform: translateY(-50%);
+    display: grid;
+    gap: 2px;
+    padding: 4px 6px;
+
+    .bstack img {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .dock {
+    grid-template-areas: none;
+    grid-template-rows: none;
+    // Die Hand scrollt seitlich und zählt deshalb mit Mindesthöhe 0; in der begrenzten Spalte schrumpfte ihre Zeile sonst.
+    grid-auto-rows: max-content;
+    align-content: start;
+    gap: 10px;
+    overflow-y: auto;
+    border-top: 0;
+    border-left: 1px solid var(--line);
+    padding: 8px 10px;
+    --card-w: 62px;
+  }
+
+  // Die Hand steht gleich darunter, die Kurzfassung in der Leiste wäre doppelt.
+  .mini-hand {
+    display: none;
+  }
+
+  // Die Bedienleiste steht oben in der rechten Spalte statt fest am unteren Rand.
+  .turn {
+    order: -1;
+    position: static;
+    padding: 0;
+    background: none;
+    border-top: 0;
+    box-shadow: none;
+  }
+
+  .side {
+    border-left: 1px solid var(--line);
+    max-height: 40dvh;
   }
 }
 

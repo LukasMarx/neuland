@@ -265,7 +265,7 @@
   }
 
   @for (h of hexSpots(); track h.id) {
-    <g class="hex-target" [attr.data-hex]="h.id" (click)="hexPick.emit(h.id)">
+    <g class="hex-target" [attr.data-hex]="h.id" [class.armed]="armed() === 'h' + h.id" (click)="pick('h', h.id)">
       <title>{{ hexGhost() === 'robber' ? 'Räuber hierhin' : hexGhost() === 'trader' ? 'Händler hierhin' : 'Dieses Feld wählen' }}</title>
       <polygon [attr.points]="h.points" />
       @if (hexGhost() === 'robber') {
@@ -280,6 +280,12 @@
             <circle r="11" />
             <text>H</text>
           }
+        </g>
+      }
+      @if (armed() === 'h' + h.id) {
+        <g class="confirm-note" [attr.transform]="'translate(' + h.x + ',' + (h.y - S * 0.62) + ')'">
+          <rect x="-98" y="-18" width="196" height="36" rx="18" />
+          <text>Nochmal tippen</text>
         </g>
       }
     </g>
@@ -301,7 +307,7 @@
   }
 
   @for (e of edgeSpots(); track e.id) {
-    <g class="edge-target" [attr.data-edge]="e.id" (click)="edgePick.emit(e.id)">
+    <g class="edge-target" [attr.data-edge]="e.id" [class.armed]="armed() === 'e' + e.id" (click)="pick('e', e.id)">
       <line class="hit" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" />
       <line class="mark" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" />
       @if (edgeGhost() === 'none') {
@@ -317,12 +323,18 @@
       } @else {
         <line class="ghost-road" [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2" [attr.stroke]="ghostColor()" />
       }
+      @if (armed() === 'e' + e.id) {
+        <g class="confirm-note" [attr.transform]="'translate(' + (e.x1 + e.x2) / 2 + ',' + ((e.y1 + e.y2) / 2 - S * 0.55) + ')'">
+          <rect x="-98" y="-18" width="196" height="36" rx="18" />
+          <text>Nochmal tippen</text>
+        </g>
+      }
     </g>
   }
 
   @for (v of vertexSpots(); track v.id) {
-    <g class="vertex-target" [attr.data-vertex]="v.id" (click)="vertexPick.emit(v.id)">
-      <circle class="hit" [attr.cx]="v.x" [attr.cy]="v.y" [attr.r]="S * 0.26" />
+    <g class="vertex-target" [attr.data-vertex]="v.id" [class.armed]="armed() === 'v' + v.id" (click)="pick('v', v.id)">
+      <circle class="hit" [attr.cx]="v.x" [attr.cy]="v.y" [attr.r]="S * (coarse ? 0.45 : 0.26)" />
       <circle class="mark" [attr.cx]="v.x" [attr.cy]="v.y" [attr.r]="S * 0.13" />
       @if (ghost(); as kind) {
         @if (ghostBuildingImage(); as image) {
@@ -337,6 +349,12 @@
             [attr.d]="kind === 'city' ? 'M-16,11 L16,11 L16,-4 L4,-4 L4,-10 L-6,-19 L-16,-10 Z' : 'M-10,9 L10,9 L10,-3 L0,-12 L-10,-3 Z'"
           />
         }
+      }
+      @if (armed() === 'v' + v.id) {
+        <g class="confirm-note" [attr.transform]="'translate(' + v.x + ',' + (v.y - S * 0.62) + ')'">
+          <rect x="-98" y="-18" width="196" height="36" rx="18" />
+          <text>Nochmal tippen</text>
+        </g>
       }
     </g>
   }

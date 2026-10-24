@@ -61,11 +61,13 @@ Umgesetzt nach Entwurf **02b · Nachtbühne, ruhig** (`output/designs/ui-2026-10
 - **Seitenleiste:** Verlauf und Chat als Tabs, offene Handelsangebote darunter. Mit » oder der Taste V lässt sie sich zu einer schmalen Leiste einklappen, dann bekommt das Brett die Breite; neue Chatnachrichten zählt die Leiste mit. Der Zustand wird gemerkt.
 - **Einstellungen:** Knopf in der Kopfzeile (auf dem Handy nur ⚙), auch in Lobby und auf der Startseite. Reiter „Audio“ mit Musik, Effekten und Sprechern, je An/Aus und Lautstärke.
 - **Dock:** Karten, Bauraster mit Figur und Kosten, die 3D-Würfel und der Hauptknopf.
-- Unter 1280 px rückt das Bauraster unter die Hand. Auf dem Handy stapeln sich Kopf, Brett, Dock und Seitenleiste.
+- Unter 1280 px rückt das Bauraster unter die Hand. Auf dem Handy (bis 960 px) stapeln sich Kopf, Brett, Hand, Bauen und Verlauf; das Brett füllt einen Bildschirm, und eine feste Leiste am unteren Rand hält Würfel, Hauptknopf und die eigenen Karten (Symbol und Anzahl) immer im Bild. Gibt es auf dem Brett etwas zu wählen, scrollt die Seite dorthin. Die Spielerleiste scrollt seitlich und zeigt den Spieler am Zug.
+- Handy quer (bis 520 px hoch): Brett links über die volle Höhe, rechts eine eigene scrollende Spalte mit Würfeln, Hauptknopf, Hand, Bauen und Verlauf; Kopfzeile einzeilig, Bank senkrecht am Brett.
+- Ohne Hover (Touch) sind Tastenkürzel ausgeblendet.
 
 ## Brett
 
-- **Bau-Vorschau:** Im Baumodus zeigt Hover über einem erlaubten Platz die Figur halbtransparent in der eigenen Farbe.
+- **Bau-Vorschau:** Im Baumodus zeigt Hover über einem erlaubten Platz die Figur halbtransparent in der eigenen Farbe. Mit dem Finger wählt der erste Tipp den Platz aus und zeigt dieselbe Vorschau mit „Nochmal tippen“; erst der zweite Tipp auf dieselbe Stelle baut, ein Tipp daneben hebt die Auswahl auf. Gilt für Ecken, Kanten und Felder (Räuber). Trefferflächen sind bei Fingerbedienung größer.
 - **Treffer:** Felder mit der gewürfelten Zahl leuchten nach dem Wurf kurz auf.
 - **Räuber versetzen:** Erlaubte Felder pulsieren, Hover zeigt den Räuber als Vorschau.
 - **Zoomen und Verschieben:** Mausrad, Trackpad-Pinch oder zwei Finger zoomen bis 3×, um den Zeiger herum. Gezoomt lässt sich das Brett ziehen. Ein Ziehen löst keinen Bau aus, erst ein Klick ohne Bewegung. Knöpfe unten rechts: +, − und „ganzes Brett“. Gezoomt nutzt der Ausschnitt die volle Breite der Brettfläche.

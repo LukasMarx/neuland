@@ -1,3 +1,14 @@
+@mixin hex-preview {
+  polygon {
+    fill: rgb(255 255 255 / 0.4);
+    animation: none;
+  }
+
+  .ghost-robber {
+    opacity: 0.75;
+  }
+}
+
 :host {
   // Gelände und Meer leicht entsättigt, damit die Spielerfarben der Figuren davor hervortreten.
   --map-saturation: 0.8;
@@ -520,15 +531,15 @@ text {
 
   }
 
-  &:hover {
-    polygon {
-      fill: rgb(255 255 255 / 0.4);
-      animation: none;
+  // Vorschau beim Überfahren (Maus) oder nach dem ersten Tipp (Finger, siehe Board.armed).
+  @media (hover: hover) {
+    &:hover {
+      @include hex-preview;
     }
+  }
 
-    .ghost-robber {
-      opacity: 0.75;
-    }
+  &.armed {
+    @include hex-preview;
   }
 }
 
@@ -570,13 +581,25 @@ text {
   stroke-linecap: round;
 }
 
-.vertex-target:hover .ghost,
-.edge-target:hover .ghost-road {
+@media (hover: hover) {
+  .vertex-target:hover .ghost,
+  .edge-target:hover .ghost-road {
+    opacity: 0.85;
+  }
+
+  .vertex-target:has(.ghost):hover .mark,
+  .edge-target:hover .mark {
+    opacity: 0;
+  }
+}
+
+.vertex-target.armed .ghost,
+.edge-target.armed .ghost-road {
   opacity: 0.85;
 }
 
-.vertex-target:has(.ghost):hover .mark,
-.edge-target:hover .mark {
+.vertex-target.armed:has(.ghost) .mark,
+.edge-target.armed .mark {
   opacity: 0;
 }
 
@@ -617,6 +640,11 @@ text {
   .hit {
     stroke: transparent;
     stroke-width: 18;
+
+    // Finger brauchen mehr Fläche als ein Mauszeiger.
+    @media (pointer: coarse) {
+      stroke-width: 32;
+    }
   }
 
   .mark {
@@ -628,9 +656,11 @@ text {
     animation: pulse 1.2s ease-in-out infinite;
   }
 
-  &:hover .mark {
-    stroke-dasharray: none;
-    stroke: #ffe36e;
+  @media (hover: hover) {
+    &:hover .mark {
+      stroke-dasharray: none;
+      stroke: #ffe36e;
+    }
   }
 }
 
@@ -648,7 +678,13 @@ text {
     animation: pulse 1.2s ease-in-out infinite;
   }
 
-  &:hover .mark {
+  @media (hover: hover) {
+    &:hover .mark {
+      fill: #ffe36e;
+    }
+  }
+
+  &.armed .mark {
     fill: #ffe36e;
   }
 }
@@ -665,6 +701,25 @@ text {
 
   .figure {
     fill: transparent;
+  }
+}
+
+// Touch: Hinweis an der ausgewählten Stelle. Größer als die Räuber-Notiz, weil das Brett auf dem Handy klein ist.
+.confirm-note {
+  animation: note-in 0.18s ease-out;
+
+  rect {
+    fill: #18242e;
+    stroke: #d4b06a;
+    stroke-width: 2;
+  }
+
+  text {
+    fill: #e8e2d6;
+    font-size: 22px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
   }
 }
 

@@ -143,4 +143,42 @@ describe('Papierfiguren auf dem Brett', () => {
     fixture.detectChanges();
     expect(element.querySelector('.robber-stay')).toBeNull();
   });
+
+  it('Finger: Der erste Tipp zeigt die Vorschau, erst der zweite baut; daneben tippen hebt die Auswahl auf', () => {
+    const { fixture, element } = render();
+    fixture.componentRef.setInput('vertexTargets', [4, 6]);
+    fixture.componentRef.setInput('ghost', 'settlement');
+    fixture.detectChanges();
+    const picked: number[] = [];
+    fixture.componentInstance.vertexPick.subscribe(id => picked.push(id));
+    const press = (el: Element, pointerType: string) => {
+      const down = new Event('pointerdown', { bubbles: true });
+      Object.assign(down, { pointerType, pointerId: 1, button: 0, clientX: 0, clientY: 0 });
+      el.dispatchEvent(down);
+      el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      fixture.detectChanges();
+    };
+    const target = (id: number) => element.querySelector(`.vertex-target[data-vertex="${id}"] .hit`)!;
+
+    press(target(4), 'touch');
+    expect(picked).toEqual([]);
+    expect(element.querySelector('.vertex-target.armed')?.getAttribute('data-vertex')).toBe('4');
+    expect(element.querySelector('.confirm-note')).not.toBeNull();
+
+    // Ein anderer Platz wechselt nur die Auswahl, ein Tipp daneben hebt sie auf.
+    press(target(6), 'touch');
+    expect(element.querySelector('.vertex-target.armed')?.getAttribute('data-vertex')).toBe('6');
+    press(element.querySelector('svg')!, 'touch');
+    expect(element.querySelector('.armed')).toBeNull();
+
+    press(target(4), 'touch');
+    press(target(4), 'touch');
+    expect(picked).toEqual([4]);
+    expect(element.querySelector('.armed')).toBeNull();
+
+    // Maus: ein Klick genügt.
+    press(target(6), 'mouse');
+    expect(picked).toEqual([4, 6]);
+  });
 });
+

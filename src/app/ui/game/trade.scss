@@ -385,6 +385,30 @@
     --cw: calc((100vw - 60px) / 5);
   }
 
+  .head {
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    font-size: 18px;
+
+    span {
+      font-size: 15px;
+    }
+  }
+
+  // Das Feld scrollt auf dem Handy; die Knöpfe bleiben unten im Bild.
+  .buttons {
+    position: sticky;
+    bottom: -1px;
+    z-index: 2;
+    padding: 10px 0 2px;
+    background: var(--panel);
+
+    button {
+      flex: 1;
+      padding: 0 12px;
+    }
+  }
+
   .trow {
     grid-template-columns: 1fr;
     justify-items: center;

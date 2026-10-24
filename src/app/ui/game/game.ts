@@ -75,6 +75,9 @@ import {
   progressStackSize,
 } from '../../engine';
 import { BOT_TAKEOVER_MS, RoomService } from '../../net/room.service';
+
+/** Einspaltige Anordnung (siehe game.scss): Brett oben, Bedienleiste fest am unteren Rand. */
+const PHONE_LAYOUT = '(max-width: 960px)';
 import { Board } from '../board/board';
 import { ChatBox } from '../shared/chat-box';
 import { CardFace } from '../shared/card-face';
@@ -960,6 +963,27 @@ export class GameView {
   }));
 
   constructor() {
+    // Handy: Brett und Bedienung passen nicht zusammen auf den Schirm. Gibt es auf dem Brett etwas zu wählen
+    // (Bauplatz, Räuber), holt die Seite das Brett ins Bild.
+    let hadTargets = false;
+    effect(() => {
+      const t = this.targets();
+      const any = t.vertices.length + t.edges.length + t.hexes.length > 0;
+      if (any && !hadTargets && matchMedia(PHONE_LAYOUT).matches) window.scrollTo({ top: 0, behavior: 'smooth' });
+      hadTargets = any;
+    });
+    // Schmale Kopfzeile scrollt seitlich: Der Spieler am Zug soll darin sichtbar sein.
+    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    // Nur beim Wechsel am Zug, nicht nach jeder Aktion: Wer selbst in der Leiste scrollt, soll dort bleiben.
+    const current = computed(() => this.g().current);
+    afterRenderEffect(() => {
+      const seat = current();
+      const chip = host.querySelector<HTMLElement>(`.players .player[data-seat="${seat}"]`);
+      const row = chip?.parentElement;
+      if (!chip || !row || row.scrollWidth <= row.clientWidth) return;
+      const offset = chip.getBoundingClientRect().left - row.getBoundingClientRect().left;
+      row.scrollTo({ left: row.scrollLeft + offset - (row.clientWidth - chip.offsetWidth) / 2, behavior: 'smooth' });
+    });
     const clock = setInterval(() => this.now.set(Date.now()), 1000);
     inject(DestroyRef).onDestroy(() => {
       clearInterval(clock);
