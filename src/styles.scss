@@ -24,6 +24,12 @@
   line-height: 1.4;
 }
 
+// Kein Doppeltipp-Zoom der ganzen Seite (wer zweimal schnell auf einen Knopf tippt, landete sonst im
+// vergrößerten Ausschnitt); Scrollen und Pinch-Zoom bleiben. Das Brett regelt seine Gesten selbst.
+html {
+  touch-action: manipulation;
+}
+
 * {
   box-sizing: border-box;
 }
