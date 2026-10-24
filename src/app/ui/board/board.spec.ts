@@ -202,12 +202,15 @@ describe('Papierfiguren auf dem Brett', () => {
     fixture.detectChanges();
     expect(svg.getAttribute('viewBox')).toBe(before);
     expect(svg.style.transform).toContain('scale(');
+    // Das Brett außerhalb des alten Ausschnitts bleibt sichtbar, sonst entsteht ein leerer Streifen.
+    expect(svg.style.overflow).toBe('visible');
 
     pointer('pointerup', 2, 210);
     pointer('pointerup', 1, 90);
     fixture.detectChanges();
     expect(svg.getAttribute('viewBox')).not.toBe(before);
     expect(svg.style.transform).toBe('');
+    expect(svg.style.overflow).toBe('');
   });
 });
 

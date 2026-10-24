@@ -18,6 +18,8 @@
   width: 100%;
   height: 100%;
   touch-action: none;
+  // Während einer Geste ragt das verschobene Brett über den Rahmen hinaus (siehe Board.freezeView).
+  overflow: hidden;
 
   &.zoomed {
     cursor: grab;

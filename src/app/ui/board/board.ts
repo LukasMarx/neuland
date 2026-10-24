@@ -668,7 +668,11 @@ export class Board {
     if (this.frozenView()) return;
     this.frozenView.set(this.view());
     const svg = this.svgElement();
-    if (svg) svg.style.willChange = 'transform';
+    if (!svg) return;
+    svg.style.willChange = 'transform';
+    // Sonst endet das Bild am alten Ausschnitt: Beim Schieben oder Herauszoomen bliebe daneben ein leerer,
+    // dunkler Streifen, bis die viewBox beim Loslassen nachzieht. Den Rand schneidet der Host ab.
+    svg.style.overflow = 'visible';
   }
 
   /**
@@ -702,6 +706,7 @@ export class Board {
       svg.setAttribute('viewBox', boxString(this.view()));
       svg.style.transform = '';
       svg.style.willChange = '';
+      svg.style.overflow = '';
     }
     this.frozenView.set(null);
   }
