@@ -162,6 +162,27 @@
     }
   }
 
+  @for (t of tribeHuts(); track t.id) {
+    <g class="tribe">
+      <title>Bewohnte Insel: Hier siedelt niemand. Schiffe an ihrer Küste holen Geschenke ab.</title>
+      <polygon class="tribe-shade" [attr.points]="t.points" />
+      <g class="tribe-hut" [attr.transform]="t.transform"><text y="2">🛖</text></g>
+    </g>
+  }
+
+  @if (oasis(); as o) {
+    <g class="oasis" [attr.transform]="o.transform">
+      <title>Oase: Von hier ziehen die Karawanen los.</title>
+      <text>🌴</text>
+    </g>
+  }
+
+  @if (pirateRoute(); as route) {
+    <path class="pirate-route" [attr.d]="route">
+      <title>Route des Kaperschiffs: Nach jedem Wurf fährt es so viele Felder weiter, wie der erste Würfel zeigt.</title>
+    </path>
+  }
+
   <!-- Hafen- und Fischgrundschilder über den Feldern, aber unter Straßen und Schiffen: Spielfiguren gehen vor. -->
   @for (h of harbors(); track $index) {
     <g class="harbor" [attr.transform]="h.transform">
@@ -183,6 +204,37 @@
       <title>{{ f.title }}</title>
       <image class="fishing-art" href="web/icons/fishing/ground.png" x="-21" y="-21" width="42" height="42" />
       <text class="fishing-number" [class.red]="f.red" x="0" y="13">{{ f.number }}</text>
+    </g>
+  }
+
+  @for (gf of gifts(); track $index) {
+    <g class="gift" [attr.data-kind]="gf.kind" [attr.transform]="gf.transform">
+      <title>{{ gf.title }}</title>
+      <circle class="gift-disc" r="15" />
+      @if (gf.kind === 'point') {
+        <text class="gift-star" y="1">★</text>
+      } @else if (gf.image) {
+        <image [attr.href]="gf.image" [attr.x]="gf.kind === 'dev' ? -7 : -10" [attr.y]="gf.kind === 'dev' ? -10 : -12" [attr.width]="gf.kind === 'dev' ? 14 : 20" [attr.height]="gf.kind === 'dev' ? 20 : 20" />
+      } @else {
+        <text class="gift-any" y="1">?</text>
+      }
+      @if (gf.label) {
+        <text class="gift-rate" y="22">{{ gf.label }}</text>
+      }
+    </g>
+  }
+
+  @for (v of villages(); track v.id) {
+    <g class="village" [class.hit]="v.hit" [class.empty]="v.empty" [attr.transform]="v.transform">
+      <title>{{ v.title }}</title>
+      <path class="village-house" d="M-9,6 L9,6 L9,-3 L0,-11 L-9,-3 Z" />
+      <circle class="village-token" cy="13" r="8" />
+      <text class="village-number" [class.red]="v.red" y="13">{{ v.number }}</text>
+      <g class="village-stock">
+        @for (k of v.stock; track k) {
+          <rect [attr.x]="-11 + k * 4.6" y="-18" width="3.6" height="5" rx="1" />
+        }
+      </g>
     </g>
   }
 
@@ -211,6 +263,20 @@
       } @else {
         <use href="#ship" [attr.transform]="sh.transform" [attr.fill]="sh.color" />
       }
+      @if (sh.war) {
+        <g class="warship-flag" [attr.transform]="sh.flag" [style.--c]="sh.color">
+          <line x1="0" y1="2" x2="0" y2="-10" />
+          <path d="M0,-10 L9,-7 L0,-4 Z" />
+        </g>
+      }
+    </g>
+  }
+
+  @for (c of camels(); track c.id) {
+    <g class="camel" [class.last]="c.last" [attr.transform]="c.transform">
+      <title>{{ c.title }}</title>
+      <circle class="camel-disc" r="12" />
+      <text y="1">🐪</text>
     </g>
   }
 
@@ -233,6 +299,18 @@
         }
         <path class="guard-helm" [attr.d]="'M' + -w.r * 0.45 + ',' + -w.r * 0.15 + ' L0,' + -w.r * 0.75 + ' L' + w.r * 0.45 + ',' + -w.r * 0.15 + ' Z'" />
       }
+    </g>
+  }
+
+  @for (f of fortresses(); track f.id) {
+    <g class="fortress" [attr.data-vertex]="f.id" [attr.transform]="f.transform" [style.--c]="f.color">
+      <title>{{ f.title }}</title>
+      <path class="fortress-tower" d="M-13,10 L13,10 L13,-8 L9,-8 L9,-13 L5,-13 L5,-8 L2,-8 L2,-13 L-2,-13 L-2,-8 L-5,-8 L-5,-13 L-9,-13 L-9,-8 L-13,-8 Z" />
+      <path class="fortress-gate" d="M-4,10 L-4,3 Q0,-1 4,3 L4,10 Z" />
+      <line class="fortress-pole" x1="0" y1="-13" x2="0" y2="-25" />
+      <path class="fortress-flag" d="M0,-25 L11,-22 L0,-19 Z" />
+      <circle class="fortress-badge" cx="12" cy="8" r="6.5" />
+      <text class="fortress-walls" x="12" y="8.5">{{ f.walls }}</text>
     </g>
   }
 

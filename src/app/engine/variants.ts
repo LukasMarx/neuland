@@ -1,5 +1,7 @@
+import { ResourceCounts } from './types';
+
 /** Kleine Varianten, in der Lobby zuschaltbar (docs/ERWEITUNGEN.md, Abschnitt 2.1). */
-export type VariantId = 'milderRaeuber' | 'hafenvogt' | 'wuerfelstapel' | 'fischgruende' | 'duell' | 'flusslaeufe' | 'stadtwacht';
+export type VariantId = 'milderRaeuber' | 'hafenvogt' | 'wuerfelstapel' | 'fischgruende' | 'duell' | 'flusslaeufe' | 'stadtwacht' | 'kamelzuege';
 
 export interface VariantDef {
   id: VariantId;
@@ -15,8 +17,12 @@ export interface VariantDef {
   players?: number;
   /** Höchstens so viele Spieler (die Erweiterungen sind für bis zu 6 gebaut). */
   maxPlayers?: number;
+  /** Mindestens so viele Spieler. */
+  minPlayers?: number;
   /** Nur auf Karten ohne Meerfelder (keine Seewege). */
   landOnly?: boolean;
+  /** Varianten, mit denen diese nicht zusammen geht. */
+  excludes?: VariantId[];
 }
 
 export const VARIANTS: VariantDef[] = [
@@ -81,6 +87,54 @@ export const VARIANTS: VariantDef[] = [
     description:
       'Städte auf Wald, Weide und Gebirge liefern Güter (Schriften, Stoff, Silber). Damit baut man die Stadt in drei Richtungen aus; wer zuerst Stufe 4 erreicht, bekommt eine Prachtstadt (+2). Palisaden erhöhen das Handkartenlimit. Eine Plündererflotte greift die Städte an; Wächter verteidigen. Der Räuber kommt erst nach dem ersten Angriff. Zeigt der Ereigniswürfel ein Tor, gibt es Einflusskarten für alle, deren Ausbau in dieser Farbe zum roten Würfel passt. Zweite Startfigur ist eine Stadt, keine Entwicklungskarten.',
   },
+  {
+    id: 'kamelzuege',
+    kind: 'expansion',
+    minPlayers: 3,
+    maxPlayers: 6,
+    excludes: ['fischgruende', 'duell'],
+    short: 'Karawanen aus der Oase, Kamele per verdecktem Gebot.',
+    name: 'Kamelzüge',
+    victoryPoints: 2,
+    description:
+      'Aus der Oase in der Wüste ziehen drei Karawanen. Nach jeder neuen Siedlung oder Stadt bieten alle verdeckt Getreide und Wolle; wer am meisten bietet, setzt das nächste Kamel. Jedes Gebäude an einer Karawane zählt 1 Punkt mehr, Straßen unter Kamelen zählen doppelt für die längste Straße. Siegziel +2.',
+  },
+];
+
+/** Kamelzüge: so viele Kamele gibt es, die drei an der Oase eingerechnet. */
+export const CAMELS = 22;
+
+/** Die Verschollenen: Punkte für ein Punkt-Geschenk. */
+export const GIFT_POINTS = 1;
+
+/** Stoffhandel: Ballen je Dorf zu Beginn und Ballen je Siegpunkt. */
+export const VILLAGE_STOCK = 5;
+export const BALES_PER_POINT = 2;
+
+/** Freibeuterbuchten: Mauern einer Festung. */
+export const FORTRESS_WALLS = 3;
+
+/** Großbauten: Stufen eines Bauwerks; wer die letzte baut, gewinnt sofort. */
+export const WONDER_LEVELS = 4;
+
+export type WonderNeed = 'harbor' | 'cities' | 'islands' | 'route' | 'ships';
+
+export interface WonderDef {
+  name: string;
+  /** Voraussetzung, um das Bauwerk zu beginnen. */
+  need: WonderNeed;
+  requirement: string;
+  /** Kosten jeder Stufe. */
+  cost: ResourceCounts;
+}
+
+/** Großbauten: fünf Bauwerke, jedes mit eigener Voraussetzung und eigenen Kosten je Stufe. */
+export const WONDERS: WonderDef[] = [
+  { name: 'Leuchtturm', need: 'harbor', requirement: 'eine Siedlung oder Stadt an einem Hafen', cost: { wood: 1, brick: 1, sheep: 1, wheat: 0, ore: 2 } },
+  { name: 'Kathedrale', need: 'cities', requirement: 'zwei Städte', cost: { wood: 0, brick: 2, sheep: 0, wheat: 1, ore: 2 } },
+  { name: 'Großer Markt', need: 'islands', requirement: 'Gebäude auf zwei Inseln', cost: { wood: 1, brick: 0, sheep: 2, wheat: 2, ore: 0 } },
+  { name: 'Wehrturm', need: 'route', requirement: 'eine Handelsroute von mindestens 5', cost: { wood: 1, brick: 2, sheep: 0, wheat: 0, ore: 2 } },
+  { name: 'Werft', need: 'ships', requirement: 'fünf Schiffe', cost: { wood: 2, brick: 1, sheep: 1, wheat: 0, ore: 1 } },
 ];
 
 /** Stadtwacht: Güter in der Bank je Sorte, Palisaden je Spieler, Punkte für eine Prachtstadt. */

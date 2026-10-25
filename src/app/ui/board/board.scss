@@ -846,3 +846,181 @@ text {
     stroke-width: 2px;
   }
 }
+
+// Seewege-Szenarien und Kamelzüge: Platzhalter, bis es Papiercollage-Grafiken gibt.
+.tribe-hut text,
+.oasis text,
+.camel text {
+  font-size: 18px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.55));
+  pointer-events: none;
+}
+
+.oasis text,
+.tribe-hut text {
+  font-size: 26px;
+}
+
+.tribe-shade {
+  fill: #3b2a18;
+  fill-opacity: 0.32;
+  pointer-events: none;
+}
+
+.camel text {
+  font-size: 16px;
+}
+
+// Die Scheibe hebt das Kamel von Straße und Gelände ab; das letzte jeder Karawane ist hervorgehoben.
+.camel .camel-disc {
+  fill: #f4ead2;
+  stroke: #7a5b2e;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.5));
+}
+
+.camel.last .camel-disc {
+  stroke: #c48a12;
+  stroke-width: 2.5;
+}
+
+.pirate-route {
+  fill: none;
+  stroke: #1b2832;
+  stroke-opacity: 0.45;
+  stroke-width: 2.5;
+  stroke-dasharray: 2 7;
+  stroke-linecap: round;
+}
+
+.gift {
+  .gift-disc {
+    fill: #f4ead2;
+    stroke: #7a5b2e;
+    stroke-width: 2;
+    filter: drop-shadow(0 1.5px 1.5px rgb(0 0 0 / 0.45));
+  }
+
+  text {
+    text-anchor: middle;
+    dominant-baseline: middle;
+    font-weight: 900;
+  }
+
+  .gift-star {
+    font-size: 18px;
+    fill: #c48a12;
+  }
+
+  .gift-any {
+    font-size: 14px;
+    fill: #1b2832;
+  }
+
+  .gift-rate {
+    font-size: 9px;
+    fill: #1b2832;
+    stroke: #f4ead2;
+    stroke-width: 2.5px;
+    paint-order: stroke;
+  }
+}
+
+.village {
+  .village-house {
+    fill: #c9a26b;
+    stroke: #4a3216;
+    stroke-width: 1.5;
+    filter: drop-shadow(0 1.5px 1.5px rgb(0 0 0 / 0.45));
+  }
+
+  .village-token {
+    fill: #f4ead2;
+    stroke: #4a3216;
+    stroke-width: 1.2;
+  }
+
+  .village-number {
+    font-size: 10px;
+    font-weight: 900;
+    fill: #1b2832;
+    text-anchor: middle;
+    dominant-baseline: middle;
+
+    &.red {
+      fill: #b3261e;
+    }
+  }
+
+  .village-stock rect {
+    fill: #8a4fb0;
+    stroke: #2a1838;
+    stroke-width: 0.6;
+  }
+
+  &.empty {
+    opacity: 0.45;
+  }
+
+  &.hit .village-token {
+    fill: #ffe9a8;
+  }
+}
+
+.fortress {
+  .fortress-tower {
+    fill: #8a8d91;
+    stroke: #26303a;
+    stroke-width: 1.5;
+    filter: drop-shadow(0 1.5px 2px rgb(0 0 0 / 0.55));
+  }
+
+  .fortress-gate {
+    fill: #26303a;
+  }
+
+  .fortress-pole {
+    stroke: #26303a;
+    stroke-width: 1.5;
+  }
+
+  .fortress-flag {
+    fill: var(--c);
+    stroke: #26303a;
+    stroke-width: 0.8;
+  }
+
+  .fortress-badge {
+    fill: var(--c);
+    stroke: #26303a;
+    stroke-width: 1;
+  }
+
+  .fortress-walls {
+    font-size: 9px;
+    font-weight: 900;
+    fill: #fff;
+    stroke: #26303a;
+    stroke-width: 2px;
+    paint-order: stroke;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+}
+
+.warship-flag {
+  pointer-events: none;
+
+  line {
+    stroke: #1b2832;
+    stroke-width: 1.5;
+  }
+
+  path {
+    fill: var(--c);
+    stroke: #1b2832;
+    stroke-width: 0.8;
+  }
+}

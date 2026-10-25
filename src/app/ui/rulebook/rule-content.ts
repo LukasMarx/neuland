@@ -23,6 +23,8 @@ export type ChapterId =
   | 'fischgruende'
   | 'flusslaeufe'
   | 'duell'
+  | 'szenarien'
+  | 'kamelzuege'
   | 'hausregeln';
 
 export interface GalleryItem {
@@ -76,6 +78,8 @@ export interface Page {
   blocks: Block[];
   /** Nur zeigen, wenn diese Hausregel an ist. */
   variant?: VariantId;
+  /** Nur zeigen, wenn auf dieser Karte gespielt wird (Seewege-Szenarien). */
+  map?: string;
 }
 
 export interface Chapter {
@@ -1312,14 +1316,171 @@ const HAUSREGELN: Chapter = {
   ],
 };
 
+const SZENARIEN: Chapter = {
+  id: 'szenarien',
+  tab: 'Szenarien',
+  title: 'Seewege-Szenarien',
+  emblem: banner('island'),
+  pages: [
+    {
+      map: 'sandmeer',
+      blocks: [
+        { kind: 'h', text: 'Sandmeer' },
+        {
+          kind: 'p',
+          initial: true,
+          html: 'Ein Streifen Wüste zieht sich quer über die Hauptinsel. Alle beginnen diesseits, das Land dahinter muss man sich erst erschließen.',
+        },
+        {
+          kind: 'list',
+          items: [
+            'Gestartet wird im <b>größten Gebiet</b>, also auf einer Seite der Wüste.',
+            'Die erste eigene Siedlung in einem <b>neuen Gebiet</b> jenseits der Wüste bringt <b>1 Siegpunkt</b>.',
+            'Die erste eigene Siedlung auf einer <b>neuen Insel</b> bringt <b>2 Siegpunkte</b>.',
+            'Gespielt wird bis 14 Punkte.',
+          ],
+        },
+      ],
+    },
+    {
+      map: 'die-verschollenen',
+      blocks: [
+        { kind: 'h', text: 'Die Verschollenen' },
+        {
+          kind: 'p',
+          initial: true,
+          html: 'Auf den äußeren Inseln lebt ein Volk, das niemand kennt. Siedeln kann man dort nicht, aber wer mit dem Schiff an ihre Küste kommt, wird beschenkt.',
+        },
+        {
+          kind: 'list',
+          items: [
+            'Auf den <b>bewohnten Inseln</b> (mit Hütten) siedelt niemand, ihre Felder tragen keine Zahl.',
+            'An ihren Küsten liegen <b>Geschenke</b>. Wer als Erster ein Schiff auf diese Kante baut, bekommt es.',
+            '<b>★</b> ist ein Siegpunkt, die Karte eine <b>Entwicklungskarte</b>, das Rohstoffsymbol ein <b>Hafen</b>.',
+            'Einen geschenkten Hafen legst du in deinem Zug an eine freie Küstenkante an deiner Siedlung oder Stadt (Knopf „Hafen“).',
+          ],
+        },
+        { kind: 'note', html: 'Ein Schiff, das versetzt wird, holt kein Geschenk ab, nur ein neu gebautes.' },
+      ],
+    },
+    {
+      map: 'stoffhandel',
+      blocks: [
+        { kind: 'h', text: 'Stoffhandel' },
+        {
+          kind: 'p',
+          initial: true,
+          html: 'Auf den kleinen Inseln weben Dörfer Stoff. Wer eine Verbindung zu ihnen hat, bekommt seinen Anteil.',
+        },
+        {
+          kind: 'list',
+          items: [
+            'Jedes <b>Dorf</b> liegt auf einer Küstenkante, trägt eine Zahl und hat 5 Stoffballen.',
+            'Angebunden ist, wer mit einer <b>Straße oder einem Schiff</b> an eine Ecke des Dorfes reicht.',
+            'Fällt die Zahl des Dorfes, bekommt jeder Angebundene einen <b>Stoffballen</b>, in Zugreihenfolge, solange der Vorrat reicht.',
+            '<b>2 Stoffballen</b> sind 1 Siegpunkt. Auf der Dorfkante und an den Ecken des Dorfes baut niemand.',
+          ],
+        },
+      ],
+    },
+    {
+      map: 'freibeuterbuchten',
+      blocks: [
+        { kind: 'h', text: 'Freibeuterbuchten' },
+        {
+          kind: 'p',
+          initial: true,
+          html: 'Freibeuter haben sich auf den äußeren Inseln verschanzt. Jeder muss die Festung in seiner Farbe einnehmen, und ihr Kaperschiff macht die Küsten unsicher.',
+        },
+        {
+          kind: 'list',
+          items: [
+            'Jeder hat eine <b>Festung</b> mit 3 Mauern. <b>Gewinnen</b> kann nur, wer seine eigene Festung erobert hat.',
+            'Liegt ein eigenes Schiff an der Festung, darfst du einmal pro Zug <b>angreifen</b>: dein Würfel plus deine Kriegsschiffe gegen einen Würfel. Höher: eine Mauer fällt. Niedriger: dein Schiff an der Festung sinkt.',
+            'Fällt die letzte Mauer, wird die Festung deine <b>Siedlung</b>.',
+            'Ein <b>Ritter</b> versetzt nicht den Räuber, sondern macht eines deiner Schiffe zum <b>Kriegsschiff</b> (mit Wimpel). Für die Rittermacht zählt er weiter.',
+          ],
+        },
+        { kind: 'h', text: 'Das Kaperschiff' },
+        {
+          kind: 'list',
+          items: [
+            'Es fährt eine <b>feste Route</b> um die Hauptinsel und lässt sich nicht versetzen.',
+            'Nach jedem Wurf fährt es so viele Felder, wie der <b>erste Würfel</b> zeigt, und greift jeden mit Gebäuden an seinem Feld mit der Stärke des <b>zweiten Würfels</b> an.',
+            'Mehr Kriegsschiffe als die Stärke: du nimmst dir einen Rohstoff. Weniger: du verlierst je Siedlung eine, je Stadt zwei Karten.',
+          ],
+        },
+      ],
+    },
+    {
+      map: 'grossbauten',
+      blocks: [
+        { kind: 'h', text: 'Großbauten' },
+        {
+          kind: 'p',
+          initial: true,
+          html: 'Fünf große Bauwerke warten darauf, errichtet zu werden. Wer seines vollendet, hat gewonnen, egal wie viele Punkte die anderen haben.',
+        },
+        {
+          kind: 'list',
+          items: [
+            'Jedes Bauwerk hat eine <b>Voraussetzung</b>, um es zu beginnen, etwa zwei Städte oder fünf Schiffe. Jeder baut höchstens eines, jedes Bauwerk gehört nur einem.',
+            'Es hat <b>vier Stufen</b>, jede mit denselben Kosten. Jede Stufe bringt <b>1 Siegpunkt</b>.',
+            'Wer die <b>vierte Stufe</b> baut, gewinnt sofort.',
+            'Gebaut wird über den Knopf „Bauwerke“, auch in der Sonderbauphase.',
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+const KAMELZUEGE: Chapter = {
+  id: 'kamelzuege',
+  tab: 'Kamelzüge',
+  title: 'Kamelzüge',
+  emblem: banner('basket'),
+  pages: [
+    {
+      blocks: [
+        {
+          kind: 'p',
+          initial: true,
+          html: 'In der Wüste liegt eine Oase. Von dort ziehen Karawanen über das Land, und wo sie vorbeikommen, blüht der Handel.',
+        },
+        {
+          kind: 'list',
+          items: [
+            'Drei <b>Karawanen</b> beginnen an der Oase mit je einem Kamel.',
+            'Nach jeder neuen <b>Siedlung oder Stadt</b> bieten alle <b>verdeckt</b> Getreide und Wolle. Wer am meisten bietet, setzt das nächste Kamel ans Ende einer Karawane; bei Gleichstand, wer nach dem Bauenden zuerst kommt.',
+            'Alle zahlen ihr Gebot. Bietet niemand, setzt der Bauende das Kamel.',
+            'Eine Karawane zieht über Land und nie an eine Ecke, die schon eine Karawane berührt. Es gibt 22 Kamele.',
+          ],
+        },
+        {
+          kind: 'changes',
+          now: 'Mit Kamelzügen',
+          rows: [
+            { topic: 'Gebäude an einer Karawane', before: '1 oder 2 Punkte', after: '<b>1 Punkt mehr</b>' },
+            { topic: 'Straße unter einem Kamel', before: 'zählt 1', after: 'zählt <b>doppelt</b> für die längste Straße' },
+            { topic: 'Siegziel', before: 'wie die Karte', after: '<b>+2</b>' },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
 export const CHAPTERS: Record<ChapterId, Chapter> = {
   grundspiel: GRUNDSPIEL,
   'grosse-runde': GROSSE_RUNDE,
   seewege: SEEWEGE,
+  szenarien: SZENARIEN,
   stadtwacht: STADTWACHT,
   fischgruende: FISCHGRUENDE,
   flusslaeufe: FLUSSLAEUFE,
   duell: DUELL,
+  kamelzuege: KAMELZUEGE,
   hausregeln: HAUSREGELN,
 };
 
@@ -1344,6 +1505,9 @@ export function chaptersFor(
   if (mapById(settings.map).seafaring) ids.push('seewege');
   for (const v of VARIANTS) if (v.kind === 'expansion' && on.has(v.id)) ids.push(v.id as ChapterId);
   const chapters = ids.map((id) => CHAPTERS[id]);
+  // Seewege-Szenarien: nur die Seite der gewählten Karte.
+  const scenario = SZENARIEN.pages.filter((p) => p.map === settings.map);
+  if (scenario.length) chapters.splice(ids.indexOf('seewege') + 1, 0, { ...SZENARIEN, title: 'Szenario', pages: scenario });
   // Die Einleitung der Hausregeln steht immer da, danach nur die eingeschalteten.
   const house = HAUSREGELN.pages.filter((p) => !p.variant || on.has(p.variant));
   if (house.some((p) => p.variant)) chapters.push({ ...HAUSREGELN, pages: house });

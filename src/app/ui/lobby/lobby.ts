@@ -501,11 +501,16 @@ export class Lobby {
     const n = this.present();
     const sea = !!this.map().seafaring;
     const v = VARIANTS.find(
-      (x) => this.variantOn(x) && ((x.players && x.players !== n) || (x.maxPlayers && n > x.maxPlayers) || (x.landOnly && sea)),
+      (x) =>
+        this.variantOn(x) &&
+        ((x.players && x.players !== n) || (x.maxPlayers && n > x.maxPlayers) || (x.minPlayers && n < x.minPlayers) || (x.landOnly && sea) || this.clashOf(x)),
     );
     if (!v) return null;
     if (v.players && v.players !== n) return `${v.name} ist nur für ${v.players} Spieler, gerade sind ${n} da.`;
     if (v.maxPlayers && n > v.maxPlayers) return `${v.name} gibt es nur für bis zu ${v.maxPlayers} Spieler, gerade sind ${n} da.`;
+    if (v.minPlayers && n < v.minPlayers) return `${v.name} gibt es erst ab ${v.minPlayers} Spielern, gerade sind ${n} da.`;
+    const clash = this.clashOf(v);
+    if (clash) return `${v.name} und ${clash.name} gehen nicht zusammen.`;
     return `${v.name} gibt es nur auf Karten ohne Meerfelder.`;
   });
 
@@ -551,8 +556,16 @@ export class Lobby {
     // Mit nur einem Spieler im Raum ist die Spielerzahl noch offen.
     if (v.players && this.present() >= 2 && v.players !== this.present()) return `Nur für ${v.players} Spieler.`;
     if (v.maxPlayers && this.present() > v.maxPlayers) return `Nur bis ${v.maxPlayers} Spieler.`;
+    if (v.minPlayers && this.present() >= 2 && this.present() < v.minPlayers) return `Erst ab ${v.minPlayers} Spielern.`;
     if (v.landOnly && this.map().seafaring) return 'Nur auf Karten ohne Meer.';
+    const clash = this.clashOf(v);
+    if (clash) return `Nicht zusammen mit ${clash.name}.`;
     return null;
+  }
+
+  /** Eine eingeschaltete Variante, mit der diese nicht zusammen geht (in beide Richtungen). */
+  private clashOf(v: VariantDef): VariantDef | null {
+    return VARIANTS.find((x) => x.id !== v.id && this.variantOn(x) && (v.excludes?.includes(x.id) || x.excludes?.includes(v.id))) ?? null;
   }
 
   protected toggleOpen(id: string): void {

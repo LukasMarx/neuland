@@ -30,7 +30,7 @@ describe('chaptersFor', () => {
 describe('Regelbuch in der Lobby', () => {
   it('enthält alle Kapitel und alle Hausregeln', () => {
     const chapters = allChapters();
-    expect(chapters.map((c) => c.id)).toEqual(['grundspiel', 'grosse-runde', 'seewege', 'stadtwacht', 'fischgruende', 'flusslaeufe', 'duell', 'hausregeln']);
+    expect(chapters.map((c) => c.id)).toEqual(['grundspiel', 'grosse-runde', 'seewege', 'szenarien', 'stadtwacht', 'fischgruende', 'flusslaeufe', 'duell', 'kamelzuege', 'hausregeln']);
     const house = chapters.at(-1)!;
     expect(house.pages.map((p) => p.variant)).toEqual([undefined, 'milderRaeuber', 'hafenvogt', 'wuerfelstapel']);
   });

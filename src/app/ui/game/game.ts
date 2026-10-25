@@ -74,6 +74,18 @@ import {
   ProgressCard,
   progressCount,
   progressStackSize,
+  attackableFortress,
+  BALES_PER_POINT,
+  camelOptions,
+  canBuildWonder,
+  caravanPoints,
+  fortressTaken,
+  harborSpots,
+  plainShips,
+  warshipCount,
+  wonderReady,
+  WONDER_LEVELS,
+  WONDERS,
 } from '../../engine';
 import { BOT_TAKEOVER_MS, RoomService } from '../../net/room.service';
 
@@ -106,7 +118,7 @@ import { CityPanel } from './city-panel';
 import { chaptersFor } from '../rulebook/rule-content';
 import { Rulebook } from '../rulebook/rulebook';
 
-type BuildMode = 'road' | 'settlement' | 'city' | 'ship' | 'moveShip' | 'bridge' | 'wall' | 'metropolis' | 'guards' | 'guardMove' | 'progress';
+type BuildMode = 'road' | 'settlement' | 'city' | 'ship' | 'moveShip' | 'bridge' | 'wall' | 'metropolis' | 'guards' | 'guardMove' | 'progress' | 'harbor';
 type Dialog =
   | { kind: 'yearOfPlenty' }
   | { kind: 'monopoly' }
@@ -115,7 +127,8 @@ type Dialog =
   | { kind: 'tokens'; step: 'menu' | 'trade' }
   | { kind: 'coins' }
   | { kind: 'guard'; vertex: number }
-  | { kind: 'progress'; card: ProgressCard };
+  | { kind: 'progress'; card: ProgressCard }
+  | { kind: 'wonders' };
 
 /**
  * Ansagen, die sonst ständig kämen: so viele Züge Abstand mindestens. Straßen und Schiffe einmal je Zug;
@@ -461,6 +474,54 @@ export class GameView {
     return nc ? g.players[nc.active.owner].color : this.myColor();
   });
 
+  /** Die Verschollenen: geschenkte Häfen, die noch an die eigene Küste kommen. */
+  protected readonly myHarbors = computed(() => this.g().harborGifts?.[this.seat()] ?? null);
+  /** Freibeuterbuchten: eigene Festung, Kriegsschiffe und ob jetzt angegriffen werden kann. */
+  protected readonly myFortress = computed(() => {
+    const g = this.g();
+    const seat = this.seat();
+    const fort = g.fortresses?.find((f) => f.owner === seat);
+    if (!fort) return null;
+    return { ...fort, warships: warshipCount(g, seat), attack: attackableFortress(g, seat) };
+  });
+  /** Großbauten: alle Bauwerke mit Stand und was ich gerade damit tun kann. */
+  protected readonly wonderRows = computed(() => {
+    const g = this.g();
+    const seat = this.seat();
+    if (!g.wonders || seat < 0) return null;
+    const mine = g.wonders.findIndex((w) => w.owner === seat);
+    return WONDERS.map((def, i) => {
+      const w = g.wonders![i];
+      const owner = w.owner === null ? null : g.players[w.owner];
+      let reason: string | null = null;
+      if (!this.canBuildNow()) reason = 'Gerade nicht dran';
+      else if (w.level >= WONDER_LEVELS) reason = 'Fertig';
+      else if (w.owner !== null && w.owner !== seat) reason = `Gehört ${owner!.name}`;
+      else if (w.owner === null && mine >= 0) reason = 'Du baust schon an einem Bauwerk';
+      else if (w.owner === null && !wonderReady(g, seat, i)) reason = `Voraussetzung: ${def.requirement}`;
+      else if (!canBuildWonder(g, seat, i)) reason = this.missing(def.cost);
+      return {
+        index: i,
+        name: def.name,
+        requirement: def.requirement,
+        cost: this.costArt(def.cost),
+        level: w.level,
+        steps: Array.from({ length: WONDER_LEVELS }, (_, k) => k < w.level),
+        owner: owner ? { name: owner.name, color: owner.color } : null,
+        label: w.owner === null ? 'Beginnen' : w.level === WONDER_LEVELS - 1 ? 'Vollenden' : 'Weiterbauen',
+        reason,
+      };
+    });
+  });
+  /** Kamelzüge: Muss ich gerade bieten? */
+  protected readonly camelBidDue = computed(() => {
+    const phase = this.g().phase;
+    return phase.kind === 'camelVote' && phase.done[this.seat()] === false;
+  });
+  protected readonly camelPick = signal<ResourceCounts>(emptyResources());
+  protected readonly bidCards: readonly Card[] = ['wheat', 'sheep'];
+  protected readonly emptyBid = emptyResources();
+
   /** Flussläufe: eigene Münzen; 2 Münzen sind ein Rohstoff. */
   protected readonly myCoins = computed(() => this.g().coins?.[this.seat()] ?? null);
   protected readonly canTradeCoins = computed(() => (this.myCoins() ?? 0) >= 2 && this.isCurrent() && this.g().phase.kind === 'main');
@@ -577,6 +638,8 @@ export class GameView {
         return 'Wähle eine Kante am Meer für das Schiff';
       case 'bridge':
         return 'Wähle eine Flusskante für die Brücke';
+      case 'harbor':
+        return 'Wähle eine Küstenkante an deiner Siedlung oder Stadt für den Hafen';
       case 'wall':
         return 'Wähle eine eigene Stadt für die Palisade';
       case 'guards':
@@ -617,7 +680,8 @@ export class GameView {
   /** Vorschau an Kanten: Schiff beim Schiffsbau und Versetzen, sonst Straße. */
   protected readonly edgeGhost = computed(() => {
     const mode = this.buildMode();
-    if (mode === 'progress') return 'none';
+    const phase = this.g().phase.kind;
+    if (mode === 'progress' || mode === 'harbor' || phase === 'camelPlace' || phase === 'warship') return 'none';
     return mode === 'ship' || mode === 'moveShip' ? 'ship' : 'road';
   });
 
@@ -636,6 +700,8 @@ export class GameView {
       return { ...none, hexes: legalRobberHexes(g) };
     }
     if (phase.kind === 'roadBuilding') return { ...none, edges: [...legalRoadEdges(g, seat), ...legalShipEdges(g, seat)] };
+    if (phase.kind === 'camelPlace') return { ...none, edges: phase.seat === seat ? camelOptions(g) : [] };
+    if (phase.kind === 'warship') return { ...none, edges: plainShips(g, seat) };
     if (phase.kind === 'raid') return { ...none, vertices: phase.pending[seat] ? vulnerableCities(g, seat) : [] };
     if (phase.kind === 'displace') return { ...none, vertices: phase.seat === seat ? guardSpots(g, seat) : [] };
     if (phase.kind === 'neutral') {
@@ -650,6 +716,8 @@ export class GameView {
         return { ...none, edges: legalShipEdges(g, seat) };
       case 'bridge':
         return { ...none, edges: legalBridgeEdges(g, seat) };
+      case 'harbor':
+        return { ...none, edges: harborSpots(g, seat) };
       case 'wall':
         return { ...none, vertices: legalWallVertices(g, seat) };
       case 'guards': {
@@ -771,6 +839,14 @@ export class GameView {
         const nc = this.neutralChoice();
         return mine && nc ? `Setze ${what} für ${name(nc.active.owner)}` : `${name(g.current)} setzt ${what} für einen Neutralen`;
       }
+      case 'camelVote': {
+        const waiting = phase.done.flatMap((done, i) => (done ? [] : [name(i)]));
+        return this.camelBidDue() ? 'Kamelzüge: Biete Getreide und Wolle für das nächste Kamel' : `Kamelzüge: Warte auf Gebote von ${waiting.join(', ')}`;
+      }
+      case 'camelPlace':
+        return phase.seat === this.seat() ? 'Setze das Kamel an das Ende einer Karawane' : `${name(phase.seat)} setzt ein Kamel`;
+      case 'warship':
+        return this.isCurrent() ? 'Ritter: Wähle ein Schiff, das Kriegsschiff wird' : `${name(g.current)} rüstet ein Kriegsschiff`;
       case 'ended':
         return g.winner !== null ? `${name(g.winner)} hat gewonnen!` : 'Spiel beendet';
     }
@@ -806,6 +882,9 @@ export class GameView {
         discard: g.phase.kind === 'discard' && g.phase.to !== undefined ? 'Karten verschenken' : 'Karten abwerfen',
         progressPick: 'Farbe wählen',
         peek: 'Karten nehmen',
+        camelVote: 'Gebot abgeben',
+        camelPlace: 'Kamel auf dem Brett setzen',
+        warship: 'Schiff auf dem Brett wählen',
       };
       return { label: hint[phase] ?? 'Du bist dran', run: null };
     }
@@ -841,9 +920,18 @@ export class GameView {
       trader: g.trader?.owner === seat,
       coinRank: coinPoints(g, seat),
       honors: g.honors?.[seat] ?? 0,
+      gifts: g.giftPoints?.[seat] ?? 0,
+      bales: g.bales?.[seat] ?? null,
+      wonder: (() => {
+        const i = g.wonders?.findIndex((w) => w.owner === seat) ?? -1;
+        return i >= 0 ? `${WONDERS[i].name} ${g.wonders![i].level}/${WONDER_LEVELS}` : null;
+      })(),
+      fortress: g.fortresses ? fortressTaken(g, seat) : null,
       active: actingSeats(g).includes(seat),
       // Beim Abwerfen sind mehrere „dran“; dort zählt die Kartenzahl, also kein „am Zug“.
       discarding: g.phase.kind === 'discard' && (g.phase.pending[seat] ?? 0) > 0,
+      // Kamelzüge: Beim Bieten sind alle zugleich dran.
+      bidding: g.phase.kind === 'camelVote' && g.phase.done[seat] === false,
       online: !!members.find((m) => m.id === p.id)?.peerId,
       bot: (() => {
         const m = members.find((x) => x.id === p.id);
@@ -928,6 +1016,16 @@ export class GameView {
       progressCards: g.progress ? progressCount(g, i.seat) : null,
       metropolises: g.metropolis ? TRACKS.filter((t) => g.metropolis![t] !== null && g.buildings[g.metropolis![t]!]?.owner === i.seat).length : 0,
       coinPoints: coinPoints(g, i.seat),
+      giftPoints: g.giftPoints ? g.giftPoints[i.seat] : null,
+      bales: g.bales ? g.bales[i.seat] : null,
+      balePoints: g.bales ? Math.floor(g.bales[i.seat] / BALES_PER_POINT) : 0,
+      wonder: (() => {
+        if (!g.wonders) return null;
+        const w = g.wonders.findIndex((x) => x.owner === i.seat);
+        return w >= 0 ? { name: WONDERS[w].name, level: g.wonders[w].level } : { name: null, level: 0 };
+      })(),
+      caravan: g.caravans ? caravanPoints(g, i.seat) : null,
+      fortress: g.fortresses ? { taken: fortressTaken(g, i.seat), walls: g.fortresses.find((f) => f.owner === i.seat)?.walls ?? 0, warships: warshipCount(g, i.seat) } : null,
       anchor: g.anchor === i.seat,
       target: victoryTarget(g, i.seat),
       vpCards: showHidden ? devCards.filter((c) => c === 'victoryPoint').length : null,
@@ -1501,6 +1599,19 @@ export class GameView {
       this.finishProgress({ edge });
       return;
     }
+    if (g.phase.kind === 'camelPlace') {
+      this.room.act({ type: 'placeCamel', edge });
+      return;
+    }
+    if (g.phase.kind === 'warship') {
+      this.room.act({ type: 'chooseWarship', edge });
+      return;
+    }
+    if (mode === 'harbor') {
+      this.room.act({ type: 'placeHarbor', edge });
+      this.buildMode.set(null);
+      return;
+    }
     if (mode === 'moveShip') {
       const from = this.moveFrom();
       if (from === null) {
@@ -1522,6 +1633,20 @@ export class GameView {
     }
     this.moveFrom.set(null);
     this.buildMode.set(null);
+  }
+
+  protected attackFortress(): void {
+    const vertex = this.myFortress()?.attack;
+    if (vertex != null) this.room.act({ type: 'attackFortress', vertex });
+  }
+
+  protected buildWonder(wonder: number): void {
+    this.room.act({ type: 'buildWonder', wonder });
+  }
+
+  protected bidCamel(bid: ResourceCounts | null = null): void {
+    this.room.act({ type: 'bidCamel', bid: bid ?? this.camelPick() });
+    this.camelPick.set(emptyResources());
   }
 
   protected chooseGold(): void {

@@ -5,6 +5,7 @@ import { RESOURCE_ART } from '../shared/resource-art';
 import { TerrainDefs } from './terrain-defs';
 import { TILE_IMAGES } from './tile-art';
 import { pieceImage } from '../shared/piece-art';
+import { CARD_ART } from '../shared/card-art';
 
 const S = 60;
 /** Größe der Gebäudegrafiken in Brett-Einheiten, gilt auch für die Bauvorschau. */
@@ -13,6 +14,8 @@ const BUILDING_SIZE = { settlement: 40, city: 58 } as const;
 const METROPOLIS_SIZE = 68;
 const WALL_SIZE = 84;
 const GUARD_SIZE = 36;
+/** Freibeuterbuchten: Festungen etwas größer als eine Stadt, damit man sie auf den kleinen Inseln findet. */
+const FORTRESS_SCALE = 1.6;
 /** Auf großen Brettern sind die Felder kleiner, Figuren und Marken werden dort größer gezeichnet. */
 const PIECE_SCALE = { base: 1, ext: 1.2, big: 1.4 } as const;
 const MAX_PIECE_SCALE = 1.4;
@@ -444,13 +447,106 @@ export class Board {
       // Schiff aus der Draufsicht, Bug in Kantenrichtung; Bild im Seitenverhältnis 2:1. Etwas kürzer als
       // die Kante, damit zwischen zwei Schiffen an einer Ecke Wasser bleibt.
       const width = line.length * SHIP_LENGTH * this.k();
+      const war = !!g.warships?.includes(id);
       return [{
-        id, transform: `${line.transform} scale(${this.k()})`, color: player.color, halo: halo(player.color), title: `${player.name}: Schiff`,
+        id, transform: `${line.transform} scale(${this.k()})`, color: player.color, halo: halo(player.color), title: `${player.name}: ${war ? 'Kriegsschiff' : 'Schiff'}`,
+        war, flag: `translate(${(this.topo().vertices[this.topo().edges[id].a].x + this.topo().vertices[this.topo().edges[id].b].x) * S / 2},${(this.topo().vertices[this.topo().edges[id].a].y + this.topo().vertices[this.topo().edges[id].b].y) * S / 2 - 10 * this.k()}) scale(${this.k()})`,
         phase: `${-((id * 5) % 11) * 0.37}s`,
         image: pieceImage('ship', player.color), imageTransform: line.transform, width, height: width / 2,
       }];
     });
   });
+
+  /** Die Verschollenen: Hütten auf den bewohnten Inseln. */
+  protected readonly tribeHuts = computed(() =>
+    (this.game().board.tribe ?? []).map((id) => {
+      const h = this.topo().hexes[id];
+      return { id, points: h.corners.map((c) => this.point(c)).join(' '), transform: `translate(${h.x * S},${h.y * S}) scale(${this.k()})` };
+    }),
+  );
+
+  /** Die Verschollenen: Geschenke vor den Küsten der bewohnten Inseln; ein Schiff auf der Kante holt sie ab. */
+  protected readonly gifts = computed(() =>
+    (this.game().gifts ?? []).map((gift) => ({
+      ...this.coastSpot(gift.edge),
+      kind: gift.kind,
+      image: gift.kind === 'dev' ? CARD_ART.back : gift.kind === 'harbor' && gift.harbor && gift.harbor !== 'any' ? RESOURCE_ART[gift.harbor] : null,
+      label: gift.kind === 'harbor' ? harborLabel(gift.harbor ?? 'any') : '',
+      title:
+        gift.kind === 'point'
+          ? 'Geschenk: 1 Siegpunkt für das erste Schiff auf dieser Kante'
+          : gift.kind === 'dev'
+            ? 'Geschenk: eine Entwicklungskarte für das erste Schiff auf dieser Kante'
+            : `Geschenk: ein Hafen (${gift.harbor === 'any' || !gift.harbor ? '3:1' : `2:1 ${RESOURCE_NAMES[gift.harbor]}`}) für das erste Schiff auf dieser Kante`,
+    })),
+  );
+
+  /** Stoffhandel: Dörfer auf ihrer Küstenkante, mit Zahl und Vorrat an Ballen. */
+  protected readonly villages = computed(() => {
+    const g = this.game();
+    return (g.villages ?? []).map((v, i) => {
+      const e = this.topo().edges[v.edge];
+      const hex = this.topo().hexes[e.hexes.find((h) => !this.topo().hexes[h].sea) ?? e.hexes[0]];
+      const a = this.topo().vertices[e.a];
+      const b = this.topo().vertices[e.b];
+      // Auf der Kante, eine Spur zur Landseite hin; die Zahlenmarke in der Feldmitte bleibt frei.
+      const x = ((a.x + b.x) / 2 + (hex.x - (a.x + b.x) / 2) * 0.08) * S;
+      const y = ((a.y + b.y) / 2 + (hex.y - (a.y + b.y) / 2) * 0.08) * S;
+      return {
+        id: i,
+        transform: `translate(${x},${y}) scale(${this.k() * 1.3})`,
+        number: v.number,
+        red: v.number === 6 || v.number === 8,
+        hit: v.number === this.highlightNumber(),
+        stock: Array.from({ length: v.stock }, (_, k) => k),
+        empty: v.stock <= 0,
+        title: `Dorf ${v.number}: ${v.stock} Stoffballen übrig. Wer mit Straße oder Schiff an eine seiner Ecken reicht, bekommt bei einer ${v.number} einen Ballen.`,
+      };
+    });
+  });
+
+  /** Freibeuterbuchten: Festungen in der Farbe ihres Besitzers, mit den Mauern, die noch stehen. */
+  protected readonly fortresses = computed(() => {
+    const g = this.game();
+    return (g.fortresses ?? []).flatMap((f) => {
+      if (f.walls <= 0) return [];
+      const v = this.topo().vertices[f.vertex];
+      const player = g.players[f.owner];
+      return [{
+        id: f.vertex,
+        transform: `translate(${v.x * S},${v.y * S}) scale(${this.k() * FORTRESS_SCALE})`,
+        color: player.color,
+        walls: f.walls,
+        title: `Festung von ${player.name}: ${f.walls} ${f.walls === 1 ? 'Mauer' : 'Mauern'}. Nur ${player.name} kann sie erobern und muss es, um zu gewinnen.`,
+      }];
+    });
+  });
+
+  /** Freibeuterbuchten: die feste Route des Kaperschiffs als gestrichelter Ring durch die Meerfelder. */
+  protected readonly pirateRoute = computed(() => {
+    const route = this.game().pirateRoute;
+    if (!route?.length) return null;
+    const points = route.map((id) => ({ x: this.topo().hexes[id].x * S, y: this.topo().hexes[id].y * S }));
+    return toPath(chaikin(points, 2));
+  });
+
+  /** Kamelzüge: Oase in der Wüste und die Kamele auf ihren Kanten. */
+  protected readonly oasis = computed(() => {
+    const id = this.game().board.oasis;
+    if (id === undefined) return null;
+    const h = this.topo().hexes[id];
+    return { transform: `translate(${h.x * S},${h.y * S - S * 0.32}) scale(${this.k()})` };
+  });
+  protected readonly camels = computed(() =>
+    (this.game().caravans ?? []).flatMap((caravan, route) =>
+      caravan.map((edge, i) => {
+        const e = this.topo().edges[edge];
+        const a = this.topo().vertices[e.a];
+        const b = this.topo().vertices[e.b];
+        return { id: edge, last: i === caravan.length - 1, transform: `translate(${((a.x + b.x) / 2) * S},${((a.y + b.y) / 2) * S}) scale(${this.k()})`, title: `Karawane ${route + 1}, Kamel ${i + 1}` };
+      }),
+    ),
+  );
 
   protected readonly pirate = computed(() => {
     const g = this.game();

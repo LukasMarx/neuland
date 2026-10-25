@@ -1,4 +1,19 @@
-import { actingSeats, applyAction, guardSpots, progressStackSize, legalRobberHexes, legalRoadEdges, legalSetupRoads, legalSetupVertices, legalShipEdges, neutralSpots, robberVictims, vulnerableCities } from './rules';
+import {
+  actingSeats,
+  applyAction,
+  camelOptions,
+  guardSpots,
+  progressStackSize,
+  legalRobberHexes,
+  legalRoadEdges,
+  legalSetupRoads,
+  legalSetupVertices,
+  legalShipEdges,
+  neutralSpots,
+  plainShips,
+  robberVictims,
+  vulnerableCities,
+} from './rules';
 import { Action, CARDS, count, emptyResources, GameState, RESOURCES, setCount, TRACKS } from './types';
 
 /**
@@ -87,6 +102,18 @@ export function autoAction(s: GameState, seat: number, random: () => number = Ma
       // Stadtwacht III: aus dem größten Stapel ziehen.
       const track = [...TRACKS].sort((a, b) => progressStackSize(s, b) - progressStackSize(s, a))[0];
       return { type: 'pickProgress', track };
+    }
+    case 'camelVote':
+      // Kamelzüge: nichts bieten.
+      return { type: 'bidCamel', bid: emptyResources() };
+    case 'camelPlace': {
+      const edge = pick(camelOptions(s));
+      return edge === undefined ? null : { type: 'placeCamel', edge };
+    }
+    case 'warship': {
+      // Freibeuterbuchten: irgendein eigenes Schiff wird Kriegsschiff.
+      const edge = pick(plainShips(s, seat));
+      return edge === undefined ? null : { type: 'chooseWarship', edge };
     }
     case 'main':
     case 'specialBuild':

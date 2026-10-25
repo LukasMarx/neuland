@@ -3,7 +3,17 @@ import { getTopology, vertexHarbors } from './board';
 import { mapById } from './maps';
 import {
   actingSeats,
+  attackableFortress,
+  besiegingShips,
+  camelOptions,
+  canBuildWonder,
   canRaiseGuard,
+  harborSpots,
+  isFortress,
+  isVillageEdge,
+  plainShips,
+  settlementBonus,
+  villageConnected,
   canSpendFish,
   canSpendTokens,
   coinPoints,
@@ -66,7 +76,7 @@ import {
   TRACKS,
   totalResources,
 } from './types';
-import { BRIDGE_COINS, GUARDS_PER_LEVEL, METROPOLIS_POINTS, RAIDER_TRACK } from './variants';
+import { BALES_PER_POINT, BRIDGE_COINS, GUARDS_PER_LEVEL, METROPOLIS_POINTS, RAIDER_TRACK, WONDER_LEVELS, WONDERS } from './variants';
 
 /**
  * Ein Bot, der für einen getrennten Spieler weiterspielt oder aus der Lobby mitspielt. Er verfolgt einen
@@ -109,6 +119,10 @@ export function botAction(s: GameState, seat: number, options: BotOptions = {}):
       return mainMove(s, seat, profile, options.offersMade ?? null) ?? { type: 'endTurn' };
     case 'specialBuild':
       return mainMove(s, seat, profile, null, false) ?? { type: 'endTurn' };
+    case 'camelVote':
+      return { type: 'bidCamel', bid: camelBid(s, seat, profile) };
+    case 'camelPlace':
+      return camelPlace(s, seat) ?? autoAction(s, seat);
     default:
       return autoAction(s, seat);
   }
@@ -221,7 +235,7 @@ function sloppyBest<T>(s: GameState, seat: number, profile: BotProfile, options:
   return ranked[1 + Math.floor((roll / profile.noise) * Math.min(2, ranked.length - 1))].o;
 }
 
-export type GoalKind = 'city' | 'settlement' | 'devCard' | 'longestRoad' | 'explore' | 'improve' | 'defense' | 'wall';
+export type GoalKind = 'city' | 'settlement' | 'devCard' | 'longestRoad' | 'explore' | 'improve' | 'defense' | 'wall' | 'gift' | 'village' | 'fortress' | 'wonder';
 
 /** Ein mögliches Ziel mit allen Schritten dahin. */
 export interface PlanGoal {
@@ -284,6 +298,10 @@ export function botPlan(s: GameState, seat: number, profile: BotProfile = DEFAUL
     ...improveGoals(ctx),
     ...defenseGoals(ctx),
     ...wallGoals(ctx),
+    ...giftGoals(ctx),
+    ...villageGoals(ctx),
+    ...fortressGoals(ctx),
+    ...wonderGoals(ctx),
     ...(mayBuyDev ? devGoals(ctx) : []),
   ];
   for (const g of goals) g.score = (g.value * (profile.strategy[strategy][g.kind] ?? 1)) / (g.eta + 1);
@@ -461,7 +479,8 @@ function settlementGoals(ctx: PlanContext): PlanGoal[] {
     const cost = { ...COSTS.settlement };
     for (const step of path) for (const r of RESOURCES) cost[r] += COSTS[step.piece][r];
     const t = eta(ctx, cost);
-    const island = s.islandBonus && !ownsOnIsland(s, seat, vertex) ? (mapById(s.board.map).seafaring?.islandBonus ?? 0) : 0;
+    // Insel- oder Gebietsbonus (Seewege, Sandmeer) und Kamelzüge: ein Punkt für ein Gebäude an einer Karawane.
+    const island = settlementBonus(s, seat, vertex) + (onCaravan(s, vertex) ? 1 : 0);
     const coins = path.filter((p) => p.piece === 'bridge').length * BRIDGE_COINS * COIN_VALUE;
     out.push({
       kind: 'settlement',
@@ -500,14 +519,6 @@ function pieceAction(step: Step): Action {
     : step.piece === 'bridge'
       ? { type: 'buildBridge', edge: step.edge }
       : { type: 'buildRoad', edge: step.edge };
-}
-
-/** Besitzt der Sitz schon ein Gebäude auf der Insel dieser Ecke? (wie in rules.ts) */
-function ownsOnIsland(s: GameState, seat: number, vertex: number): boolean {
-  const topo = getTopology(s.board);
-  const islandOf = (v: number) => topo.vertices[v].hexes.map((h) => topo.islands[h]).find((i) => i >= 0) ?? -1;
-  const island = islandOf(vertex);
-  return s.buildings.some((b, v) => b?.owner === seat && islandOf(v) === island);
 }
 
 /**
@@ -563,9 +574,9 @@ function routes(s: GameState, seat: number): { spots: Map<number, Step[]>; fog: 
     for (const { v, mode, path, settled } of frontier) {
       const b = s.buildings[v];
       const guard = s.guards?.[v];
-      if ((b && b.owner !== seat) || (guard && guard.owner !== seat)) continue;
+      if ((b && b.owner !== seat) || (guard && guard.owner !== seat) || isFortress(s, v)) continue;
       for (const e of topo.vertices[v].edges) {
-        if (s.roads[e] !== null || s.ships?.[e] != null) continue;
+        if (s.roads[e] !== null || s.ships?.[e] != null || isVillageEdge(s, e)) continue;
         const edge = topo.edges[e];
         const w = edge.a === v ? edge.b : edge.a;
         const terrains = edge.hexes.map((h) => s.board.hexes[h].terrain);
@@ -739,6 +750,185 @@ function wallGoals(ctx: PlanContext): PlanGoal[] {
   return [{ kind: 'wall', cost: COSTS.wall, step: { type: 'buildWall', vertex: walls[0] }, stepCost: COSTS.wall, value: 0.2 + full, eta: eta(ctx, COSTS.wall), score: 0 }];
 }
 
+// Seewege-Szenarien
+
+/** Kosten aller Teile eines Wegs. */
+function pathCost(path: Step[]): ResourceCounts {
+  const cost = emptyResources();
+  for (const step of path) for (const r of RESOURCES) cost[r] += COSTS[step.piece][r];
+  return cost;
+}
+
+/**
+ * Kürzeste Schiffslinie, ohne Längengrenze, bis eine Kante `goal` erfüllt: von eigenen Gebäuden und den Enden
+ * eigener Schiffslinien über freie Meerkanten, nicht durch fremde Gebäude, Wächter oder Festungen und nicht am
+ * Kaperschiff entlang. Der erste Schritt muss jetzt schon legal sein, und es reichen die Schiffe im Vorrat.
+ */
+function shipPath(s: GameState, seat: number, goal: (edge: number, to: number) => boolean): Step[] | null {
+  if (!s.ships) return null;
+  const topo = getTopology(s.board);
+  const legal = new Set(legalShipEdges(s, seat));
+  const supply = piecesLeft(s, seat, 'ship');
+  const blocked = (v: number) => (s.buildings[v] && s.buildings[v]!.owner !== seat) || (s.guards?.[v] && s.guards[v]!.owner !== seat) || isFortress(s, v);
+  const free = (e: number) =>
+    s.ships![e] === null &&
+    s.roads[e] === null &&
+    !isVillageEdge(s, e) &&
+    topo.edges[e].hexes.some((h) => s.board.hexes[h].terrain === 'sea') &&
+    !(s.pirate != null && topo.edges[e].hexes.includes(s.pirate));
+  const seen = new Set<number>();
+  let frontier: { v: number; path: Step[] }[] = [];
+  for (const v of topo.vertices) {
+    const own = s.buildings[v.id]?.owner === seat || (!blocked(v.id) && !s.buildings[v.id] && v.edges.some((e) => s.ships![e] === seat));
+    if (own) {
+      seen.add(v.id);
+      frontier.push({ v: v.id, path: [] });
+    }
+  }
+  for (let depth = 0; depth < supply && frontier.length; depth++) {
+    const next: typeof frontier = [];
+    for (const { v, path } of frontier) {
+      for (const e of topo.vertices[v].edges) {
+        if (!free(e) || (!path.length && !legal.has(e))) continue;
+        const w = topo.edges[e].a === v ? topo.edges[e].b : topo.edges[e].a;
+        const steps: Step[] = [...path, { edge: e, piece: 'ship' }];
+        if (goal(e, w)) return steps;
+        if (seen.has(w) || blocked(w)) continue;
+        seen.add(w);
+        next.push({ v: w, path: steps });
+      }
+    }
+    frontier = next;
+  }
+  return null;
+}
+
+/** Wert eines Punkt-Geschenks, der Anbindung an ein Dorf je Punkt und des Sogs einer Bauwerksstufe zum Sieg. */
+const GIFT_WORTH = 1.2;
+const VILLAGE_WEIGHT = 1.2;
+const WONDER_PULL = 3;
+
+/** Die Verschollenen: Geschenke an fremden Küsten, ein Schiff auf ihrer Kante holt sie ab. */
+function giftGoals(ctx: PlanContext): PlanGoal[] {
+  const { s, seat } = ctx;
+  if (!s.gifts?.length || piecesLeft(s, seat, 'ship') <= 0) return [];
+  const out: PlanGoal[] = [];
+  for (const gift of s.gifts) {
+    const path = shipPath(s, seat, (e) => e === gift.edge);
+    if (!path) continue;
+    const cost = pathCost(path);
+    const worth = gift.kind === 'point' ? GIFT_WORTH : gift.kind === 'dev' ? ctx.profile.devCard + 0.2 : 0.6;
+    out.push({ kind: 'gift', cost, step: pieceAction(path[0]), stepCost: COSTS[path[0].piece], value: worth * ctx.profile.distance ** (path.length - 1), eta: eta(ctx, cost), score: 0 });
+  }
+  return out;
+}
+
+/** Stoffhandel: An ein Dorf anbinden; jeder zweite Ballen ist ein Punkt, so lange sein Vorrat reicht. */
+function villageGoals(ctx: PlanContext): PlanGoal[] {
+  const { s, seat } = ctx;
+  if (!s.villages) return [];
+  const topo = getTopology(s.board);
+  const left = (victoryTarget(s, seat) - victoryPoints(s, seat, true)) * ROUNDS_PER_POINT;
+  const out: PlanGoal[] = [];
+  s.villages.forEach((village, i) => {
+    if (village.stock <= 0 || villageConnected(s, seat, i)) return;
+    const { a, b } = topo.edges[village.edge];
+    const path = shipPath(s, seat, (e) => e !== village.edge && [topo.edges[e].a, topo.edges[e].b].some((v) => v === a || v === b));
+    if (!path) return;
+    const cost = pathCost(path);
+    const t = eta(ctx, cost);
+    const bales = Math.min(village.stock, (pips(village.number) / 36) * rolls(s) * Math.max(0, left - t));
+    // Die Anbindung zählt auch für die längste Route.
+    const value = (0.3 + (VILLAGE_WEIGHT * bales) / BALES_PER_POINT) * ctx.profile.distance ** (path.length - 1);
+    out.push({ kind: 'village', cost, step: pieceAction(path[0]), stepCost: COSTS[path[0].piece], value, eta: t, score: 0 });
+  });
+  return out;
+}
+
+/** Freibeuterbuchten: eine Schiffslinie bis an die eigene Festung; ohne sie gibt es keinen Sieg. */
+function fortressGoals(ctx: PlanContext): PlanGoal[] {
+  const { s, seat } = ctx;
+  const fort = s.fortresses?.find((f) => f.owner === seat && f.walls > 0);
+  if (!fort || besiegingShips(s, seat, fort.vertex).length) return [];
+  const path = shipPath(s, seat, (_, to) => to === fort.vertex);
+  if (!path) return [];
+  const cost = pathCost(path);
+  // Je näher der Sieg, desto dringender: Ohne Festung zählen die übrigen Punkte nicht.
+  const missing = victoryTarget(s, seat) - victoryPoints(s, seat, true);
+  const value = missing <= 0 ? 50 : missing <= 3 ? 8 : 2.5;
+  return [{ kind: 'fortress', cost, step: pieceAction(path[0]), stepCost: COSTS[path[0].piece], value, eta: eta(ctx, cost), score: 0 }];
+}
+
+/** Großbauten: das eigene Bauwerk weiterbauen oder eines beginnen; die letzte Stufe gewinnt. */
+function wonderGoals(ctx: PlanContext): PlanGoal[] {
+  const { s, seat } = ctx;
+  if (!s.wonders) return [];
+  const mine = s.wonders.findIndex((w) => w.owner === seat);
+  const options = mine >= 0 ? [mine] : s.wonders.flatMap((w, i) => (w.owner === null ? [i] : []));
+  return options.flatMap((i) => {
+    const w = s.wonders![i];
+    if (w.level >= WONDER_LEVELS) return [];
+    // Beginnen nur, wenn die Voraussetzung erfüllt ist (die Kosten zeigt eta).
+    const trial = { ...s, players: s.players.map((p, k) => (k === seat ? { ...p, resources: { ...p.resources, ...WONDERS[i].cost } } : p)) };
+    if (w.owner === null && !canBuildWonder(trial as GameState, seat, i)) return [];
+    const cost = WONDERS[i].cost;
+    // Jede Stufe ist ein Punkt und ein Schritt zum Sieg; die letzte ist der Sieg.
+    const value = w.level === WONDER_LEVELS - 1 ? 50 : 1 + ((w.level + 1) / WONDER_LEVELS) * WONDER_PULL;
+    return [{ kind: 'wonder' as const, cost, step: { type: 'buildWonder', wonder: i } as Action, stepCost: cost, value, eta: eta(ctx, cost), score: 0 }];
+  });
+}
+
+/** Die Verschollenen: einen geschenkten Hafen an die eigene Küste, am liebsten an eine Stadt. */
+function harborMove(s: GameState, seat: number): Action | null {
+  const edges = harborSpots(s, seat);
+  if (!edges.length) return null;
+  const topo = getTopology(s.board);
+  const weight = (e: number) => [topo.edges[e].a, topo.edges[e].b].reduce((n, v) => n + (s.buildings[v]?.owner === seat ? (s.buildings[v]!.type === 'city' ? 2 : 1) : 0), 0);
+  return { type: 'placeHarbor', edge: best(edges, weight) };
+}
+
+/** Kamelzüge: Liegt die Ecke an einer Karawane? */
+function onCaravan(s: GameState, vertex: number): boolean {
+  if (!s.caravans) return false;
+  const topo = getTopology(s.board);
+  return s.caravans.flat().some((e) => topo.edges[e].a === vertex || topo.edges[e].b === vertex);
+}
+
+/** Kamelzüge: Was ein Kamel auf dieser Kante dem Sitz bringt: Punkte für eigene Gebäude, doppelte Straße, Bauplätze. */
+function camelValue(s: GameState, seat: number, edge: number): number {
+  const topo = getTopology(s.board);
+  const e = topo.edges[edge];
+  let value = 0;
+  for (const v of [e.a, e.b]) {
+    const b = s.buildings[v];
+    if (b) value += b.owner === seat ? (onCaravan(s, v) ? 0 : 1) : onCaravan(s, v) ? 0 : -0.7;
+    else if (freeForSettlement(s, v) && topo.vertices[v].edges.some((x) => s.roads[x] === seat)) value += 0.3;
+  }
+  if (s.roads[edge] === seat) value += 0.5;
+  return value;
+}
+
+/** Kamelzüge: das Kamel dorthin, wo es dem Bot am meisten bringt. */
+function camelPlace(s: GameState, seat: number): Action | null {
+  const options = camelOptions(s);
+  return options.length ? { type: 'placeCamel', edge: best(options, (e) => camelValue(s, seat, e)) } : null;
+}
+
+/**
+ * Kamelzüge: Lohnt das Kamel (ein Punkt oder mehr), bietet der Bot bis zu zwei Karten Getreide und Wolle,
+ * die sein Ziel nicht braucht; sonst nichts.
+ */
+function camelBid(s: GameState, seat: number, profile: BotProfile): ResourceCounts {
+  const bid = emptyResources();
+  const worth = Math.max(0, ...camelOptions(s).map((e) => camelValue(s, seat, e)));
+  if (worth < 1) return bid;
+  const plan = botPlan(s, seat, profile);
+  for (const r of ['sheep', 'wheat'] as const) {
+    while (totalResources(bid) < 2 && bid[r] < plan.spare[r]) bid[r]++;
+  }
+  return bid;
+}
+
 /** Stadtwacht, Angriff verloren: die Stadt mit dem wenigsten Ertrag abgeben. */
 function loseCity(s: GameState, seat: number): Action | null {
   const cities = vulnerableCities(s, seat);
@@ -827,9 +1017,7 @@ function roadValue(s: GameState, seat: number, edge: number, from: number | null
 
 function freeForSettlement(s: GameState, vertex: number): boolean {
   const topo = getTopology(s.board);
-  if (s.buildings[vertex]) return false;
-  if (!topo.vertices[vertex].hexes.some((h) => isResource(s.board.hexes[h].terrain))) return false;
-  return topo.vertices[vertex].neighbors.every((w) => !s.buildings[w]);
+  return isFreeForSettlement(s, vertex) && topo.vertices[vertex].hexes.some((h) => isResource(s.board.hexes[h].terrain));
 }
 
 function best<T>(options: T[], value: (x: T) => number): T {
@@ -949,6 +1137,12 @@ function mainMove(s: GameState, seat: number, profile: BotProfile, offersMade: n
     const deal = settleOffers(s, seat, profile);
     if (deal) return deal;
   }
+  if (ownTurn) {
+    const fortress = attackableFortress(s, seat);
+    if (fortress !== null) return { type: 'attackFortress', vertex: fortress };
+    const harbor = harborMove(s, seat);
+    if (harbor) return harbor;
+  }
   const plan = botPlan(s, seat, profile);
   if (ownTurn) {
     const card = playUseful(s, seat, plan) ?? expansionMove(s, seat, plan);
@@ -994,6 +1188,8 @@ function playUseful(s: GameState, seat: number, plan: BotPlan): Action | null {
   const has = (c: DevCard) => p.devCards.includes(c);
   const knight = has('knight') ? knightBeforeRoll(s, seat) : null;
   if (knight) return knight;
+  // Freibeuterbuchten: Kriegsschiffe helfen gegen Festung und Kaperschiff.
+  if (has('knight') && s.warships && plainShips(s, seat).length) return { type: 'playKnight' };
   const need = RESOURCES.flatMap((r) => Array<Resource>(plan.need[r]).fill(r));
   if (plan.goal && has('yearOfPlenty') && need.length >= 1) {
     const picks = [...need, ...need].slice(0, 2) as [Resource, Resource];

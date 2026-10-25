@@ -129,7 +129,7 @@ Referenz (nur zur Orientierung): „Die Seefahrer“.
 > - **Route:** Längste Route aus Straßen und Schiffen, Wechsel nur an eigenen Gebäuden.
 > - **Vereinfachung:** Gold in der Aufstellung liefert automatisch den Rohstoff, von dem die Bank am meisten hat.
 > - **Grafiken:** Schiff, Kaperschiff und Goldfeld sind SVG-Platzhalter, der Auftrag für den Bild-Agenten liegt in `output/designs/seewege-2026-10-22/grafik-auftrag.md`.
-> - **Noch offen:** weitere Szenarien (Sandmeer, Die Verschollenen, Stoffhandel, Freibeuterbuchten, Großbauten).
+> - **Weitere Szenarien:** seit 25.10.2026 umgesetzt, siehe Seewege III.
 >
 > **Umgesetzt am 22.10.2026 (Seewege II):**
 > - **Im Dunst:** Nebelfelder (`?` in der Maske, Gelände `fog`). Im Spielstand steht nur ein Zählwerk (`GameState.fog`), Gelände und Zahl zieht der Zufall erst beim Aufdecken. Aufgedeckt wird, wenn eine Straße oder ein Schiff an das Feld gebaut oder ein Schiff dorthin versetzt wird. Land bringt dem Entdecker einen Rohstoff (Gold: den, von dem die Bank am meisten hat). Keine 6 neben einer 8, solange der Vorrat anderes hergibt. Bis zum Aufdecken gilt Nebel als Wasser für Inseln und Küsten, aber weder Straße noch Schiff noch Räuber dürfen hinein. Häfen liegen nur an bekannter Küste. Auf dem Brett dreht sich ein aufgedecktes Feld um.
@@ -137,6 +137,15 @@ Referenz (nur zur Orientierung): „Die Seefahrer“.
 > - **5–6 Spieler:** größere Masken für Erste Überfahrt, Inselquartett und Im Dunst, alle Seewege-Karten für 3–6 Spieler.
 > - **Nebenbei:** Die Topologie wird zusätzlich je Feld-Array zwischengespeichert. Das macht Partien auf großen Karten mehrfach schneller.
 > - Nebelfeld ist noch ein SVG-Platzhalter, `tiles/papiercollage/fog.png` steht im Grafik-Auftrag.
+>
+> **Umgesetzt am 25.10.2026 (Seewege III):** die fünf übrigen Szenarien als eigene Karten (`src/app/engine/maps.ts`, je 3–6 Spieler), Regeln in `rules.ts` (Abschnitt „Seewege-Szenarien“), Tests in `szenarien.spec.ts`. Eigene Fassungen, nicht das Original:
+> - **Sandmeer** (`regionBonus`): ein fester Wüstenstreifen (`X` in der Maske, alle zählen als Wüste) teilt die Hauptinsel in Gebiete (`regionsOf`). Start im größten Gebiet; die erste eigene Siedlung in einem neuen Gebiet derselben Insel bringt 1 Punkt, auf einer neuen Insel 2. Siegziel 14.
+> - **Die Verschollenen** (`gifts`): bewohnte Inseln (`t` in der Maske, `board.tribe`) haben Gelände ohne Zahl, dort siedelt niemand, keine Häfen und kein Räuber. An ihren Küsten liegen Geschenke (`GameState.gifts`: Punkt, Entwicklungskarte, Hafen), offen sichtbar. Ein neu gebautes Schiff auf der Geschenkkante holt es ab (Versetzen nicht). Geschenkte Häfen (`harborGifts`) legt man mit `placeHarbor` an eine freie Küstenkante an eigener Siedlung oder Stadt. Siegziel 13.
+> - **Stoffhandel** (`villages`): Dörfer auf Küstenkanten der kleinen Inseln mit Zahl und 5 Ballen. Angebunden ist, wer mit Straße oder Schiff an eine Ecke des Dorfes reicht; bei der Zahl bekommt jeder Angebundene in Zugreihenfolge einen Ballen, solange der Vorrat reicht. 2 Ballen sind 1 Punkt. Dorfkante und Dorfecken sind belegt. Kein Spielende bei leeren Dörfern. Siegziel 14.
+> - **Freibeuterbuchten** (`fortresses`): je Spieler eine Festung mit 3 Mauern auf einer kleinen Insel (`placeFortresses`). Gewinnen kann nur, wer seine eigene erobert hat. Angriff (`attackFortress`) einmal pro Zug mit eigenem Schiff an der Festung: W6 plus Kriegsschiffe gegen W6; höher fällt eine Mauer, niedriger sinkt das Schiff dort. Fällt die letzte, wird die Festung eine Siedlung. Ein Ritter macht ein Schiff zum Kriegsschiff (Phase `warship`) statt den Räuber zu versetzen. Das Kaperschiff fährt eine feste Route um die Hauptinsel (`pirateRoute`), je Wurf so weit wie der erste Würfel, und greift Gebäude an seinem Feld mit dem zweiten Würfel an: mehr Kriegsschiffe bringen einen Rohstoff nach Wahl, weniger kosten je Siedlung eine, je Stadt zwei Karten. Siegziel 10.
+> - **Großbauten** (`wonders`): fünf Bauwerke (`WONDERS` in `variants.ts`) mit je einer Voraussetzung zum Beginnen (Hafen, zwei Städte, zwei Inseln, Route ab 5, fünf Schiffe) und festen Kosten je Stufe. Jeder baut höchstens eines; jede der vier Stufen ist 1 Punkt, die vierte gewinnt sofort. Inselbonus 1, Siegziel 12.
+> - **Bots** spielen alle fünf: Wege übers Meer ohne Längengrenze (`shipPath`), Ziele für Geschenke, Dörfer, die eigene Festung und Bauwerke.
+> - **Grafiken:** Festungen, Dörfer, Geschenke und Kriegsschiff-Wimpel sind SVG-Platzhalter, Hütten als Symbol; ein Grafik-Auftrag steht noch aus.
 
 #### Regeln in Kürze
 
@@ -403,6 +412,8 @@ Eine Sammlung voneinander unabhängiger Szenarien für 3–4 Spieler. Die enthal
 **Aufwand:** M (L wegen der Flussgrafiken). **Kompatibel** mit Grundspiel, nicht sinnvoll mit Seewege-Karten.
 
 #### Kamelzüge
+
+> **Umgesetzt am 25.10.2026** als Variante `kamelzuege` (Lobby-Schalter, 3–6 Spieler, nicht mit Fischgründen oder Duell, Siegziel +2). Eigene Umsetzung: Die Oase ist die Wüste, von der die meisten Karawanen ausgehen können; liegt keine so, dass drei losziehen, tauscht sie mit dem Inlandfeld nächst der Inselmitte (`placeCaravans`). Drei Karawanen (`GameState.caravans`) beginnen an jeder zweiten Ecke der Oase. Nach jeder Siedlung oder Stadt (auch in der Sonderbauphase) bieten alle verdeckt Getreide und Wolle (Phase `camelVote`; wer beides nicht hat, ist gleich fertig). Die Sicht der anderen zeigt nur, wer fertig ist; beim Host-Wechsel bietet neu, wessen Gebot fehlt. Höchstes Gebot gewinnt, bei Gleichstand wer nach dem Bauenden zuerst kommt; alle zahlen. Bietet niemand, setzt der Bauende (Phase `camelPlace`). Ein Kamel kommt ans Ende einer Karawane auf eine Landkante zu einer Ecke, die noch keine Karawane berührt; 22 Kamele. Jedes Gebäude an einer Karawane +1 Punkt, Straßen unter Kamelen zählen doppelt. Kamele und Oase sind Platzhalter-Symbole.
 
 **Regel:** In der Mitte liegt eine Oase. Von dort führen drei Kamelrouten. Nach jedem Siedlungs- oder Stadtbau stimmen alle ab, wo das nächste Kamel hinkommt; jede Stimme kostet 1 Getreide oder 1 Wolle. Gebäude an einer Kamelroute sind +1 Punkt wert, Straßen mit Kamel zählen doppelt für die längste Route.
 

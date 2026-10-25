@@ -45,6 +45,8 @@
                 getrennt
               } @else if (p.discarding) {
                 wirft ab · {{ p.cards }} Karten
+              } @else if (p.bidding) {
+                bietet · {{ p.cards }} Karten
               } @else if (p.active) {
                 am Zug
               } @else {
@@ -70,6 +72,18 @@
               }
               @if (p.honors) {
                 · <img class="tag-icon" src="web/icons/city/honor.png" alt="" />{{ p.honors }}
+              }
+              @if (p.gifts) {
+                · {{ p.gifts }} Geschenk{{ p.gifts > 1 ? 'e' : '' }}
+              }
+              @if (p.bales) {
+                · {{ p.bales }} Ballen
+              }
+              @if (p.wonder) {
+                · {{ p.wonder }}
+              }
+              @if (p.fortress) {
+                · Festung erobert
               }
               @if (p.coinRank > 0) {
                 · <img class="tag-icon" src="web/icons/rivers/rich.png" alt="" />Reichster
@@ -432,6 +446,27 @@
             <span class="cost text">{{ buildMode() === 'moveShip' ? (moveFrom() === null ? 'Schiff wählen' : 'Ziel wählen') : '1× pro Zug' }}</span>
           </button>
         }
+        @if (myHarbors(); as harbors) {
+          <button [disabled]="!harbors.length || !isCurrent() || game.phase.kind !== 'main'" [class.selected]="buildMode() === 'harbor'" [title]="harbors.length ? 'Geschenkten Hafen an eine eigene Küstensiedlung legen' : 'Häfen schenken dir die Verschollenen, wenn dein Schiff an ihre Küste kommt'" (click)="toggleBuild('harbor')">
+            <span class="figure scenario" aria-hidden="true">⚓</span>
+            <span class="label">Hafen</span>
+            <span class="cost text">{{ harbors.length ? harbors.length + ' zu setzen' : 'keiner' }}</span>
+          </button>
+        }
+        @if (myFortress(); as fort) {
+          <button [disabled]="fort.attack === null" [title]="fort.walls ? 'Eigene Festung angreifen: Würfel plus Kriegsschiffe gegen einen Würfel. Einmal pro Zug, ein Schiff muss an der Festung liegen.' : 'Deine Festung ist erobert'" (click)="attackFortress()">
+            <span class="figure scenario" aria-hidden="true">🏰</span>
+            <span class="label">Festung</span>
+            <span class="cost text">{{ fort.walls ? (fort.walls === 1 ? '1 Mauer' : fort.walls + ' Mauern') + ' · ' + (fort.warships === 1 ? '1 Kriegsschiff' : fort.warships + ' Kriegsschiffe') : 'erobert' }}</span>
+          </button>
+        }
+        @if (wonderRows()) {
+          <button [class.selected]="dialog()?.kind === 'wonders'" title="Großbauten: Bauwerk beginnen oder weiterbauen" (click)="dialog.set({ kind: 'wonders' })">
+            <span class="figure scenario" aria-hidden="true">🏛</span>
+            <span class="label">Bauwerke</span>
+            <span class="cost text">4 Stufen</span>
+          </button>
+        }
         @if (myCoins() !== null) {
           <button [disabled]="!opts.bridge.enabled" [class.selected]="buildMode() === 'bridge'" [title]="opts.bridge.reason ?? 'Brücke über den Fluss bauen, bringt 3 Münzen'" (click)="toggleBuild('bridge')">
             <span class="figure">
@@ -617,6 +652,26 @@
           <b [class.none]="!d.coinPoints">{{ d.coinPoints > 0 ? '+1' : d.coinPoints < 0 ? '−2' : '–' }}</b>
         </dd>
       }
+      @if (d.giftPoints !== null) {
+        <dt>Geschenke</dt>
+        <dd><span class="muted">von den Verschollenen</span><b [class.none]="!d.giftPoints">{{ d.giftPoints || '–' }}</b></dd>
+      }
+      @if (d.bales !== null) {
+        <dt>Stoffballen</dt>
+        <dd><span class="muted">{{ d.bales }} Ballen, je 2 ein Punkt</span><b [class.none]="!d.balePoints">{{ d.balePoints || '–' }}</b></dd>
+      }
+      @if (d.wonder; as w) {
+        <dt>Bauwerk</dt>
+        <dd><span class="muted">{{ w.name ? w.name + ', Stufe ' + w.level + ' von 4' : 'noch keines' }}</span><b [class.none]="!w.level">{{ w.level || '–' }}</b></dd>
+      }
+      @if (d.caravan !== null) {
+        <dt>Karawane</dt>
+        <dd><span class="muted">Gebäude an Kamelen</span><b [class.none]="!d.caravan">{{ d.caravan || '–' }}</b></dd>
+      }
+      @if (d.fortress; as f) {
+        <dt>Festung</dt>
+        <dd><span class="muted">{{ f.taken ? 'erobert' : (f.walls === 1 ? '1 Mauer steht' : f.walls + ' Mauern stehen') + ' · ohne Festung kein Sieg' }} · {{ f.warships === 1 ? '1 Kriegsschiff' : f.warships + ' Kriegsschiffe' }}</span><b class="none">–</b></dd>
+      }
       @if (d.fishing) {
         <dt>Fische</dt>
         <dd><span class="muted">{{ d.fishCount }} Plättchen</span><b class="none">–</b></dd>
@@ -677,6 +732,20 @@
       <div class="row end mt">
         <span class="muted">{{ total(discardPick()) }} / {{ discardDue() }}</span>
         <button class="primary" [disabled]="total(discardPick()) !== discardDue()" (click)="discard()">{{ $any(game.phase).to !== undefined ? 'Schenken' : 'Abwerfen' }}</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (camelBidDue() && me(); as self) {
+  <div class="modal-backdrop">
+    <div class="modal">
+      <h3>Kamelzüge: Was bietest du für das nächste Kamel?</h3>
+      <p class="muted">Alle bieten verdeckt Getreide und Wolle. Wer am meisten bietet, setzt das Kamel; bezahlt wird das Gebot in jedem Fall. Bietet niemand, setzt es, wer gebaut hat.</p>
+      <app-resource-picker [(value)]="camelPick" [max]="self.resources" [cards]="bidCards" />
+      <div class="row end mt">
+        <button (click)="bidCamel(emptyBid)">Nichts bieten</button>
+        <button class="primary" [disabled]="!total(camelPick())" (click)="bidCamel()">{{ total(camelPick()) }} bieten</button>
       </div>
     </div>
   </div>
@@ -775,6 +844,38 @@
           </div>
         </div>
       }
+    </div>
+  }
+  @case ('wonders') {
+    <div class="modal-backdrop" (click)="dialog.set(null)">
+      <div class="modal wonders" (click)="$event.stopPropagation()">
+        <h3>Großbauten</h3>
+        <p class="muted">Ein Bauwerk beginnt, wer seine Voraussetzung erfüllt; jeder baut höchstens eines. Jede Stufe bringt einen Siegpunkt, wer die vierte baut, gewinnt sofort.</p>
+        <div class="choice-list">
+          @for (w of wonderRows(); track w.index) {
+            <div class="wonder-row">
+              <div class="wonder-head">
+                <b>{{ w.name }}</b>
+                @if (w.owner; as o) {
+                  <span><span class="color-dot" [style.background]="o.color"></span> {{ o.name }}</span>
+                } @else {
+                  <span class="muted">frei · braucht {{ w.requirement }}</span>
+                }
+              </div>
+              <span class="wonder-steps" [title]="'Stufe ' + w.level + ' von 4'">
+                @for (on of w.steps; track $index) {
+                  <i [class.on]="on"></i>
+                }
+              </span>
+              <span class="cost">@for (c of w.cost; track $index) {<img [src]="c.src" [alt]="c.name" />}</span>
+              <button class="small" [class.primary]="!w.reason" [disabled]="!!w.reason" [title]="w.reason ?? ''" (click)="buildWonder(w.index)">{{ w.label }}</button>
+            </div>
+          }
+        </div>
+        <div class="row end mt">
+          <button (click)="dialog.set(null)">Schließen</button>
+        </div>
+      </div>
     </div>
   }
   @case ('victim') {

@@ -70,6 +70,8 @@ export function viewFor(s: GameState, seat: number): GameState {
     v.progressDeck = { market: {}, council: {}, scholars: {} };
   }
   if (v.fishPool) v.fishPool = {};
+  // Kamelzüge: Fremde Gebote bleiben verdeckt, bis alle geboten haben; zu sehen ist nur, wer schon fertig ist.
+  if (v.phase.kind === 'camelVote') v.phase.bids = v.phase.bids.map((b, i) => (i === seat ? b : null));
   // Welche Karte der Räuber gezogen hat, sehen nur Geber und Nehmer.
   v.transfers = v.transfers.map((t) => (t.hidden && !involves(t, seat) ? { ...t, card: 'wood' } : t));
   return v;
@@ -148,6 +150,11 @@ export function rebuild(view: GameState, secrets: ReadonlyMap<number, Secret>, r
   }
   if (s.fish) {
     for (const t of unknownFish) s.fishPool![t] = (s.fishPool![t] ?? 0) + 1;
+  }
+  // Kamelzüge: Wessen Gebot der neue Host nicht kennt, der bietet noch einmal.
+  if (s.phase.kind === 'camelVote') {
+    const phase = s.phase;
+    phase.done = phase.done.map((done, i) => done && phase.bids[i] !== null);
   }
   if (s.hiddenProgressDeck) {
     s.progressDeck = { market: {}, council: {}, scholars: {} };

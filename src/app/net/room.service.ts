@@ -300,6 +300,16 @@ export class RoomService {
       this.showNotice(`${tooMany.name} gibt es nur für bis zu ${tooMany.maxPlayers} Spieler.`);
       return;
     }
+    const tooFew = VARIANTS.find((v) => v.minPlayers && room.settings.variants?.includes(v.id) && present.length < v.minPlayers);
+    if (tooFew) {
+      this.showNotice(`${tooFew.name} gibt es erst ab ${tooFew.minPlayers} Spielern.`);
+      return;
+    }
+    const clash = VARIANTS.find((v) => room.settings.variants?.includes(v.id) && v.excludes?.some((x) => room.settings.variants?.includes(x)));
+    if (clash) {
+      this.showNotice(`${clash.name} geht nicht zusammen mit ${VARIANTS.filter((v) => clash.excludes!.includes(v.id) && room.settings.variants?.includes(v.id)).map((v) => v.name).join(', ')}.`);
+      return;
+    }
     const landOnly = VARIANTS.find((v) => v.landOnly && room.settings.variants?.includes(v.id) && mapById(room.settings.map).seafaring);
     if (landOnly) {
       this.showNotice(`${landOnly.name} gibt es nur auf Karten ohne Meerfelder.`);

@@ -49,7 +49,43 @@ export interface BoardState {
   fishing?: FishingGround[];
   /** Flussläufe (Variante): Flüsse von der Quelle zur Mündung. */
   rivers?: River[];
+  /** Die Verschollenen: Felder der bewohnten Inseln. Dort siedelt niemand, und sie tragen keine Zahl. */
+  tribe?: number[];
+  /** Kamelzüge: das Feld der Oase, von der die Karawanen ausgehen. */
+  oasis?: number;
 }
+
+/** Die Verschollenen: Geschenk an einer Küstenkante; wer dort ein Schiff baut, bekommt es. */
+export interface Gift {
+  edge: number;
+  kind: 'point' | 'dev' | 'harbor';
+  /** Nur beim Hafen: welcher. */
+  harbor?: HarborType;
+}
+
+/** Stoffhandel: Dorf auf einer Küstenkante mit Zahl und Vorrat an Stoffballen. */
+export interface Village {
+  edge: number;
+  number: number;
+  stock: number;
+}
+
+/** Freibeuterbuchten: Festung auf einer Ecke, die nur ihr Besitzer erobern kann. */
+export interface Fortress {
+  vertex: number;
+  owner: number;
+  /** Mauern, die noch stehen; bei 0 ist sie erobert und eine Siedlung ihres Besitzers. */
+  walls: number;
+}
+
+/** Großbauten: wem ein Bauwerk gehört und wie weit es ist (Stufen 0 bis 4). */
+export interface WonderState {
+  owner: number | null;
+  level: number;
+}
+
+/** Wohin es nach einer Zwischenphase weitergeht, die beim Bauen entsteht. */
+export type BuildPhase = { kind: 'main' } | { kind: 'specialBuild'; queue: number[] };
 
 /**
  * Ein Fluss: Felder von der Quelle bis zur Küste und die Kanten, über die er fließt. `edges[i]` liegt
@@ -147,6 +183,15 @@ export type Phase =
    * `take` Karten davon. Nur in dieser Phase zeigt die Sicht von `seat` die fremden Karten.
    */
   | { kind: 'peek'; seat: number; target: number; what: 'cards' | 'progress'; take: number }
+  /**
+   * Kamelzüge: Nach einem Bau bieten alle verdeckt Getreide und Wolle für das nächste Kamel. `bids[seat]` ist
+   * das Gebot, `done[seat]`, ob es abgegeben ist; in der Sicht der anderen fehlt das Gebot. `builder` hat gebaut.
+   */
+  | { kind: 'camelVote'; builder: number; bids: (ResourceCounts | null)[]; done: boolean[]; resume: BuildPhase }
+  /** Kamelzüge: Wer das Gebot gewonnen hat, setzt das Kamel. */
+  | { kind: 'camelPlace'; seat: number; resume: BuildPhase }
+  /** Freibeuterbuchten: Der Ritter macht aus einem eigenen Schiff ein Kriegsschiff. */
+  | { kind: 'warship'; returnTo: ReturnPhase }
   | { kind: 'ended' };
 
 /** Wo eine Karte herkommt oder hingeht, für die Flug-Animation. */
@@ -298,6 +343,27 @@ export interface GameState {
   trader?: { hex: number; owner: number } | null;
   /** Was ausgespielte Einflusskarten für den laufenden Zug bewirken. */
   boost?: { pulley?: boolean; tradingPost?: Card };
+  /** Die Verschollenen: Geschenke, die noch an der Küste liegen, Punkte daraus und Häfen, die noch gesetzt werden. */
+  gifts?: Gift[];
+  giftPoints?: number[];
+  harborGifts?: HarborType[][];
+  /** Stoffhandel: Dörfer mit ihrem Vorrat und die Stoffballen je Sitz (2 Ballen = 1 Siegpunkt). */
+  villages?: Village[];
+  bales?: number[];
+  /**
+   * Freibeuterbuchten: Festungen, Kriegsschiffe (Kanten), die feste Route des Kaperschiffs (Meerfelder) und ob
+   * in diesem Zug schon eine Festung angegriffen wurde.
+   */
+  fortresses?: Fortress[];
+  warships?: number[];
+  pirateRoute?: number[];
+  fortressAttacked?: boolean;
+  /** Freibeuterbuchten, nur während eines Wurfs: wer das Kaperschiff abgewehrt hat und einen Rohstoff wählt. */
+  pirateLoot?: number[];
+  /** Großbauten: je Bauwerk Besitzer und Stufe. */
+  wonders?: WonderState[];
+  /** Kamelzüge: die Karawanen als Kantenlisten von der Oase aus, das letzte Kamel am Ende. */
+  caravans?: number[][];
 }
 
 /** Stadtwacht: Wächter auf einer Ecke. `ready` = Zug, ab dem er nach dem Aktivieren handeln darf. */
@@ -472,7 +538,17 @@ export type Action =
   | { type: 'playProgress'; progress: ProgressCard; card?: Card; vertices?: number[]; hexes?: number[]; edge?: number; target?: number; dice?: [number, number] }
   /** Schuldschein und Kundschafter: die gewählten Karten nehmen. */
   | { type: 'takePeek'; cards?: ResourceCounts; progress?: ProgressCard }
-  | { type: 'pickProgress'; track: Track };
+  | { type: 'pickProgress'; track: Track }
+  /** Die Verschollenen: einen geschenkten Hafen an eine eigene Küstensiedlung legen (der älteste zuerst). */
+  | { type: 'placeHarbor'; edge: number }
+  /** Freibeuterbuchten */
+  | { type: 'attackFortress'; vertex: number }
+  | { type: 'chooseWarship'; edge: number }
+  /** Großbauten: Bauwerk beginnen oder eine Stufe weiterbauen. */
+  | { type: 'buildWonder'; wonder: number }
+  /** Kamelzüge */
+  | { type: 'bidCamel'; bid: ResourceCounts }
+  | { type: 'placeCamel'; edge: number };
 
 export const RESOURCE_NAMES: Record<Resource, string> = {
   wood: 'Holz',

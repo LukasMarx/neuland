@@ -1,6 +1,41 @@
-import { generateBoard, getTopology, placeFishingGrounds, placeRivers, vertexHarbors } from './board';
+import {
+  generateBoard,
+  getTopology,
+  pirateRouteOf,
+  placeCaravans,
+  placeFishingGrounds,
+  placeFortresses,
+  placeGifts,
+  placeRivers,
+  placeVillages,
+  vertexHarbors,
+} from './board';
 import { mapById, mapFits } from './maps';
-import { BRIDGE_COINS, DICE_DECK, DICE_DECK_RESHUFFLE, FISH_POOL, GOODS_SUPPLY, GUARDS_PER_LEVEL, HARBOR_MASTER_POINTS, LAKE_NUMBERS, MAX_WALLS, METROPOLIS_POINTS, NEUTRALS, PROGRESS_LIMIT, RAIDER_TRACK, RIVER_COINS, VariantId, VARIANTS } from './variants';
+import {
+  BALES_PER_POINT,
+  BRIDGE_COINS,
+  CAMELS,
+  DICE_DECK,
+  DICE_DECK_RESHUFFLE,
+  FISH_POOL,
+  FORTRESS_WALLS,
+  GIFT_POINTS,
+  GOODS_SUPPLY,
+  GUARDS_PER_LEVEL,
+  HARBOR_MASTER_POINTS,
+  LAKE_NUMBERS,
+  MAX_WALLS,
+  METROPOLIS_POINTS,
+  NEUTRALS,
+  PROGRESS_LIMIT,
+  RAIDER_TRACK,
+  RIVER_COINS,
+  VariantId,
+  VARIANTS,
+  VILLAGE_STOCK,
+  WONDER_LEVELS,
+  WONDERS,
+} from './variants';
 import { randomInt, RngState, shuffle } from './rng';
 import { emptyStats, recordStats } from './stats';
 import {
@@ -45,6 +80,9 @@ import {
   TokenEffect,
   totalResources,
   TransferPoint,
+  BuildPhase,
+  HexState,
+  BoardState,
 } from './types';
 
 export class RuleError extends Error {}
@@ -80,6 +118,13 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
   if (settings.variants?.includes('duell') && players.length !== 2) fail('Das Duell ist nur für zwei Spieler.');
   const tooMany = VARIANTS.find((v) => v.maxPlayers && settings.variants?.includes(v.id) && players.length > v.maxPlayers);
   if (tooMany) fail(`${tooMany.name} gibt es nur für bis zu ${tooMany.maxPlayers} Spieler.`);
+  const tooFew = VARIANTS.find((v) => v.minPlayers && settings.variants?.includes(v.id) && players.length < v.minPlayers);
+  if (tooFew) fail(`${tooFew.name} gibt es erst ab ${tooFew.minPlayers} Spielern.`);
+  const clash = VARIANTS.find((v) => settings.variants?.includes(v.id) && v.excludes?.some((x) => settings.variants?.includes(x)));
+  if (clash) {
+    const other = VARIANTS.find((v) => clash.excludes!.includes(v.id) && settings.variants?.includes(v.id))!;
+    fail(`${clash.name} und ${other.name} gehen nicht zusammen.`);
+  }
   if (settings.variants?.includes('flusslaeufe') && map.seafaring) fail('Flussläufe gibt es nur auf Karten ohne Meerfelder.');
   const rng: RngState = { rng: seed | 0 };
   const { board, robber, bank: bankSize, pirate, fog } = generateBoard(map.id, players.length, rng);
@@ -166,6 +211,18 @@ export function createGame(players: NewPlayer[], settings: GameSettings, seed: n
   if (hasVariant(state, 'flusslaeufe')) {
     state.board.rivers = placeRivers(state.board, state);
     state.coins = state.players.map(() => 0);
+  }
+  setUpScenario(state, map.seafaring);
+  if (hasVariant(state, 'kamelzuege')) {
+    const camels = placeCaravans(state.board);
+    if (!camels) fail('Für die Kamelzüge braucht die Karte eine Wüste.');
+    // Ist die Wüste ins Inland gewandert, zieht der Räuber mit.
+    if (camels.hexes !== state.board.hexes) {
+      if (state.robber >= 0 && camels.hexes[state.robber].terrain !== 'desert') state.robber = camels.oasis;
+      state.board = { ...state.board, hexes: camels.hexes };
+    }
+    state.board.oasis = camels.oasis;
+    state.caravans = camels.caravans;
   }
   log(state, null, `Spiel gestartet mit ${n} Spielern. ${seated[0].name} beginnt mit der Aufbauphase.`);
   return state;
@@ -319,6 +376,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (s.board.hexes[hex].terrain === 'fog') fail('Im Nebel kann niemand stehen.');
     const pirate = s.board.hexes[hex].terrain === 'sea';
     if (pirate && s.pirate === undefined) fail('Auf diesem Brett gibt es kein Kaperschiff.');
+    if (pirate && s.pirateRoute) fail('Das Kaperschiff fährt seine feste Route.');
     if (hex === (pirate ? s.pirate : s.robber)) fail(pirate ? 'Das Kaperschiff muss auf ein anderes Feld.' : 'Der Räuber muss auf ein anderes Feld.');
     if (!legalRobberHexes(s).includes(hex)) fail('Milder Räuber: Dort stehen Spieler mit höchstens 2 Siegpunkten.');
     const candidates = robberVictims(s, seat, hex);
@@ -375,19 +433,20 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (piecesLeft(s, seat, 'settlement') <= 0) fail('Du hast keine Siedlungen mehr.');
     if (!canBuildSettlement(s, seat, vertex)) fail('Hier kannst du keine Siedlung bauen.');
     pay(s, seat, COSTS.settlement, { kind: 'vertex', id: vertex });
-    const newIsland = s.islandBonus ? !ownsOnIsland(s, seat, vertex) : false;
+    const bonus = settleBonus(s, seat, vertex);
     s.buildings[vertex] = { owner: seat, type: 'settlement' };
     updateLongestRoad(s);
     log(s, seat, `${name(s, seat)} baut eine Siedlung.`);
     updateHarborMaster(s);
-    if (newIsland) {
-      const bonus = mapById(s.board.map).seafaring?.islandBonus ?? 0;
-      s.islandBonus![seat] += bonus;
-      if (bonus) log(s, seat, `${name(s, seat)} besiedelt eine neue Insel und bekommt ${bonus} Siegpunkte.`);
+    if (bonus) {
+      s.islandBonus![seat] += bonus.points;
+      const points = bonus.points === 1 ? 'einen Siegpunkt' : `${bonus.points} Siegpunkte`;
+      log(s, seat, `${name(s, seat)} besiedelt ${bonus.region ? 'ein neues Gebiet' : 'eine neue Insel'} und bekommt ${points}.`);
     }
     if (s.tokens) gainTokens(s, seat, vertex);
     if (touchesRiver(s, [vertex])) earnCoins(s, seat, RIVER_COINS, 'Siedlung am Fluss');
     startNeutralStep(s, 'settlement');
+    startCamelVote(s, seat);
   },
 
   buildCity(s, seat, { vertex }) {
@@ -399,6 +458,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     b.type = 'city';
     log(s, seat, `${name(s, seat)} baut eine Stadt.`);
     updateHarborMaster(s);
+    startCamelVote(s, seat);
   },
 
   buyDevCard(s, seat) {
@@ -424,6 +484,12 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (player.knights >= 3 && holder !== seat && (holder === null || player.knights > s.players[holder].knights)) {
       s.largestArmy = seat;
       log(s, seat, `${name(s, seat)} hat jetzt die größte Rittermacht.`);
+    }
+    // Freibeuterbuchten: Der Ritter rüstet ein Schiff zum Kriegsschiff auf, statt den Räuber zu versetzen.
+    if (s.warships) {
+      if (plainShips(s, seat).length) s.phase = { kind: 'warship', returnTo };
+      else log(s, seat, `${name(s, seat)} hat kein Schiff, das zum Kriegsschiff werden kann.`);
+      return;
     }
     s.phase = { kind: 'robber', returnTo };
   },
@@ -579,6 +645,7 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     updateLongestRoad(s);
     log(s, seat, `${name(s, seat)} baut ein Schiff.`);
     revealFog(s, seat, edge);
+    collectGift(s, seat, edge);
     if (free) continueRoadBuilding(s, seat);
   },
 
@@ -591,6 +658,8 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (to === from || !canBuildShip(s, seat, to)) fail('Dorthin kann das Schiff nicht.');
     s.ships[to] = seat;
     s.shipMoved = true;
+    // Ein Kriegsschiff bleibt eines, wenn es versetzt wird.
+    if (s.warships?.includes(from)) s.warships = s.warships.map((e) => (e === from ? to : e));
     updateLongestRoad(s);
     log(s, seat, `${name(s, seat)} versetzt ein Schiff.`);
     revealFog(s, seat, to);
@@ -909,6 +978,116 @@ const HANDLERS: { [T in Action['type']]: Handler<T> } = {
     if (phase.pending.every((n) => n === 0)) afterRoll(s, phase.sum);
   },
 
+  placeHarbor(s, seat, { edge }) {
+    const held = s.harborGifts?.[seat];
+    if (!held?.length) fail('Du hast keinen Hafen zu setzen.');
+    requireTurn(s, seat, 'main');
+    if (!harborSpots(s, seat).includes(edge)) fail('Ein Hafen kommt an eine freie Küstenkante an deiner Siedlung oder Stadt.');
+    const type = held.shift()!;
+    s.board = { ...s.board, harbors: [...s.board.harbors, { type, edge }] };
+    log(s, seat, `${name(s, seat)} legt einen Hafen an (${type === 'any' ? '3:1' : `2:1 ${RESOURCE_NAMES[type]}`}).`);
+    updateHarborMaster(s);
+  },
+
+  attackFortress(s, seat, { vertex }) {
+    requireTurn(s, seat, 'main');
+    const fort = s.fortresses?.find((f) => f.vertex === vertex);
+    if (!fort) fail('Dort steht keine Festung.');
+    if (fort.owner !== seat) fail('Angreifen kannst du nur deine eigene Festung.');
+    if (fort.walls <= 0) fail('Diese Festung ist schon erobert.');
+    if (s.fortressAttacked) fail('Du hast in diesem Zug schon angegriffen.');
+    const besiegers = besiegingShips(s, seat, vertex);
+    if (!besiegers.length) fail('Dafür muss ein eigenes Schiff an der Festung liegen.');
+    if (piecesLeft(s, seat, 'settlement') <= 0) fail('Für die eroberte Festung brauchst du eine Siedlung im Vorrat.');
+    s.fortressAttacked = true;
+    const fleet = warshipCount(s, seat);
+    const attack = randomInt(s, 6) + 1;
+    const defense = randomInt(s, 6) + 1;
+    const ships = fleet ? ` + ${fleet} Kriegsschiff${fleet > 1 ? 'e' : ''}` : '';
+    log(s, seat, `${name(s, seat)} greift die Festung an: ${attack}${ships} gegen ${defense}.`);
+    if (attack + fleet > defense) {
+      fort.walls--;
+      if (fort.walls > 0) {
+        log(s, seat, `Eine Mauer fällt, ${fort.walls === 1 ? 'eine steht' : `${fort.walls} stehen`} noch.`);
+      } else {
+        s.buildings[vertex] = { owner: seat, type: 'settlement' };
+        updateLongestRoad(s);
+        log(s, seat, `${name(s, seat)} erobert die Festung, sie wird eine Siedlung.`);
+      }
+    } else if (attack + fleet < defense) {
+      // Verloren: Das Schiff an der Festung sinkt, ein einfaches vor einem Kriegsschiff.
+      const lost = besiegers.find((e) => !s.warships!.includes(e)) ?? besiegers[0];
+      s.ships![lost] = null;
+      s.warships = s.warships!.filter((e) => e !== lost);
+      updateLongestRoad(s);
+      log(s, seat, `Die Festung hält stand, ${name(s, seat)} verliert ein Schiff.`);
+    } else {
+      log(s, seat, 'Gleichstand, die Festung hält.');
+    }
+  },
+
+  chooseWarship(s, seat, { edge }) {
+    const phase = s.phase;
+    if (phase.kind !== 'warship') fail('Gerade wird kein Kriegsschiff gewählt.');
+    if (seat !== s.current) fail('Du bist nicht dran.');
+    if (!plainShips(s, seat).includes(edge)) fail('Wähle eines deiner Schiffe, das noch kein Kriegsschiff ist.');
+    s.warships!.push(edge);
+    log(s, seat, `${name(s, seat)} rüstet ein Schiff zum Kriegsschiff auf.`);
+    s.phase = { kind: phase.returnTo };
+  },
+
+  buildWonder(s, seat, { wonder }) {
+    if (!s.wonders) fail('In diesem Spiel gibt es keine Bauwerke.');
+    requireBuilder(s, seat);
+    const w = s.wonders[wonder];
+    if (!w) fail('Unbekanntes Bauwerk.');
+    const def = WONDERS[wonder];
+    if (w.owner === null) {
+      if (s.wonders.some((x) => x.owner === seat)) fail('Du baust schon an einem Bauwerk.');
+      if (!wonderReady(s, seat, wonder)) fail(`Für ${def.name} brauchst du ${def.requirement}.`);
+    } else if (w.owner !== seat) {
+      fail(`${def.name} baut schon ${name(s, w.owner)}.`);
+    }
+    if (w.level >= WONDER_LEVELS) fail(`${def.name} ist schon fertig.`);
+    pay(s, seat, def.cost);
+    w.owner = seat;
+    w.level++;
+    log(
+      s,
+      seat,
+      w.level === WONDER_LEVELS
+        ? `${name(s, seat)} vollendet ${def.name}!`
+        : w.level === 1
+          ? `${name(s, seat)} beginnt ${def.name}.`
+          : `${name(s, seat)} baut ${def.name} weiter (Stufe ${w.level} von ${WONDER_LEVELS}).`,
+    );
+  },
+
+  bidCamel(s, seat, { bid }) {
+    const phase = s.phase;
+    if (phase.kind !== 'camelVote') fail('Gerade wird nicht geboten.');
+    if (phase.done[seat] !== false) fail('Du hast schon geboten.');
+    validateCounts(bid);
+    const offer = pick(bid);
+    if (CARDS.some((k) => k !== 'wheat' && k !== 'sheep' && count(offer, k) > 0)) fail('Geboten wird mit Getreide und Wolle.');
+    if (!hasResources(s.players[seat].resources, offer)) fail('So viele Karten hast du nicht.');
+    phase.bids[seat] = offer;
+    phase.done[seat] = true;
+    if (phase.done.every(Boolean)) resolveCamelVote(s);
+  },
+
+  placeCamel(s, seat, { edge }) {
+    const phase = s.phase;
+    if (phase.kind !== 'camelPlace') fail('Gerade wird kein Kamel gesetzt.');
+    if (phase.seat !== seat) fail('Das Kamel setzt ein anderer Spieler.');
+    const route = s.caravans!.findIndex((c) => caravanOptions(s, c).includes(edge));
+    if (route < 0) fail('Ein Kamel kommt an das Ende einer Karawane, auf eine Kante an Land.');
+    s.caravans![route].push(edge);
+    updateLongestRoad(s);
+    log(s, seat, `${name(s, seat)} setzt ein Kamel.`);
+    s.phase = phase.resume;
+  },
+
   endTurn(s, seat) {
     const phase = s.phase;
     if (phase.kind === 'specialBuild') {
@@ -948,7 +1127,10 @@ export function actingSeats(s: GameState): number[] {
       return phase.pending.flatMap((n, i) => (n > 0 ? [i] : []));
     case 'displace':
     case 'peek':
+    case 'camelPlace':
       return [phase.seat];
+    case 'camelVote':
+      return phase.done.flatMap((done, i) => (done ? [] : [i]));
     case 'ended':
       return [];
     default:
@@ -968,6 +1150,10 @@ export function victoryPoints(s: GameState, seat: number, includeHidden: boolean
   vp += s.progressPoints?.[seat] ?? 0;
   if (s.trader?.owner === seat) vp++;
   if (s.metropolis) vp += TRACKS.filter((t) => s.metropolis![t] !== null && s.buildings[s.metropolis![t]!]?.owner === seat).length * METROPOLIS_POINTS;
+  vp += s.giftPoints?.[seat] ?? 0;
+  vp += Math.floor((s.bales?.[seat] ?? 0) / BALES_PER_POINT);
+  vp += s.wonders?.find((w) => w.owner === seat)?.level ?? 0;
+  vp += caravanPoints(s, seat);
   if (includeHidden) {
     const p = s.players[seat];
     vp += [...p.devCards, ...p.newDevCards].filter((c) => c === 'victoryPoint').length;
@@ -977,12 +1163,15 @@ export function victoryPoints(s: GameState, seat: number, includeHidden: boolean
 
 export function isFreeForSettlement(s: GameState, vertex: number): boolean {
   const v = getTopology(s.board).vertices[vertex];
+  // Festungen und Dörfer stehen wie Gebäude: niemand siedelt darauf oder direkt daneben.
+  const occupied = (w: number) => s.buildings[w] !== null || isFortress(s, w) || isVillageCorner(s, w);
+  const tribe = s.board.tribe;
   return (
     !!v &&
-    s.buildings[vertex] === null &&
+    !occupied(vertex) &&
     !s.guards?.[vertex] &&
-    v.neighbors.every((n) => s.buildings[n] === null) &&
-    v.hexes.some((h) => isLand(s.board.hexes[h].terrain))
+    v.neighbors.every((n) => !occupied(n)) &&
+    v.hexes.some((h) => isLand(s.board.hexes[h].terrain) && !tribe?.includes(h))
   );
 }
 
@@ -1012,11 +1201,11 @@ export function legalBridgeEdges(s: GameState, seat: number): number[] {
 function roadFits(s: GameState, seat: number, edge: number): boolean {
   const topo = getTopology(s.board);
   const e = topo.edges[edge];
-  if (!e || s.roads[edge] !== null || s.ships?.[edge] != null || !edgeTouchesLand(s, edge)) return false;
+  if (!e || s.roads[edge] !== null || s.ships?.[edge] != null || !edgeTouchesLand(s, edge) || isVillageEdge(s, edge)) return false;
   return [e.a, e.b].some((v) => {
     const b = s.buildings[v];
     if (b?.owner === seat) return true;
-    if (b) return false;
+    if (b || isFortress(s, v)) return false;
     const g = s.guards?.[v];
     if (g && g.owner !== seat) return false;
     return topo.vertices[v].edges.some((other) => other !== edge && s.roads[other] === seat);
@@ -1025,15 +1214,18 @@ function roadFits(s: GameState, seat: number, edge: number): boolean {
 
 export function legalSetupVertices(s: GameState): number[] {
   const topo = getTopology(s.board);
-  // Seewege „Erste Überfahrt“: Startsiedlungen nur auf der größten Insel.
+  // Seewege „Erste Überfahrt“: Startsiedlungen nur auf der größten Insel, im Sandmeer im größten Gebiet.
+  const sea = mapById(s.board.map).seafaring;
+  let area: number[] | null = null;
   let home: number | null = null;
-  if (mapById(s.board.map).seafaring?.setup === 'largest') {
+  if (sea?.setup === 'largest') {
+    area = sea.regionBonus ? regionsOf(s.board) : topo.islands;
     const sizes = new Map<number, number>();
-    for (const id of topo.islands) if (id >= 0) sizes.set(id, (sizes.get(id) ?? 0) + 1);
+    for (const id of area) if (id >= 0) sizes.set(id, (sizes.get(id) ?? 0) + 1);
     home = [...sizes].sort((a, b) => b[1] - a[1])[0][0];
   }
   return topo.vertices
-    .filter((v) => isFreeForSettlement(s, v.id) && (home === null || v.hexes.some((h) => topo.islands[h] === home)))
+    .filter((v) => isFreeForSettlement(s, v.id) && (home === null || v.hexes.some((h) => area![h] === home)))
     .map((v) => v.id);
 }
 
@@ -1065,13 +1257,14 @@ export function canBuildShip(s: GameState, seat: number, edge: number): boolean 
   if (!s.ships) return false;
   const topo = getTopology(s.board);
   const e = topo.edges[edge];
-  if (!e || s.roads[edge] !== null || s.ships[edge] !== null) return false;
+  if (!e || s.roads[edge] !== null || s.ships[edge] !== null || isVillageEdge(s, edge)) return false;
   if (!e.hexes.some((h) => s.board.hexes[h].terrain === 'sea')) return false;
   if (s.pirate != null && e.hexes.includes(s.pirate)) return false;
   return [e.a, e.b].some((v) => {
     const b = s.buildings[v];
     if (b?.owner === seat) return true;
-    if (b) return false;
+    // An einer Festung endet eine Schiffslinie, dort geht es nicht weiter.
+    if (b || isFortress(s, v)) return false;
     return topo.vertices[v].edges.some((other) => other !== edge && s.ships![other] === seat);
   });
 }
@@ -1128,12 +1321,14 @@ export function legalRobberHexes(s: GameState): number[] {
   const sea = (id: number) => s.board.hexes[id].terrain === 'sea';
   // Seewege: Statt des Räubers darf man das Kaperschiff auf ein anderes Meerfeld setzen (nicht der Steuereintreiber).
   const tax = s.phase.kind === 'robber' && s.phase.all;
-  const pirateHexes = s.pirate !== undefined && !tax ? s.board.hexes.map((_, id) => id).filter((id) => sea(id) && id !== s.pirate) : [];
+  // Freibeuterbuchten: Das Kaperschiff fährt seine Route und lässt sich nicht versetzen.
+  const pirateHexes = s.pirate !== undefined && !tax && !s.pirateRoute ? s.board.hexes.map((_, id) => id).filter((id) => sea(id) && id !== s.pirate) : [];
   return [...landRobberHexes(s), ...pirateHexes];
 }
 
 function landRobberHexes(s: GameState): number[] {
-  const others = s.board.hexes.map((_, id) => id).filter((id) => id !== s.robber && isLand(s.board.hexes[id].terrain));
+  const tribe = s.board.tribe ?? [];
+  const others = s.board.hexes.map((_, id) => id).filter((id) => id !== s.robber && isLand(s.board.hexes[id].terrain) && !tribe.includes(id));
   if (!hasVariant(s, 'milderRaeuber')) return others;
   const topo = getTopology(s.board);
   const protectedSeat = s.players.map((p, seat) => !p.neutral && victoryPoints(s, seat, false) <= 2);
@@ -1396,6 +1591,7 @@ function rollDice(s: GameState, seat: number, dice: [number, number]): void {
   if (s.raiders) s.event = EVENT_FACES[randomInt(s, 6)];
   const event = s.raiders ? ` · ${s.event === 'ship' ? 'Schiff' : `Tor ${TRACK_NAMES[s.event as Track]}`}` : '';
   log(s, seat, `${name(s, seat)} würfelt ${sum} (${dice[0]} + ${dice[1]})${event}.`);
+  if (s.pirateRoute?.length) pirateRaid(s, dice);
   if (s.raiders && s.event === 'ship' && advanceRaiders(s, sum)) return;
   // Ein Tor: Einflusskarten für alle, deren Ausbau in dieser Farbe zum roten Würfel passt.
   if (s.progress && s.event && s.event !== 'ship') drawOnGate(s, s.event, dice[1]);
@@ -1755,6 +1951,7 @@ export function canBuildAnything(s: GameState, seat: number): boolean {
   if (s.improvements && TRACKS.some((t) => canImprove(s, seat, t))) return true;
   if (s.walls && hasResources(res, COSTS.wall) && legalWallVertices(s, seat).length > 0) return true;
   if (s.guards && hasResources(res, COSTS.guard) && legalGuardVertices(s, seat).length > 0) return true;
+  if (s.wonders && s.wonders.some((_, i) => canBuildWonder(s, seat, i))) return true;
   return hasResources(res, COSTS.road) && piecesLeft(s, seat, 'road') > 0 && legalRoadEdges(s, seat).length > 0;
 }
 
@@ -2145,6 +2342,355 @@ const PLAY: Record<ProgressCard, (s: GameState, seat: number, a: ProgressArgs) =
 };
 
 // ---------------------------------------------------------------------------
+// Seewege-Szenarien: Sandmeer, Die Verschollenen, Stoffhandel, Freibeuterbuchten, Großbauten
+
+/** Teile und Zähler, die ein Szenario beim Spielstart braucht. */
+function setUpScenario(s: GameState, sea: ReturnType<typeof mapById>['seafaring']): void {
+  if (!sea) return;
+  const n = s.players.length;
+  if (sea.gifts) {
+    s.gifts = placeGifts(s.board, sea.gifts(n), s);
+    s.giftPoints = s.players.map(() => 0);
+    s.harborGifts = s.players.map(() => []);
+  }
+  if (sea.villages) {
+    s.villages = placeVillages(s.board, sea.villages(n), s).map((v) => ({ ...v, stock: VILLAGE_STOCK }));
+    s.bales = s.players.map(() => 0);
+  }
+  if (sea.fortresses) {
+    const vertices = placeFortresses(s.board, n, s);
+    if (vertices.length < n) fail('Auf dieser Karte ist nicht für jeden Platz für eine Festung.');
+    s.fortresses = vertices.map((vertex, owner) => ({ vertex, owner, walls: FORTRESS_WALLS }));
+    s.warships = [];
+    s.pirateRoute = pirateRouteOf(s.board);
+    s.pirate = s.pirateRoute[0] ?? s.pirate;
+    s.fortressAttacked = false;
+  }
+  if (sea.wonders) s.wonders = WONDERS.map(() => ({ owner: null, level: 0 }));
+}
+
+const regionCache = new WeakMap<HexState[], number[]>();
+
+/**
+ * Sandmeer: Gebiete sind zusammenhängendes Land ohne Wüste; ein Wüstenstreifen trennt sie. Wüste, Meer und
+ * Nebel haben kein Gebiet (-1).
+ */
+export function regionsOf(board: BoardState): number[] {
+  const known = regionCache.get(board.hexes);
+  if (known) return known;
+  const topo = getTopology(board);
+  const inside = (h: number) => isLand(board.hexes[h].terrain) && board.hexes[h].terrain !== 'desert';
+  const region = board.hexes.map(() => -1);
+  let next = 0;
+  for (const start of topo.hexes) {
+    if (!inside(start.id) || region[start.id] >= 0) continue;
+    const stack = [start.id];
+    region[start.id] = next;
+    while (stack.length) {
+      for (const m of topo.hexes[stack.pop()!].neighbors) {
+        if (inside(m) && region[m] < 0) {
+          region[m] = next;
+          stack.push(m);
+        }
+      }
+    }
+    next++;
+  }
+  regionCache.set(board.hexes, region);
+  return region;
+}
+
+/**
+ * Bonus für eine neue Siedlung: auf einer Insel ohne eigenes Gebäude der Inselbonus, im Sandmeer auf einer
+ * schon besiedelten Insel in einem neuen Gebiet der Gebietsbonus.
+ */
+function settleBonus(s: GameState, seat: number, vertex: number): { points: number; region: boolean } | null {
+  if (!s.islandBonus) return null;
+  const sea = mapById(s.board.map).seafaring;
+  if (!ownsOnIsland(s, seat, vertex)) return sea?.islandBonus ? { points: sea.islandBonus, region: false } : null;
+  if (!sea?.regionBonus) return null;
+  const regions = regionsOf(s.board);
+  const topo = getTopology(s.board);
+  const regionOf = (v: number) => topo.vertices[v].hexes.map((h) => regions[h]).find((r) => r >= 0) ?? -1;
+  const region = regionOf(vertex);
+  if (region < 0 || s.buildings.some((b, v) => b?.owner === seat && regionOf(v) === region)) return null;
+  return { points: sea.regionBonus, region: true };
+}
+
+/** Punkte, die eine neue Siedlung an dieser Ecke als Insel- oder Gebietsbonus brächte (auch für den Bot). */
+export function settlementBonus(s: GameState, seat: number, vertex: number): number {
+  return settleBonus(s, seat, vertex)?.points ?? 0;
+}
+
+/** Freibeuterbuchten: Steht auf dieser Ecke eine noch nicht eroberte Festung? */
+export function isFortress(s: GameState, vertex: number): boolean {
+  return !!s.fortresses?.some((f) => f.vertex === vertex && f.walls > 0);
+}
+
+export function fortressTaken(s: GameState, seat: number): boolean {
+  return !!s.fortresses?.some((f) => f.owner === seat && f.walls <= 0);
+}
+
+/** Eigene Schiffe an einer Festung; nur mit ihnen darf man angreifen. */
+export function besiegingShips(s: GameState, seat: number, vertex: number): number[] {
+  return getTopology(s.board).vertices[vertex].edges.filter((e) => s.ships?.[e] === seat);
+}
+
+export function warshipCount(s: GameState, seat: number): number {
+  return (s.warships ?? []).filter((e) => s.ships?.[e] === seat).length;
+}
+
+/** Eigene Schiffe, die noch keine Kriegsschiffe sind. */
+export function plainShips(s: GameState, seat: number): number[] {
+  return (s.ships ?? []).flatMap((o, e) => (o === seat && !s.warships?.includes(e) ? [e] : []));
+}
+
+/** Die eigene Festung, wenn sie jetzt angegriffen werden kann, sonst null. */
+export function attackableFortress(s: GameState, seat: number): number | null {
+  if (!s.fortresses || s.fortressAttacked || s.phase.kind !== 'main' || s.current !== seat) return null;
+  if (piecesLeft(s, seat, 'settlement') <= 0) return null;
+  const fort = s.fortresses.find((f) => f.owner === seat && f.walls > 0);
+  return fort && besiegingShips(s, seat, fort.vertex).length ? fort.vertex : null;
+}
+
+/**
+ * Freibeuterbuchten: Das Kaperschiff fährt so viele Felder auf seiner Route weiter, wie der erste Würfel zeigt,
+ * und greift jeden an, der dort ein Gebäude hat, mit der Stärke des zweiten Würfels. Mehr Kriegsschiffe als
+ * diese Stärke wehren es ab und bringen einen Rohstoff; weniger kosten je Siedlung eine, je Stadt zwei Karten.
+ */
+function pirateRaid(s: GameState, dice: [number, number]): void {
+  const route = s.pirateRoute!;
+  const at = Math.max(0, route.indexOf(s.pirate ?? route[0]));
+  s.pirate = route[(at + dice[0]) % route.length];
+  const strength = dice[1];
+  const hit = s.players.map(() => 0);
+  for (const v of getTopology(s.board).hexes[s.pirate].corners) {
+    const b = s.buildings[v];
+    if (b && !s.players[b.owner].neutral) hit[b.owner] += b.type === 'city' ? 2 : 1;
+  }
+  if (!hit.some((n) => n > 0)) return;
+  const loot = s.players.map(() => 0);
+  hit.forEach((n, seat) => {
+    if (!n) return;
+    const fleet = warshipCount(s, seat);
+    if (fleet > strength) {
+      loot[seat] = 1;
+      log(s, seat, `${name(s, seat)} wehrt das Kaperschiff ab (${fleet} gegen ${strength}) und nimmt sich einen Rohstoff.`);
+    } else if (fleet < strength) {
+      const pool = shuffle(s, cardList(s.players[seat].resources)).slice(0, n);
+      for (const card of pool) {
+        addCard(s.players[seat].resources, card, -1);
+        addCard(s.bank, card, 1);
+        s.transfers.push({ from: seatPoint(seat), to: BANK, card, count: 1 });
+      }
+      log(s, seat, `Das Kaperschiff überfällt ${name(s, seat)} (${strength} gegen ${fleet}): ${pool.length === 1 ? 'eine Karte' : `${pool.length} Karten`} verloren.`);
+    } else {
+      log(s, seat, `${name(s, seat)} hält dem Kaperschiff stand (${fleet} gegen ${strength}).`);
+    }
+  });
+  if (loot.some((n) => n > 0)) s.pirateLoot = loot;
+}
+
+/** Stoffhandel: Liegt auf dieser Kante ein Dorf? */
+export function isVillageEdge(s: GameState, edge: number): boolean {
+  return !!s.villages?.some((v) => v.edge === edge);
+}
+
+function isVillageCorner(s: GameState, vertex: number): boolean {
+  if (!s.villages) return false;
+  const topo = getTopology(s.board);
+  return s.villages.some((v) => topo.edges[v.edge].a === vertex || topo.edges[v.edge].b === vertex);
+}
+
+/** Stoffhandel: Hat der Sitz eine eigene Straße oder ein Schiff, das an eine Ecke des Dorfes stößt? */
+export function villageConnected(s: GameState, seat: number, village: number): boolean {
+  const topo = getTopology(s.board);
+  const edge = topo.edges[s.villages![village].edge];
+  return [edge.a, edge.b].some((v) => topo.vertices[v].edges.some((e) => e !== edge.id && (s.roads[e] === seat || s.ships?.[e] === seat)));
+}
+
+/** Stoffhandel: Dörfer mit der gewürfelten Zahl geben jedem Angebundenen einen Ballen, solange der Vorrat reicht. */
+function weave(s: GameState, sum: number): void {
+  const n = humanCount(s);
+  const order = Array.from({ length: n }, (_, k) => (s.current + k) % n);
+  const got = s.players.map(() => 0);
+  s.villages!.forEach((village, i) => {
+    if (village.number !== sum) return;
+    for (const seat of order) {
+      if (village.stock <= 0) break;
+      if (!villageConnected(s, seat, i)) continue;
+      village.stock--;
+      s.bales![seat]++;
+      got[seat]++;
+    }
+  });
+  got.forEach((k, seat) => {
+    if (k) log(s, seat, `${name(s, seat)} bekommt ${k === 1 ? 'einen Stoffballen' : `${k} Stoffballen`} (jetzt ${s.bales![seat]}).`);
+  });
+}
+
+/** Die Verschollenen: Ein Schiff auf einer Geschenkkante holt das Geschenk ab. */
+function collectGift(s: GameState, seat: number, edge: number): void {
+  const index = s.gifts?.findIndex((g) => g.edge === edge) ?? -1;
+  if (index < 0) return;
+  const [gift] = s.gifts!.splice(index, 1);
+  if (gift.kind === 'point') {
+    s.giftPoints![seat] += GIFT_POINTS;
+    log(s, seat, `${name(s, seat)} bekommt von den Verschollenen einen Siegpunkt.`);
+  } else if (gift.kind === 'dev') {
+    if (!s.devDeck.length) {
+      log(s, seat, `Die Verschollenen haben für ${name(s, seat)} keine Entwicklungskarte mehr.`);
+      return;
+    }
+    const [card] = s.devDeck.splice(randomInt(s, s.devDeck.length), 1);
+    s.players[seat].newDevCards.push(card);
+    transfer(s, { kind: 'edge', id: edge }, seatPoint(seat), 'dev', 1);
+    log(s, seat, `${name(s, seat)} bekommt von den Verschollenen eine Entwicklungskarte.`);
+  } else {
+    s.harborGifts![seat].push(gift.harbor ?? 'any');
+    log(s, seat, `${name(s, seat)} bekommt von den Verschollenen einen Hafen und legt ihn an eine eigene Küstensiedlung.`);
+  }
+}
+
+/** Die Verschollenen: Küstenkanten an eigenen Gebäuden, an deren Ecken noch kein Hafen liegt. */
+export function harborSpots(s: GameState, seat: number): number[] {
+  if (!s.harborGifts?.[seat]?.length) return [];
+  const topo = getTopology(s.board);
+  const harbors = vertexHarbors(s.board);
+  const tribe = new Set(s.board.tribe ?? []);
+  return topo.edges
+    .filter((e) => {
+      const land = e.hexes.filter((h) => isLand(s.board.hexes[h].terrain) && !tribe.has(h));
+      const sea = e.hexes.filter((h) => s.board.hexes[h].terrain === 'sea');
+      return land.length === 1 && sea.length === 1 && [e.a, e.b].every((v) => !harbors[v]) && [e.a, e.b].some((v) => s.buildings[v]?.owner === seat);
+    })
+    .map((e) => e.id);
+}
+
+/** Großbauten: Erfüllt der Sitz die Voraussetzung, um dieses Bauwerk zu beginnen? */
+export function wonderReady(s: GameState, seat: number, wonder: number): boolean {
+  const own = s.buildings.flatMap((b, v) => (b?.owner === seat ? [{ b, v }] : []));
+  switch (WONDERS[wonder].need) {
+    case 'harbor': {
+      const harbors = vertexHarbors(s.board);
+      return own.some(({ v }) => harbors[v]);
+    }
+    case 'cities':
+      return own.filter(({ b }) => b.type === 'city').length >= 2;
+    case 'islands': {
+      const topo = getTopology(s.board);
+      return new Set(own.map(({ v }) => topo.vertices[v].hexes.map((h) => topo.islands[h]).find((i) => i >= 0))).size >= 2;
+    }
+    case 'route':
+      return (s.roadLengths[seat] ?? 0) >= 5;
+    case 'ships':
+      return (s.ships ?? []).filter((o) => o === seat).length >= 5;
+  }
+}
+
+/** Großbauten: Kann der Sitz jetzt eine Stufe dieses Bauwerks bauen (Voraussetzung, Besitz, Kosten)? */
+export function canBuildWonder(s: GameState, seat: number, wonder: number): boolean {
+  const w = s.wonders?.[wonder];
+  if (!w || w.level >= WONDER_LEVELS || !hasResources(s.players[seat].resources, WONDERS[wonder].cost)) return false;
+  if (w.owner === null) return !s.wonders!.some((x) => x.owner === seat) && wonderReady(s, seat, wonder);
+  return w.owner === seat;
+}
+
+// ---------------------------------------------------------------------------
+// Kamelzüge
+
+/** Ecken, die eine Karawane schon berührt; die Oase gehört dazu. */
+function caravanVertices(s: GameState): Set<number> {
+  const topo = getTopology(s.board);
+  const out = new Set<number>(s.board.oasis !== undefined ? topo.hexes[s.board.oasis].corners : []);
+  for (const e of s.caravans?.flat() ?? []) {
+    out.add(topo.edges[e].a);
+    out.add(topo.edges[e].b);
+  }
+  return out;
+}
+
+/** Ende einer Karawane: die Ecke ihres letzten Kamels, die von der Oase weg zeigt. */
+export function caravanEnd(s: GameState, caravan: number[]): number {
+  const topo = getTopology(s.board);
+  const oasis = topo.hexes[s.board.oasis!].corners;
+  const first = topo.edges[caravan[0]];
+  let at = oasis.includes(first.a) ? first.b : first.a;
+  for (const e of caravan.slice(1)) at = topo.edges[e].a === at ? topo.edges[e].b : topo.edges[e].a;
+  return at;
+}
+
+/**
+ * Wohin diese Karawane weiterziehen kann: Kanten an Land am Ende, die zu einer Ecke führen, die noch keine
+ * Karawane berührt. Sind alle Kamele vergeben, nirgends.
+ */
+export function caravanOptions(s: GameState, caravan: number[]): number[] {
+  if (!s.caravans || s.caravans.flat().length >= CAMELS) return [];
+  const topo = getTopology(s.board);
+  const end = caravanEnd(s, caravan);
+  const taken = caravanVertices(s);
+  return topo.vertices[end].edges.filter((e) => {
+    const edge = topo.edges[e];
+    const far = edge.a === end ? edge.b : edge.a;
+    return edge.hexes.length === 2 && edge.hexes.every((h) => isLand(s.board.hexes[h].terrain)) && !taken.has(far);
+  });
+}
+
+/** Alle Kanten, auf die das nächste Kamel darf. */
+export function camelOptions(s: GameState): number[] {
+  return (s.caravans ?? []).flatMap((c) => caravanOptions(s, c));
+}
+
+/** Kamelzüge: je eigenes Gebäude an einer Karawane ein Punkt. */
+export function caravanPoints(s: GameState, seat: number): number {
+  if (!s.caravans) return 0;
+  const topo = getTopology(s.board);
+  const at = new Set(s.caravans.flat().flatMap((e) => [topo.edges[e].a, topo.edges[e].b]));
+  return s.buildings.reduce((n, b, v) => (b?.owner === seat && at.has(v) ? n + 1 : n), 0);
+}
+
+/**
+ * Nach einer neuen Siedlung oder Stadt: Alle bieten verdeckt auf das nächste Kamel. Wer weder Getreide noch
+ * Wolle hat, bietet nichts und muss nicht gefragt werden.
+ */
+function startCamelVote(s: GameState, builder: number): void {
+  if (!s.caravans || (s.phase.kind !== 'main' && s.phase.kind !== 'specialBuild') || !camelOptions(s).length) return;
+  const resume: BuildPhase = s.phase.kind === 'main' ? { kind: 'main' } : { kind: 'specialBuild', queue: [...s.phase.queue] };
+  const broke = (seat: number) => s.players[seat].neutral || (s.players[seat].resources.wheat === 0 && s.players[seat].resources.sheep === 0);
+  s.phase = {
+    kind: 'camelVote',
+    builder,
+    bids: s.players.map((_, i) => (broke(i) ? emptyResources() : null)),
+    done: s.players.map((_, i) => broke(i)),
+    resume,
+  };
+  log(s, null, 'Wohin zieht das nächste Kamel? Alle bieten verdeckt Getreide und Wolle.');
+  if (s.phase.done.every(Boolean)) resolveCamelVote(s);
+}
+
+/**
+ * Das höchste Gebot gewinnt; bei Gleichstand, wer in Zugreihenfolge vom Bauenden aus zuerst kommt. Alle zahlen
+ * ihr Gebot an die Bank. Bietet niemand etwas, setzt der Bauende das Kamel.
+ */
+function resolveCamelVote(s: GameState): void {
+  const phase = s.phase;
+  if (phase.kind !== 'camelVote') return;
+  const total = (seat: number) => totalResources(phase.bids[seat] ?? emptyResources());
+  const n = humanCount(s);
+  const order = Array.from({ length: n }, (_, k) => (phase.builder + k) % n);
+  const max = Math.max(...order.map(total));
+  const winner = max > 0 ? order.find((seat) => total(seat) === max)! : phase.builder;
+  for (const seat of order) {
+    const bid = phase.bids[seat];
+    if (!bid || !total(seat)) continue;
+    pay(s, seat, bid);
+    log(s, seat, `${name(s, seat)} hat ${formatResources(bid)} geboten.`);
+  }
+  log(s, winner, max > 0 ? `${name(s, winner)} gewinnt das Gebot und setzt das Kamel.` : `Niemand bietet, ${name(s, winner)} setzt das Kamel.`);
+  s.phase = { kind: 'camelPlace', seat: winner, resume: phase.resume };
+}
+
+// ---------------------------------------------------------------------------
 // Interne Hilfsfunktionen
 
 function name(s: GameState, seat: number): string {
@@ -2241,7 +2787,17 @@ function playDevCard(s: GameState, seat: number, card: DevCard): ReturnPhase {
 /** Verteilt den Ertrag; liefert, wie viele Rohstoffe jeder aus Goldfeldern noch selbst wählt. */
 /** Der Rest eines Wurfs: bei einer 7 abwerfen und Räuber, sonst Ertrag. Mit Stadtwacht erst nach der Flotte. */
 function afterRoll(s: GameState, sum: number): void {
+  // Freibeuterbuchten: Wer das Kaperschiff abgewehrt hat, nimmt sich einen Rohstoff; bei einer 7 gleich den häufigsten.
+  const loot = s.pirateLoot ?? s.players.map(() => 0);
+  delete s.pirateLoot;
   if (sum === 7) {
+    loot.forEach((n, seat) => {
+      const r = [...RESOURCES].sort((a, b) => s.bank[b] - s.bank[a])[0];
+      if (!n || s.bank[r] <= 0) return;
+      s.bank[r]--;
+      s.players[seat].resources[r]++;
+      transfer(s, BANK, seatPoint(seat), r, 1);
+    });
     const pending = s.players.map((p, i) => {
       const total = totalResources(p.resources);
       return total > handLimit(s, i) ? Math.floor(total / 2) : 0;
@@ -2257,6 +2813,15 @@ function afterRoll(s: GameState, sum: number): void {
   }
   const { gold, got } = produce(s, sum);
   if (s.fish) catchFish(s, sum);
+  if (s.villages) weave(s, sum);
+  if (loot.some((n) => n > 0)) {
+    let left = RESOURCES.reduce((n, r) => n + s.bank[r], 0) - gold.reduce((a, b) => a + b, 0);
+    loot.forEach((n, seat) => {
+      if (!n || left <= 0) return;
+      gold[seat]++;
+      left--;
+    });
+  }
   // Stadtwacht, Gelehrte ab Stufe 3: Wer nichts bekommt, nimmt sich einen Rohstoff nach Wahl.
   if (s.improvements) {
     let left = RESOURCES.reduce((n, r) => n + s.bank[r], 0) - gold.reduce((a, b) => a + b, 0);
@@ -2380,6 +2945,7 @@ function nextTurn(s: GameState): void {
     s.shipsBuilt = [];
     s.shipMoved = false;
   }
+  if (s.fortresses) s.fortressAttacked = false;
   s.phase = { kind: 'roll' };
 }
 
@@ -2387,6 +2953,16 @@ function checkWinner(s: GameState): void {
   const kind = s.phase.kind;
   if (kind === 'setup' || kind === 'specialBuild' || kind === 'ended') return;
   const vp = victoryPoints(s, s.current, true);
+  // Großbauten: Wer sein Bauwerk vollendet, gewinnt sofort.
+  const wonder = s.wonders?.findIndex((w) => w.owner === s.current && w.level >= WONDER_LEVELS) ?? -1;
+  if (wonder >= 0) {
+    s.winner = s.current;
+    s.phase = { kind: 'ended' };
+    log(s, s.current, `${name(s, s.current)} gewinnt mit dem vollendeten Bauwerk ${WONDERS[wonder].name}!`);
+    return;
+  }
+  // Freibeuterbuchten: Gewonnen hat nur, wer seine eigene Festung erobert hat.
+  if (s.fortresses && !fortressTaken(s, s.current)) return;
   if (vp >= victoryTarget(s, s.current)) {
     s.winner = s.current;
     s.phase = { kind: 'ended' };
@@ -2415,11 +2991,13 @@ function updateLongestRoad(s: GameState): void {
 
 /**
  * Längste Handelsstraße bzw. -route: Straßen und Schiffe zählen zusammen, wechseln dürfen sie aber
- * nur an einem eigenen Gebäude. Fremde Gebäude unterbrechen.
+ * nur an einem eigenen Gebäude. Fremde Gebäude und Festungen unterbrechen. Kamelzüge: Eine Straße unter
+ * einem Kamel zählt doppelt.
  */
 export function longestRoad(s: GameState, seat: number): number {
   const topo = getTopology(s.board);
   const visited = new Set<number>();
+  const camels = new Set(s.caravans?.flat() ?? []);
   let best = 0;
   const kindOf = (e: number): 'road' | 'ship' | null =>
     s.roads[e] === seat ? 'road' : s.ships?.[e] === seat ? 'ship' : null;
@@ -2433,11 +3011,12 @@ export function longestRoad(s: GameState, seat: number): number {
       if (via && kind !== via && !own) continue;
       const edge = topo.edges[e];
       const next = edge.a === vertex ? edge.b : edge.a;
+      const step = kind === 'road' && camels.has(e) ? 2 : 1;
       visited.add(e);
       const blocker = s.buildings[next];
       const guard = s.guards?.[next];
-      if ((blocker && blocker.owner !== seat) || (guard && guard.owner !== seat)) best = Math.max(best, length + 1);
-      else walk(next, length + 1, kind);
+      if ((blocker && blocker.owner !== seat) || (guard && guard.owner !== seat) || isFortress(s, next)) best = Math.max(best, length + step);
+      else walk(next, length + step, kind);
       visited.delete(e);
     }
   };

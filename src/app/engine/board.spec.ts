@@ -171,7 +171,9 @@ describe('Brettgenerierung', () => {
           expect(bank).toBe(bankSize(t.hexes.filter((h) => !h.sea).length + fogLand));
           for (const h of t.hexes) {
             const hex = board.hexes[h.id];
-            expect(hex.number === null).toBe(hex.terrain === 'desert' || hex.terrain === 'sea' || hex.terrain === 'fog');
+            // Bewohnte Inseln (Die Verschollenen) haben Gelände, aber keine Zahl.
+            const blank = hex.terrain === 'desert' || hex.terrain === 'sea' || hex.terrain === 'fog' || !!board.tribe?.includes(h.id);
+            expect(hex.number === null).toBe(blank);
             if (red(hex.number)) for (const n of h.neighbors) expect(red(board.hexes[n].number)).toBe(false);
           }
           // Häfen an der Küste, nie an derselben oder einer benachbarten Ecke.

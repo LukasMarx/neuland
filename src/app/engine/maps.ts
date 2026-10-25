@@ -16,6 +16,7 @@ export type MapId = string;
  * | `H L W G E X` | festes Gelände |
  * | `$` | Goldfeld (Seewege) |
  * | `?` | Nebelfeld (Seewege): Land oder Meer, wird erst beim Aufdecken bestimmt |
+ * | `t` | Feld einer bewohnten Insel (Die Verschollenen): Gelände ohne Zahl, dort siedelt niemand |
  *
  * Auf Seewege-Karten ist `~` ein echtes Meerfeld mit eigenen Ecken und Kanten.
  */
@@ -47,6 +48,19 @@ export interface MapDef {
     setup: 'largest' | 'any';
     /** Was unter den Nebelfeldern (`?`) liegt: Anteil Meer und Zahl der Goldfelder, der Rest ist Land. */
     fog?: { seaShare: number; gold: number };
+    /**
+     * Sandmeer: Wüste teilt die Inseln in Gebiete. Die erste eigene Siedlung in einem neuen Gebiet derselben
+     * Insel bringt so viele Punkte, auf einer neuen Insel gilt `islandBonus`. Gestartet wird im größten Gebiet.
+     */
+    regionBonus?: number;
+    /** Die Verschollenen: Geschenke an den Küsten der bewohnten Inseln (`t`), je Spielerzahl. */
+    gifts?: (players: number) => { point: number; dev: number; harbor: number };
+    /** Stoffhandel: Zahlen der Dörfer an den Küsten der kleinen Inseln. */
+    villages?: (players: number) => number[];
+    /** Freibeuterbuchten: Festungen auf den kleinen Inseln, Kaperschiff auf fester Route, Ritter als Kriegsschiffe. */
+    fortresses?: boolean;
+    /** Großbauten: Bauwerke mit vier Stufen. */
+    wonders?: boolean;
   };
 }
 
@@ -251,6 +265,191 @@ export const MAPS: MapDef[] = [
             '~ . . . . ~ ? ? ? ? ? ~',
             ' ~ . . . ~ ? ? ? ? ? ~',
             '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ],
+  },
+  {
+    id: 'sandmeer',
+    name: 'Sandmeer',
+    description: 'Seewege: Ein Wüstenstreifen teilt die Hauptinsel. Wer jenseits der Wüste siedelt, bekommt 1 Punkt, auf einer neuen Insel 2.',
+    tags: ['Seewege', 'Wüste', 'Gebiete'],
+    players: [3, 6],
+    victoryPoints: 14,
+    seafaring: { islandBonus: 2, regionBonus: 1, setup: 'largest' },
+    mask: (p) =>
+      p > 4
+        ? [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . . . X . . . ~ ~ . . ~',
+            '~ . . . . X . . . . ~ ~ $ ~ ~',
+            ' . . . . . X . . . ~ ~ ~ ~ ~',
+            '~ . . . . X X X X X ~ ~ . . ~',
+            ' . . . . . X . . . ~ ~ $ . ~',
+            '~ . . . . X . . . . ~ ~ ~ ~ ~',
+            ' ~ . . . . X . . . ~ ~ . $ ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ]
+        : [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . . X . . . ~ . . ~',
+            '~ . . . X . . . ~ ~ $ ~ ~',
+            ' . . . . X . . . ~ ~ ~ ~',
+            '~ . . . X . . . ~ ~ . . ~',
+            ' ~ . . . X . . ~ ~ $ . ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ],
+  },
+  {
+    id: 'die-verschollenen',
+    name: 'Die Verschollenen',
+    description: 'Seewege: Auf den äußeren Inseln lebt ein fremdes Volk. Wer mit dem Schiff an seine Küsten kommt, bekommt Siegpunkte, Entwicklungskarten und Häfen.',
+    tags: ['Seewege', 'Geschenke', 'Häfen'],
+    players: [3, 6],
+    victoryPoints: 13,
+    seafaring: {
+      islandBonus: 0,
+      setup: 'largest',
+      gifts: (p) => (p > 4 ? { point: 6, dev: 5, harbor: 5 } : { point: 4, dev: 4, harbor: 4 }),
+    },
+    mask: (p) =>
+      p > 4
+        ? [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ t t ~ ~ ~ ~ ~ ~ ~ ~ t t ~',
+            '~ t ~ ~ . . . . . ~ ~ ~ t ~ ~',
+            ' ~ ~ ~ . . . . . . ~ ~ ~ ~',
+            '~ t t ~ . . . x . . ~ ~ t t ~',
+            ' ~ t ~ . . . . . . . ~ ~ t ~',
+            '~ ~ ~ ~ . . x . . . ~ ~ ~ ~ ~',
+            ' ~ t t ~ . . . . . ~ ~ t t ~',
+            '~ t ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ t ~',
+            ' ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ]
+        : [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ t t ~ ~ ~ ~ ~ ~ t t ~',
+            '~ t ~ ~ . . . . ~ ~ t ~ ~',
+            ' ~ ~ ~ . . . . . ~ ~ ~ ~',
+            '~ ~ ~ . . . x . . ~ ~ ~ ~',
+            ' ~ t ~ . . . . . ~ ~ t ~',
+            '~ t t ~ . . . . ~ ~ t t ~',
+            ' ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ],
+  },
+  {
+    id: 'stoffhandel',
+    name: 'Stoffhandel',
+    description: 'Seewege: Dörfer an den Küsten der kleinen Inseln weben Stoff. Wer per Straße oder Schiff angebunden ist, bekommt bei ihrer Zahl einen Ballen; 2 Ballen sind 1 Punkt.',
+    tags: ['Seewege', 'Dörfer', 'Stoff'],
+    players: [3, 6],
+    victoryPoints: 14,
+    seafaring: {
+      islandBonus: 0,
+      setup: 'largest',
+      villages: (p) => (p > 4 ? [3, 4, 5, 6, 8, 9, 10, 11, 4, 10, 5, 9] : [3, 4, 5, 6, 8, 9, 10, 11]),
+    },
+    mask: (p) =>
+      p > 4
+        ? [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . ~ ~ ~ ~ . . ~ ~ ~ ~ . . ~',
+            '~ . ~ ~ ~ ~ ~ ~ . ~ ~ ~ ~ ~ . ~ ~',
+            ' ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            '~ ~ ~ ~ . . . . . . . . ~ ~ ~ ~ ~',
+            ' ~ ~ ~ . . . . . . . . . ~ ~ ~ ~',
+            '~ ~ ~ ~ . . x . . . x . ~ ~ ~ ~ ~',
+            ' ~ ~ ~ . . . . . . . . . ~ ~ ~ ~',
+            '~ ~ ~ ~ . . . . . . . . ~ ~ ~ ~ ~',
+            ' ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            '~ . ~ ~ ~ ~ ~ ~ . ~ ~ ~ ~ ~ . ~ ~',
+            ' ~ . . ~ ~ ~ ~ . . ~ ~ ~ ~ . . ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ]
+        : [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . ~ ~ ~ ~ ~ ~ . . ~',
+            '~ . ~ ~ ~ ~ ~ ~ ~ ~ . ~ ~',
+            ' ~ ~ ~ . . . . . ~ ~ ~ ~',
+            '~ ~ ~ . . . x . . ~ ~ ~ ~',
+            ' ~ ~ . . . . . . . ~ ~ ~',
+            '~ ~ ~ . . . . . . ~ ~ ~ ~',
+            ' ~ ~ ~ . . . . . ~ ~ ~ ~',
+            '~ . ~ ~ ~ ~ ~ ~ ~ ~ . ~ ~',
+            ' ~ . . ~ ~ ~ ~ ~ ~ . . ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ],
+  },
+  {
+    id: 'freibeuterbuchten',
+    name: 'Freibeuterbuchten',
+    description: 'Seewege: Jeder hat eine Festung auf einer äußeren Insel und muss sie erobern, um zu gewinnen. Das Kaperschiff kreist auf fester Route und greift an; Ritter werden zu Kriegsschiffen.',
+    tags: ['Seewege', 'Festungen', 'Kriegsschiffe'],
+    players: [3, 6],
+    victoryPoints: 10,
+    seafaring: { islandBonus: 0, setup: 'largest', fortresses: true },
+    mask: (p) =>
+      p > 4
+        ? [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . ~ ~ ~ ~ . . ~ ~ ~ ~ . . ~',
+            '~ . ~ ~ ~ ~ ~ ~ . ~ ~ ~ ~ ~ . ~ ~',
+            ' ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            '~ ~ ~ ~ . . . . . . . . ~ ~ ~ ~ ~',
+            ' ~ ~ ~ . . . . . . . . . ~ ~ ~ ~',
+            '~ ~ ~ ~ . . . x . . . . ~ ~ ~ ~ ~',
+            ' ~ ~ ~ . . . . . . . . . ~ ~ ~ ~',
+            '~ ~ ~ ~ . . . . . . . . ~ ~ ~ ~ ~',
+            ' ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            '~ . ~ ~ ~ ~ ~ ~ . ~ ~ ~ ~ ~ . ~ ~',
+            ' ~ . . ~ ~ ~ ~ . . ~ ~ ~ ~ . . ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ]
+        : [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . ~ ~ ~ ~ ~ ~ ~ . . ~',
+            '~ . ~ ~ ~ ~ ~ ~ ~ ~ ~ . ~ ~',
+            ' ~ ~ ~ ~ . . . . ~ ~ ~ ~ ~',
+            '~ ~ ~ ~ . . . . . ~ ~ ~ ~ ~',
+            ' ~ ~ ~ . . . x . . ~ ~ ~ ~',
+            '~ ~ ~ ~ . . . . . ~ ~ ~ ~ ~',
+            ' ~ ~ ~ ~ . . . . ~ ~ ~ ~ ~',
+            '~ . ~ ~ ~ ~ ~ ~ ~ ~ ~ . ~ ~',
+            ' ~ . . ~ ~ ~ ~ ~ ~ ~ . . ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ],
+  },
+  {
+    id: 'grossbauten',
+    name: 'Großbauten',
+    description: 'Seewege: Jeder kann ein Bauwerk beginnen, wenn er dessen Voraussetzung erfüllt. Jede der vier Stufen bringt 1 Punkt; wer sein Bauwerk vollendet, gewinnt sofort.',
+    tags: ['Seewege', 'Bauwerke', 'Gold'],
+    players: [3, 6],
+    victoryPoints: 12,
+    seafaring: { islandBonus: 1, setup: 'largest', wonders: true },
+    mask: (p) =>
+      p > 4
+        ? [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . . . . ~ ~ ~ . . ~ ~',
+            '~ . . . . . . ~ ~ ~ $ . ~ ~',
+            ' . . . x . . . ~ ~ ~ ~ ~ ~',
+            '~ . . . . . . . ~ ~ ~ . . ~',
+            ' . . . . x . . ~ ~ ~ . $ ~',
+            '~ . . . . . . ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . . . . ~ ~ ~ . . ~ ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ $ . ~ ~ ~',
+            ' ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+          ]
+        : [
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ . . . . ~ ~ ~ . . ~',
+            '~ . . . . . ~ ~ ~ $ ~ ~',
+            ' . . x . . . ~ ~ ~ ~ ~',
+            '~ . . . . . ~ ~ ~ . . ~',
+            ' ~ . . . . ~ ~ ~ . $ ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+            ' ~ ~ ~ ~ ~ ~ ~ . . ~ ~',
+            '~ ~ ~ ~ ~ ~ ~ ~ $ ~ ~ ~',
+            ' ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
           ],
   },
   {

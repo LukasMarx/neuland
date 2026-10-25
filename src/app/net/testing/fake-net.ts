@@ -1,6 +1,6 @@
 import { Injector, runInInjectionContext } from '@angular/core';
 import { Action, actingSeats, applyAction, emptyResources, GameState, getTopology, legalCityVertices, legalRoadEdges } from '../../engine';
-import { autoAction, canImprove, CARDS, count, guardTargets, legalBridgeEdges, legalGuardVertices, legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, legalShipEdges, legalWallVertices, metropolisCandidates, movableShips, PROGRESS, guardSpots, intrigueTargets, openRoads, reformHexes, richerPlayers, scoutTargets, traderHexes, turncoatTargets, RESOURCES, robberVictims, setCount, TRACKS, COMMODITIES } from '../../engine';
+import { attackableFortress, autoAction, canBuildWonder, canImprove, harborSpots, CARDS, count, guardTargets, legalBridgeEdges, legalGuardVertices, legalRobberHexes, legalSettlementVertices, legalSetupRoads, legalSetupVertices, legalShipEdges, legalWallVertices, metropolisCandidates, movableShips, PROGRESS, guardSpots, intrigueTargets, openRoads, reformHexes, richerPlayers, scoutTargets, traderHexes, turncoatTargets, RESOURCES, robberVictims, setCount, TRACKS, COMMODITIES } from '../../engine';
 import type { Card } from '../../engine';
 import { NetMessage } from '../protocol';
 import { NET_ENV, NetEnv, RoomService } from '../room.service';
@@ -309,7 +309,16 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
     case 'displace':
     case 'progressPick':
     case 'peek':
+    case 'camelPlace':
+    case 'warship':
       return { seat, action: autoAction(g, seat, random)! };
+    case 'camelVote': {
+      // Kamelzüge: meist nichts, manchmal eine Karte Getreide oder Wolle.
+      const bid = emptyResources();
+      const kind = random() < 0.5 ? 'wheat' : 'sheep';
+      if (random() < 0.4 && g.players[seat].resources[kind] > 0) bid[kind] = 1;
+      return { seat, action: { type: 'bidCamel', bid } };
+    }
     case 'specialBuild':
       return { seat, action: { type: 'endTurn' } };
     case 'main': {
@@ -386,6 +395,10 @@ export function botStep(g: GameState, random: () => number): { seat: number; act
               },
             ]
           : []),
+        // Seewege-Szenarien: geschenkte Häfen setzen, die eigene Festung angreifen, an Bauwerken bauen.
+        ...harborSpots(g, seat).map((edge) => () => ({ type: 'placeHarbor', edge }) as Action),
+        ...(attackableFortress(g, seat) !== null ? [() => ({ type: 'attackFortress', vertex: attackableFortress(g, seat)! }) as Action] : []),
+        ...(g.wonders ?? []).flatMap((_, wonder) => (canBuildWonder(g, seat, wonder) ? [() => ({ type: 'buildWonder', wonder }) as Action] : [])),
         ...movableShips(g, seat).map((from) => () => {
           const to = legalShipEdges({ ...g, ships: g.ships!.map((o, e) => (e === from ? null : o)) }, seat).filter((e) => e !== from);
           return to.length ? ({ type: 'moveShip', from, to: pick(to) } as Action) : null;
