@@ -46,3 +46,6 @@ Thumbs.db
 # Erklärvideos: Zwischenstände von demo-video
 /videos/**/try.png
 /videos/**/.try-cache.json
+
+# Lokale Schlüssel, z. B. OPENAI_API_KEY für scripts/openai-batch-images.mjs
+.env.local

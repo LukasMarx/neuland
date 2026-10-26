@@ -1,0 +1,38 @@
+{
+  "model": "gpt-image-2.5-flare",
+  "size": "1024x1024",
+  "quality": "medium",
+  "style": "Use case: stylized-concept. Create one production game asset for Neuland. Input images are STYLE REFERENCES only. Tactile cut-paper collage, layered handmade paper, visible subtle fibers, warm cream highlights, soft dimensional shading within the subject, light from upper left. Match the reference's craft quality and the steep overhead board view of about 75 degrees. No text, letters, numbers, logos, watermark or cast shadow outside the subject. Genuine transparent background including all outside corners and silhouette gaps. Complete subject, not cropped. Square canvas. One isolated centered motif, about 85% occupancy, generous fully transparent margin on all sides. No scene backdrop, no ground disc, no frame or plaque. Simplify silhouette and small details for readability.",
+  "assets": [
+    {
+      "name": "fortress",
+      "path": "public/pieces/papiercollage/fortress.png",
+      "references": ["public/pieces/papiercollage-organic-v2/settlement-red.png", "public/pieces/papiercollage/wall.png"],
+      "prompt": "Subject: ONE small privateer stronghold game piece: a squat round grey stone keep with crenellated top, a heavy dark wooden gate and a short stone curtain wall around it, built on a tiny rocky outcrop. Neutral grey stones and dark wood only, no flags, no banners, no colored roofs (the player color is added by the game). Chunky silhouette, legible at 40px."
+    },
+    {
+      "name": "village",
+      "path": "public/pieces/papiercollage/village.png",
+      "references": ["public/pieces/papiercollage-organic-v2/settlement-red.png"],
+      "prompt": "Subject: ONE tiny weavers' hamlet game piece: two small cottages with thatched straw roofs, a little wooden loom shed and a few stacked bolts of dyed purple and cream cloth. Neutral warm straw and wood colors, the cloth bolts are the only strong color. Compact cluster, legible at 36px."
+    },
+    {
+      "name": "tribe-hut",
+      "path": "public/pieces/papiercollage/tribe-hut.png",
+      "references": ["public/pieces/papiercollage-organic-v2/settlement-red.png"],
+      "prompt": "Subject: ONE small cluster of two round reed huts with conical palm-leaf roofs and a tiny totem pole beside them, belonging to an unknown island people. Earthy ochre, straw and dark brown paper, no players' colors. Compact, legible at 36px."
+    },
+    {
+      "name": "oasis",
+      "path": "public/pieces/papiercollage/oasis.png",
+      "references": ["public/pieces/papiercollage-organic-v2/settlement-red.png", "public/pieces/papiercollage/robber.png"],
+      "prompt": "Subject: ONE small desert oasis marker: a tiny round turquoise pool ringed by sand-colored stones with two green date palms leaning over it. Compact, legible at 40px."
+    },
+    {
+      "name": "camel",
+      "path": "public/pieces/papiercollage/camel.png",
+      "references": ["public/pieces/papiercollage/robber.png", "public/pieces/papiercollage-organic-v2/settlement-red.png"],
+      "prompt": "Subject: ONE friendly one-humped camel game figure seen from the steep overhead board view, body pointing to the right, carrying a small saddle with two cream cargo bundles. Warm sandy tan and cream paper, a little dark brown for hooves and harness. Simple chunky silhouette legible at 28px, no base disc."
+    }
+  ]
+}

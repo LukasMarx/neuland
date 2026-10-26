@@ -448,21 +448,21 @@
         }
         @if (myHarbors(); as harbors) {
           <button [disabled]="!harbors.length || !isCurrent() || game.phase.kind !== 'main'" [class.selected]="buildMode() === 'harbor'" [title]="harbors.length ? 'Geschenkten Hafen an eine eigene Küstensiedlung legen' : 'Häfen schenken dir die Verschollenen, wenn dein Schiff an ihre Küste kommt'" (click)="toggleBuild('harbor')">
-            <span class="figure scenario" aria-hidden="true">⚓</span>
+            <span class="figure"><img src="web/banner/papiercollage/anchor.png" alt="" /></span>
             <span class="label">Hafen</span>
             <span class="cost text">{{ harbors.length ? harbors.length + ' zu setzen' : 'keiner' }}</span>
           </button>
         }
         @if (myFortress(); as fort) {
           <button [disabled]="fort.attack === null" [title]="fort.walls ? 'Eigene Festung angreifen: Würfel plus Kriegsschiffe gegen einen Würfel. Einmal pro Zug, ein Schiff muss an der Festung liegen.' : 'Deine Festung ist erobert'" (click)="attackFortress()">
-            <span class="figure scenario" aria-hidden="true">🏰</span>
+            <span class="figure"><img src="web/pieces/papiercollage/fortress.png" alt="" /></span>
             <span class="label">Festung</span>
             <span class="cost text">{{ fort.walls ? (fort.walls === 1 ? '1 Mauer' : fort.walls + ' Mauern') + ' · ' + (fort.warships === 1 ? '1 Kriegsschiff' : fort.warships + ' Kriegsschiffe') : 'erobert' }}</span>
           </button>
         }
         @if (wonderRows()) {
           <button [class.selected]="dialog()?.kind === 'wonders'" title="Großbauten: Bauwerk beginnen oder weiterbauen" (click)="dialog.set({ kind: 'wonders' })">
-            <span class="figure scenario" aria-hidden="true">🏛</span>
+            <span class="figure"><img src="web/banner/papiercollage/lighthouse.png" alt="" /></span>
             <span class="label">Bauwerke</span>
             <span class="cost text">4 Stufen</span>
           </button>

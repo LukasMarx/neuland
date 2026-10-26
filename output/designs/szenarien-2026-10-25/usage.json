@@ -1,0 +1,67 @@
+{
+  "fortress": {
+    "input_tokens": 2308,
+    "input_tokens_details": {
+      "image_tokens": 2048,
+      "text_tokens": 260
+    },
+    "output_tokens": 439,
+    "output_tokens_details": {
+      "image_tokens": 439,
+      "text_tokens": 0
+    },
+    "total_tokens": 2747
+  },
+  "village": {
+    "input_tokens": 1255,
+    "input_tokens_details": {
+      "image_tokens": 1024,
+      "text_tokens": 231
+    },
+    "output_tokens": 439,
+    "output_tokens_details": {
+      "image_tokens": 439,
+      "text_tokens": 0
+    },
+    "total_tokens": 1694
+  },
+  "tribe-hut": {
+    "input_tokens": 1249,
+    "input_tokens_details": {
+      "image_tokens": 1024,
+      "text_tokens": 225
+    },
+    "output_tokens": 439,
+    "output_tokens_details": {
+      "image_tokens": 439,
+      "text_tokens": 0
+    },
+    "total_tokens": 1688
+  },
+  "oasis": {
+    "input_tokens": 2262,
+    "input_tokens_details": {
+      "image_tokens": 2048,
+      "text_tokens": 214
+    },
+    "output_tokens": 439,
+    "output_tokens_details": {
+      "image_tokens": 439,
+      "text_tokens": 0
+    },
+    "total_tokens": 2701
+  },
+  "camel": {
+    "input_tokens": 2290,
+    "input_tokens_details": {
+      "image_tokens": 2048,
+      "text_tokens": 242
+    },
+    "output_tokens": 439,
+    "output_tokens_details": {
+      "image_tokens": 439,
+      "text_tokens": 0
+    },
+    "total_tokens": 2729
+  }
+}

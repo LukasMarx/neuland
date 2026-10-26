@@ -737,13 +737,6 @@ kbd {
       width: 28px;
       height: 28px;
     }
-
-    // Seewege-Szenarien: Platzhalter-Symbole, bis es Papiercollage-Grafiken gibt.
-    &.scenario {
-      font-size: 22px;
-      line-height: 1;
-      filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.5));
-    }
   }
 
   .label {

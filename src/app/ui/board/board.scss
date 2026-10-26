@@ -847,43 +847,32 @@ text {
   }
 }
 
-// Seewege-Szenarien und Kamelzüge: Platzhalter, bis es Papiercollage-Grafiken gibt.
-.tribe-hut text,
-.oasis text,
-.camel text {
-  font-size: 18px;
-  text-anchor: middle;
-  dominant-baseline: middle;
-  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.55));
+// Seewege-Szenarien und Kamelzüge: Figuren der Szenarien.
+.tribe-hut,
+.oasis,
+.camel,
+.village,
+.fortress {
+  .piece-art {
+    filter: drop-shadow(0 1.5px 1.5px rgb(0 0 0 / 0.5));
+  }
+}
+
+.tribe-hut,
+.oasis,
+.camel {
   pointer-events: none;
 }
 
-.oasis text,
-.tribe-hut text {
-  font-size: 26px;
+// Das letzte Kamel jeder Karawane: dort zieht sie weiter.
+.camel.last .piece-art {
+  filter: drop-shadow(0 0 2px #f0c84a) drop-shadow(0 1.5px 1.5px rgb(0 0 0 / 0.5));
 }
 
 .tribe-shade {
   fill: #3b2a18;
-  fill-opacity: 0.32;
+  fill-opacity: 0.22;
   pointer-events: none;
-}
-
-.camel text {
-  font-size: 16px;
-}
-
-// Die Scheibe hebt das Kamel von Straße und Gelände ab; das letzte jeder Karawane ist hervorgehoben.
-.camel .camel-disc {
-  fill: #f4ead2;
-  stroke: #7a5b2e;
-  stroke-width: 1.5;
-  filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.5));
-}
-
-.camel.last .camel-disc {
-  stroke: #c48a12;
-  stroke-width: 2.5;
 }
 
 .pirate-route {
@@ -929,12 +918,6 @@ text {
 }
 
 .village {
-  .village-house {
-    fill: #c9a26b;
-    stroke: #4a3216;
-    stroke-width: 1.5;
-    filter: drop-shadow(0 1.5px 1.5px rgb(0 0 0 / 0.45));
-  }
 
   .village-token {
     fill: #f4ead2;
@@ -970,16 +953,7 @@ text {
 }
 
 .fortress {
-  .fortress-tower {
-    fill: #8a8d91;
-    stroke: #26303a;
-    stroke-width: 1.5;
-    filter: drop-shadow(0 1.5px 2px rgb(0 0 0 / 0.55));
-  }
 
-  .fortress-gate {
-    fill: #26303a;
-  }
 
   .fortress-pole {
     stroke: #26303a;

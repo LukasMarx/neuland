@@ -166,14 +166,14 @@
     <g class="tribe">
       <title>Bewohnte Insel: Hier siedelt niemand. Schiffe an ihrer Küste holen Geschenke ab.</title>
       <polygon class="tribe-shade" [attr.points]="t.points" />
-      <g class="tribe-hut" [attr.transform]="t.transform"><text y="2">🛖</text></g>
+      <g class="tribe-hut" [attr.transform]="t.transform"><image class="piece-art" href="web/pieces/papiercollage/tribe-hut.png" x="-22" y="-26" width="44" height="44" /></g>
     </g>
   }
 
   @if (oasis(); as o) {
     <g class="oasis" [attr.transform]="o.transform">
       <title>Oase: Von hier ziehen die Karawanen los.</title>
-      <text>🌴</text>
+      <image class="piece-art" href="web/pieces/papiercollage/oasis.png" x="-20" y="-24" width="40" height="40" />
     </g>
   }
 
@@ -227,12 +227,12 @@
   @for (v of villages(); track v.id) {
     <g class="village" [class.hit]="v.hit" [class.empty]="v.empty" [attr.transform]="v.transform">
       <title>{{ v.title }}</title>
-      <path class="village-house" d="M-9,6 L9,6 L9,-3 L0,-11 L-9,-3 Z" />
-      <circle class="village-token" cy="13" r="8" />
-      <text class="village-number" [class.red]="v.red" y="13">{{ v.number }}</text>
+      <image class="piece-art" href="web/pieces/papiercollage/village.png" x="-16" y="-20" width="32" height="32" />
+      <circle class="village-token" cy="14" r="7.5" />
+      <text class="village-number" [class.red]="v.red" y="14">{{ v.number }}</text>
       <g class="village-stock">
         @for (k of v.stock; track k) {
-          <rect [attr.x]="-11 + k * 4.6" y="-18" width="3.6" height="5" rx="1" />
+          <rect [attr.x]="-11 + k * 4.6" y="-25" width="3.6" height="5" rx="1" />
         }
       </g>
     </g>
@@ -275,8 +275,7 @@
   @for (c of camels(); track c.id) {
     <g class="camel" [class.last]="c.last" [attr.transform]="c.transform">
       <title>{{ c.title }}</title>
-      <circle class="camel-disc" r="12" />
-      <text y="1">🐪</text>
+      <image class="piece-art" href="web/pieces/papiercollage/camel.png" x="-15" y="-18" width="30" height="30" />
     </g>
   }
 
@@ -305,12 +304,11 @@
   @for (f of fortresses(); track f.id) {
     <g class="fortress" [attr.data-vertex]="f.id" [attr.transform]="f.transform" [style.--c]="f.color">
       <title>{{ f.title }}</title>
-      <path class="fortress-tower" d="M-13,10 L13,10 L13,-8 L9,-8 L9,-13 L5,-13 L5,-8 L2,-8 L2,-13 L-2,-13 L-2,-8 L-5,-8 L-5,-13 L-9,-13 L-9,-8 L-13,-8 Z" />
-      <path class="fortress-gate" d="M-4,10 L-4,3 Q0,-1 4,3 L4,10 Z" />
-      <line class="fortress-pole" x1="0" y1="-13" x2="0" y2="-25" />
-      <path class="fortress-flag" d="M0,-25 L11,-22 L0,-19 Z" />
-      <circle class="fortress-badge" cx="12" cy="8" r="6.5" />
-      <text class="fortress-walls" x="12" y="8.5">{{ f.walls }}</text>
+      <image class="piece-art" href="web/pieces/papiercollage/fortress.png" x="-19" y="-22" width="38" height="38" />
+      <line class="fortress-pole" x1="11" y1="-14" x2="11" y2="-28" />
+      <path class="fortress-flag" d="M11,-28 L22,-25 L11,-22 Z" />
+      <circle class="fortress-badge" cx="14" cy="11" r="6.5" />
+      <text class="fortress-walls" x="14" y="11.5">{{ f.walls }}</text>
     </g>
   }
 
